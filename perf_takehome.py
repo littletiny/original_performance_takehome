@@ -385,22 +385,40 @@ class KernelBuilder:
         k1v = vconst(4097)      # S1: a*4097 + c1
         c1v = vconst(c1)
         c2v = vconst(c2)
-        sh19v = vconst(19)
-        m33v = vconst(33)       # S3+S4 fused
         c34v = vconst((c3 + c4) % MOD32)
         m169v = vconst(33 * 512)
         c35v = vconst((c3 * 512) % MOD32)
-        m9v = vconst(9)         # S5: a*9 + c5
         c5v = vconst(c5)
         c6v = vconst(c6)
-        sh16v = vconst(16)
         onev = vconst(1)
-        twov = vconst(2)
-        negv = vconst((1 - forest_p) % MOD32)  # addr' = 2*addr + (1-forest_p) + bit
+        # derived constants: one valu op each (replacing const load +
+        # vbroadcast, so pure load savings at zero extra valu cost)
+        def vderive(op, a, b):
+            v = alloc(VLEN)
+            emit("valu", (op, v, a, b), [(a, VLEN), (b, VLEN)], [(v, VLEN)])
+            return v
+
+        def vmderive(a, b, c_):
+            v = alloc(VLEN)
+            emit("valu", ("multiply_add", v, a, b, c_),
+                 [(a, VLEN), (b, VLEN), (c_, VLEN)], [(v, VLEN)])
+            return v
+
+        twov = vderive("+", onev, onev)          # 2
+        gv2 = vderive("+", twov, onev)           # 3
+        gv3 = vmderive(gv2, twov, onev)          # 7
+        gv4 = vmderive(gv3, twov, onev)          # 15
+        sh16v = vderive("+", gv4, onev)          # 16
+        sh19v = vderive("+", sh16v, gv2)         # 19
+        m9v = vderive("+", gv3, twov)            # 9:  S5: a*9 + c5
+        m33v = vmderive(sh16v, twov, onev)       # 33: S3+S4 fused
+        forest_pv = vconst(forest_p)
+        negv = vderive("-", onev, forest_pv)  # addr' = 2*addr + (1-forest_p) + bit
         # gv[m] = 2^m - 1; linear-select cond for step k is cond_{k-1} ^ gv[tz(k)+1]
         # because k ^ (k-1) == 2^(tz(k)+1) - 1
-        gv = {m: (onev if m == 1 else vconst((1 << m) - 1)) for m in range(1, 5)}
-        basev = {d: vconst(forest_p + (1 << d) - 1) for d in (4, 5)}
+        gv = {1: onev, 2: gv2, 3: gv3, 4: gv4}
+        basev = {4: vderive("+", forest_pv, gv4),      # forest_p + 15
+                 5: vderive("+", forest_pv, vderive("+", gv4, sh16v))}  # +31
 
         # ---- node tables for shallow depths (contiguous in mem) ----
         # one shared staging buffer for the vloads (reused table by table)
@@ -422,11 +440,12 @@ class KernelBuilder:
                     b2 = sconst(forest_p + ntab - 1 + off)
                     emit("load", ("vload", stage + off, b2), [(b2, 1)], [(stage + off, VLEN)])
             tb[d] = []
+            c6tab = C6DEF and 0 < d <= 3  # deferred entries only reach d<=3
             for j in range(ntab):
                 v = alloc(VLEN)
-                src = stage + (j ^ (ntab - 1) if C6DEF and d > 0 else j)
+                src = stage + (j ^ (ntab - 1) if c6tab else j)
                 emit("valu", ("vbroadcast", v, src), [(src, 1)], [(v, VLEN)])
-                if C6DEF and d > 0:
+                if c6tab:
                     emit("valu", ("^", v, v, c6v), [(v, VLEN), (c6v, VLEN)],
                          [(v, VLEN)])
                 tb[d].append(v)
@@ -496,7 +515,15 @@ class KernelBuilder:
                 vsel(out_v, ct_v, out_v, tb[d][k])
 
         # ---- I/O address constants ----
-        vaddr = [sconst(inp_values_p + VLEN * k) for k in range(n_vec)]
+        # 5 const loads + a stride-32 alu chain instead of 32 const loads
+        vaddr = [alloc(1) for _ in range(n_vec)]
+        c32 = sconst(4 * VLEN)
+        for k in range(min(4, n_vec)):
+            emit("load", ("const", vaddr[k], inp_values_p + VLEN * k),
+                 [], [(vaddr[k], 1)])
+        for k in range(4, n_vec):
+            emit("alu", ("+", vaddr[k], vaddr[k - 4], c32),
+                 [(vaddr[k - 4], 1), (c32, 1)], [(vaddr[k], 1)], (0, 0))
 
         # Staggering: desynchronize vector groups by DELAY cycles so that at
         # any time different groups sit in different round types (share-round
@@ -505,9 +532,8 @@ class KernelBuilder:
         # g*DELAY increments (WAW tracking gives each group its own delay).
         GROUPS = CFG["GROUPS"]
         DELAY = CFG["DELAY"]
-        dummy = alloc(1)
-        zero_s = sconst(0)
-        emit("load", ("const", dummy, 0), [], [(dummy, 1)])
+        dummy = sconst(0)  # delay chain base (and zero const)
+        zero_s = dummy
         for g in range(GROUPS):
             if g > 0:
                 for _ in range(DELAY):
