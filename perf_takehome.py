@@ -53,9 +53,9 @@ CFG = {
     "C6DEF": True,      # defer the stage-6 xor of hash c6 across consecutive rounds
     "HSW": 6,           # rounds >= HSW use SCALAR_MOD2 instead
     "SCALAR_MOD2": 5,
-    "OFF_P": 1, "OFF_Q": 3,      # offload fraction P/Q for h < HSW
-    "OFF_P2": 1, "OFF_Q2": 5,    # offload fraction for h >= HSW
-    "RUSH": 0,          # fast-track this many vectors through all rounds first
+    "OFF_P": 3, "OFF_Q": 10,     # offload fraction P/Q for h < HSW
+    "OFF_P2": 2, "OFF_Q2": 9,    # offload fraction for h >= HSW
+    "RUSH": 2,          # fast-track this many vectors through all rounds first
     "RB": 40,           # rush priority bonus in the Kahn key
 }
 
