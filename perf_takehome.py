@@ -39,7 +39,7 @@ from problem import (
 
 CFG = {
     "SCALAR_MOD": 3,   # 1 in N offloadable vector ops -> scalar alu
-    "NG4": 4,          # first this many vectors gather at round 4 (rest blend)
+    "NG4": 6,          # first this many vectors gather at round 4 (rest blend)
     "NB15": 3,         # last this many vectors blend at round 15 (rest gather)
     "L1MADD": True,    # d=4 blend level-1 as valu madd (else flow vselect)
     "GROUPS": 1,       # split vectors into this many start-staggered groups
@@ -57,8 +57,8 @@ CFG = {
     "TREE": "tournament",  # "tournament" (bit & cond) or "linear" (cond xor chain)
     "HSW": 6,           # rounds >= HSW use SCALAR_MOD2 instead
     "SCALAR_MOD2": 5,
-    "OFF_P": 3, "OFF_Q": 10,     # offload fraction P/Q for h < HSW
-    "OFF_P2": 2, "OFF_Q2": 9,    # offload fraction for h >= HSW
+    "OFF_P": 1, "OFF_Q": 3,     # offload fraction P/Q for h < HSW
+    "OFF_P2": 1, "OFF_Q2": 3,   # offload fraction for h >= HSW
     "RUSH": 2,          # fast-track this many vectors through all rounds first
     "RB": 40,           # rush priority bonus in the Kahn key
 }
@@ -466,6 +466,23 @@ class KernelBuilder:
 
         C6DEF = CFG["C6DEF"]
 
+        # ---- round plan: depth sequence, c6-deferral and adjusted rounds ----
+        PREXOR = CFG["PREXOR"] and C6DEF and forest_height >= 7
+        dseq = []
+        dd = 0
+        for h in range(rounds):
+            dseq.append(dd)
+            dd = 0 if dd == forest_height else dd + 1
+
+        def adj_possible(r):
+            dr = dseq[r]
+            return dr <= 3 or (PREXOR and 4 <= dr <= 7)
+
+        # defer the S6 ^c6 iff the next round reads a c6-adjusted node
+        defer_r = [C6DEF and h < rounds - 1 and adj_possible(h + 1)
+                   for h in range(rounds)]
+        adj_r = [h > 0 and defer_r[h - 1] for h in range(rounds)]
+
         ops = []  # [engine, slot, ins[(base,len)], outs[(base,len)], tag(h,v)]
         vsize = []  # vid -> vreg size in words
         cur_tag = [0, 0]
@@ -520,21 +537,42 @@ class KernelBuilder:
                  [(a, VLEN), (b, VLEN), (c_, VLEN)], [(v, VLEN)])
             return v
 
+        def vgderive(op, a, b):
+            v = vnew()
+            emit("valu", (op, v, a, b), [(a, VLEN), (b, VLEN)], [(v, VLEN)])
+            return v
+
+        def vgmderive(a, b, c_):
+            v = vnew()
+            emit("valu", ("multiply_add", v, a, b, c_),
+                 [(a, VLEN), (b, VLEN), (c_, VLEN)], [(v, VLEN)])
+            return v
+
         twov = vderive("+", onev, onev)          # 2
-        gv2 = vderive("+", twov, onev)           # 3
-        gv3 = vmderive(gv2, twov, onev)          # 7
-        gv4 = vmderive(gv3, twov, onev)          # 15
+        # derive-only constants (dead after setup) go into vregs so the
+        # binder can reclaim their scratch
+        gv2 = vgderive("+", twov, onev)          # 3
+        gv3 = vgmderive(gv2, twov, onev)         # 7
+        gv4 = vmderive(gv3, twov, onev)          # 15 (main-loop: d=4 pbar->pos)
         sh16v = vderive("+", gv4, onev)          # 16
         sh19v = vderive("+", sh16v, gv2)         # 19
         m9v = vderive("+", gv3, twov)            # 9:  S5: a*9 + c5
         m33v = vmderive(sh16v, twov, onev)       # 33: S3+S4 fused
-        forest_pv = vconst(forest_p)
+        forest_ps = sconst(forest_p)
+        forest_pv = vnew()
+        emit("valu", ("vbroadcast", forest_pv, forest_ps),
+             [(forest_ps, 1)], [(forest_pv, VLEN)])
         negv = vderive("-", onev, forest_pv)  # addr' = 2*addr + (1-forest_p) + bit
         # gv[m] = 2^m - 1; linear-select cond for step k is cond_{k-1} ^ gv[tz(k)+1]
         # because k ^ (k-1) == 2^(tz(k)+1) - 1
         gv = {1: onev, 2: gv2, 3: gv3, 4: gv4}
-        basev = {4: vderive("+", forest_pv, gv4),      # forest_p + 15
-                 5: vderive("+", forest_pv, vderive("+", gv4, sh16v))}  # +31
+        # raw depth-4/5 entry bases are only needed by rounds that are not
+        # c6-adjusted (none under PREXOR for the standard shape)
+        basev = {}
+        if any(not adj_r[h] and dseq[h] == 4 for h in range(rounds)):
+            basev[4] = vderive("+", forest_pv, gv4)          # forest_p + 15
+        if any(not adj_r[h] and dseq[h] == 5 for h in range(rounds)):
+            basev[5] = vderive("+", forest_pv, vderive("+", gv4, sh16v))  # +31
 
         # ---- node tables for shallow depths (contiguous in mem) ----
         # one shared staging buffer for the vloads (reused table by table)
@@ -593,7 +631,6 @@ class KernelBuilder:
         # adjusted rounds then read node^c6 directly and the S6 ^c6 vanishes.
         # sync[d] fake scratch edges order the pre-xor vstores before the
         # tail gathers (the dependency tracker only sees scratch, not mem).
-        PREXOR = CFG["PREXOR"] and C6DEF and forest_height >= 7
         sync = {}
         if PREXOR:
             base_d = {dd: extra_p + ((1 << dd) - 16) for dd in range(4, 8)}
@@ -692,8 +729,14 @@ class KernelBuilder:
             return out
 
         # tournament condition for level j is (p & 2^j): one flexable &
-        pow2v = {0: onev, 1: twov, 2: vderive("+", twov, twov)}
-        pow2v[3] = vderive("+", pow2v[2], pow2v[2])
+        # tournament condition fallback: (p & 2^j) extraction; with branch-bit
+        # reuse this only fires on non-adjusted rounds, so build lazily
+        pow2v = {0: onev, 1: twov}
+
+        def get_pow2v(j):
+            while j not in pow2v:
+                pow2v[j] = vderive("+", pow2v[j - 1], pow2v[j - 1])
+            return pow2v[j]
 
         def emit_tree(d, p, bits=None):
             """node = table_d[p] via a tournament: level j halves the
@@ -705,7 +748,7 @@ class KernelBuilder:
             if CFG["TREE"] == "linear" and d > 1:
                 return emit_tree_linear(d, p)
             if bits is None:
-                bits = [vop("&", p, pow2v[j]) for j in range(d)]
+                bits = [vop("&", p, get_pow2v(j)) for j in range(d)]
             if d == 1:
                 return vsel(tb[1][1], tb[1][0], bits[0])
             lev = tb[d]
@@ -718,17 +761,26 @@ class KernelBuilder:
                        for i in range(len(lev) // 2)]
             return lev[0]
 
-        # ---- I/O address constants ----
-        # 5 const loads + a stride-32 alu chain instead of 32 const loads
-        vaddr = [alloc(1) for _ in range(n_vec)]
+        # ---- I/O addresses ----
+        # consts + a stride-32 alu chain in scalar vregs; the chain is built
+        # once for the input vloads and rebuilt for the final vstores, so no
+        # static scratch is tied up across the whole program
         c32 = sconst(4 * VLEN)
-        for k in range(min(4, n_vec)):
-            emit("load", ("const", vaddr[k], inp_values_p + VLEN * k),
-                 [], [(vaddr[k], 1)])
-        for k in range(4, n_vec):
-            emit("alu", ("+", vaddr[k], vaddr[k - 4], c32),
-                 [(vaddr[k - 4], 1), (c32, 1)], [(vaddr[k], 1)])
 
+        def gen_vaddr():
+            va = []
+            for k in range(min(4, n_vec)):
+                s = vnew(1)
+                emit("load", ("const", s, inp_values_p + VLEN * k), [], [(s, 1)])
+                va.append(s)
+            for k in range(4, n_vec):
+                s = vnew(1)
+                emit("alu", ("+", s, va[k - 4], c32),
+                     [(va[k - 4], 1), (c32, 1)], [(s, 1)])
+                va.append(s)
+            return va
+
+        vaddr = gen_vaddr()
         val_v = []
         for k in range(n_vec):
             vv = vnew()
@@ -741,21 +793,6 @@ class KernelBuilder:
         # Under PREXOR, adjusted rounds (adj_r) read node^c6 from the mem
         # tail; p at d==4/d==5 entry is the bit-complemented pbar and the
         # tail address recurrence carries the complemented branch bit.
-        dseq = []
-        dd = 0
-        for h in range(rounds):
-            dseq.append(dd)
-            dd = 0 if dd == forest_height else dd + 1
-
-        def adj_possible(r):
-            dr = dseq[r]
-            return dr <= 3 or (PREXOR and 4 <= dr <= 7)
-
-        # defer the S6 ^c6 iff the next round reads a c6-adjusted node
-        defer_r = [C6DEF and h < rounds - 1 and adj_possible(h + 1)
-                   for h in range(rounds)]
-        adj_r = [h > 0 and defer_r[h - 1] for h in range(rounds)]
-
         p_v = [None] * n_vec
         bit_hist = [dict() for _ in range(n_vec)]  # round -> branch bit vreg
         for h in range(rounds):
@@ -836,6 +873,7 @@ class KernelBuilder:
 
         # ---- final stores ----
         cur_tag[:] = (rounds, 0)
+        vaddr = gen_vaddr()
         for k in range(n_vec):
             emit("store", ("vstore", vaddr[k], val_v[k]),
                  [(vaddr[k], 1), (val_v[k], VLEN)], [])
