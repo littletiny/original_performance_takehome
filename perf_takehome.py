@@ -38,7 +38,7 @@ from problem import (
 
 
 CFG = {
-    "SCALAR_MOD": 4,   # 1 in N offloadable vector ops -> scalar alu
+    "SCALAR_MOD": 3,   # 1 in N offloadable vector ops -> scalar alu
     "D4_FLOW": 0,      # of n_vec vectors per depth-4 round, this many use flow trees
     "GROUPS": 1,       # split vectors into this many start-staggered groups
     "DELAY": 0,        # cycles between group starts (fake alu chain)
@@ -51,6 +51,12 @@ CFG = {
     "KB": 1,            # serial SGS Kahn key: vector weight
     "KSEC": "h",        # serial SGS Kahn key: tie-break on "h" or "v"
     "C6DEF": True,      # defer the stage-6 xor of hash c6 across consecutive rounds
+    "HSW": 6,           # rounds >= HSW use SCALAR_MOD2 instead
+    "SCALAR_MOD2": 5,
+    "OFF_P": 1, "OFF_Q": 3,      # offload fraction P/Q for h < HSW
+    "OFF_P2": 1, "OFF_Q2": 5,    # offload fraction for h >= HSW
+    "RUSH": 0,          # fast-track this many vectors through all rounds first
+    "RB": 40,           # rush priority bonus in the Kahn key
 }
 
 
@@ -114,14 +120,19 @@ def schedule_ops_serial(ops):
         for p in preds_s[i] + preds_n[i]:
             succ[p].append(i)
         indeg[i] = len(preds_s[i]) + len(preds_n[i])
-    # Kahn topological order with key (h*KA + v*KB, secondary, emission index)
+    # Kahn topological order with key (h*KA + v*KB - RB*[v<RUSH], secondary, idx)
     KA, KB = CFG["KA"], CFG["KB"]
+    RUSH, RB = CFG["RUSH"], CFG["RB"]
     if CFG["KSEC"] == "h":
         sec = lambda i: ops[i][4][0]
     else:
         sec = lambda i: ops[i][4][1]
-    heap = [(ops[i][4][0] * KA + ops[i][4][1] * KB, sec(i), i)
-            for i in range(n) if indeg[i] == 0]
+
+    def pri(i):
+        h, v = ops[i][4]
+        return (h * KA + v * KB - (RB if v < RUSH else 0), sec(i), i)
+
+    heap = [pri(i) for i in range(n) if indeg[i] == 0]
     heapq.heapify(heap)
     order = []
     while heap:
@@ -130,8 +141,7 @@ def schedule_ops_serial(ops):
         for j in succ[i]:
             indeg[j] -= 1
             if indeg[j] == 0:
-                heapq.heappush(heap, (ops[j][4][0] * KA + ops[j][4][1] * KB,
-                                      sec(j), j))
+                heapq.heappush(heap, pri(j))
     place = [0] * n
     usage = {e: {} for e in SLOT_LIMITS if e != "debug"}
     for i in order:
@@ -461,11 +471,15 @@ class KernelBuilder:
 
         # ---- op emitters ----
         scalar_ctr = [0]
+        cur_h = [0]
 
         def vop(op, d, a, b, allow_scalar=True):
             if allow_scalar and op in ("^", ">>", "&", "+"):
+                # Bresenham offload: fraction P/Q of offloadable ops -> alu
+                P, Q = (CFG["OFF_P"], CFG["OFF_Q"]) if cur_h[0] < CFG["HSW"] \
+                    else (CFG["OFF_P2"], CFG["OFF_Q2"])
                 scalar_ctr[0] += 1
-                if scalar_ctr[0] % SCALAR_MOD == 0:
+                if (scalar_ctr[0] * P) // Q != ((scalar_ctr[0] - 1) * P) // Q:
                     for j in range(VLEN):
                         emit("alu", (op, d + j, a + j, b + j),
                              [(a + j, 1), (b + j, 1)], [(d + j, 1)])
@@ -551,6 +565,7 @@ class KernelBuilder:
         # vectors where a pool temp holds the addr for that round only.
         d = 0
         for h in range(rounds):
+            cur_h[0] = h
             last = h == rounds - 1
             nxt_d = 0 if d == forest_height else d + 1
             # defer the S6 ^c6 iff next round's node is a compile-time
