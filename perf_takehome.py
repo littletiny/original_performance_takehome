@@ -51,6 +51,7 @@ CFG = {
     "KB": 1,            # serial SGS Kahn key: vector weight
     "KSEC": "h",        # serial SGS Kahn key: tie-break on "h" or "v"
     "C6DEF": True,      # defer the stage-6 xor of hash c6 across consecutive rounds
+    "TREE": "tournament",  # "tournament" (bit & cond) or "linear" (cond xor chain)
     "HSW": 6,           # rounds >= HSW use SCALAR_MOD2 instead
     "SCALAR_MOD2": 5,
     "OFF_P": 3, "OFF_Q": 10,     # offload fraction P/Q for h < HSW
@@ -609,7 +610,7 @@ class KernelBuilder:
             a = vop("^", a, t)
             return a
 
-        def emit_tree(d, p):
+        def emit_tree_linear(d, p):
             """node = table_d[p] via a linear vselect scan on the flow
             engine: acc = (p==k) ? leaf_k : acc for k = 1..2^d-1.
             cond_k = p ^ k is a running xor chain: cond_k = cond_{k-1} ^
@@ -624,6 +625,26 @@ class KernelBuilder:
                 c = vop("^", c, gv[m])  # cond_k = cond_{k-1} ^ (k^(k-1))
                 out = vsel(out, tb[d][k], c)
             return out
+
+        # tournament condition for level j is (p & 2^j): one flexable &
+        pow2v = {0: onev, 1: twov, 2: vderive("+", twov, twov)}
+        pow2v[3] = vderive("+", pow2v[2], pow2v[2])
+
+        def emit_tree(d, p):
+            """node = table_d[p] via a tournament: level j halves the
+            candidates with vselect on (p & 2^j). d=3: 3 & + 7 vsel vs the
+            linear scan's 7 xor + 7 vsel; also log-depth dependency chains."""
+            if d == 1:
+                return vsel(tb[1][1], tb[1][0], p)
+            if CFG["TREE"] == "linear":
+                return emit_tree_linear(d, p)
+            bits = [vop("&", p, pow2v[j]) for j in range(d)]
+            lev = tb[d]
+            for j in range(d):
+                bj = bits[j]
+                lev = [vsel(lev[2 * i + 1], lev[2 * i], bj)
+                       for i in range(len(lev) // 2)]
+            return lev[0]
 
         # ---- I/O address constants ----
         # 5 const loads + a stride-32 alu chain instead of 32 const loads
