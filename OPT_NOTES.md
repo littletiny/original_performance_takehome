@@ -6,13 +6,23 @@
 > 约束:不改 `tests/`;正确性由 `tests/submission_tests.py` 验证(也打印 CYCLES
 > 和各档阈值 1363/1487/1548/1579/1790)。环境用 `python3`。
 
-## 当前状态(2026-09-14)
+## 当前状态(2026-09-15)
 
-- **已验证最好成绩:1185 cycles,正确**。配置:SCHED="serial", D4_FLOW=0,
-  KA=2, KB=1, SCALAR_MOD=4, C6DEF=False。
-- **当前进行中:C6DEF(c6 递延)debug**。round 1 结果错误,尚未修复。
-  见下方「C6DEF 设计」。
-- 备份:`/tmp/perf_takehome_backup_1964.py`(老的 1964 版,已过时)。
+- **M0 已提交(c89f806):vreg 重写 + 调度后 linear-scan 绑定,1160 cycles**。
+  SSA 式 value threading,假依赖全消;static scratch 1392→367,vreg peak 1079。
+- **M1 已提交:tournament blend(d<=3),1151 cycles**。条件 (p & 2^j) 单 flex &;
+  d=3: 3&+7vsel vs 线性 7xor+7vsel。valu 6456→6222, alu 10492→9820。
+- **M2 已提交:pre-xor d4..7 节点到 inp_indices 内存区,1169 cycles**(正确)。
+  - ⚠️ **重大事实**:`build_mem_image` 的 extra_room 是假象——
+    `mem[inp_values_p:] = inp.values` 切片赋值把尾部截掉了,mem 恰好 2566 字,
+    **没有尾部空间**。改用 inp_indices 区 [2054,2310) 做可写 scratch mem
+    (kernel 从不读 indices;Machine 跑在 copy 上,reference 看原 mem;只查 inp_values)。
+  - 自然序存储(无需 lane 反转),base_d = 2054 + 2^d - 16;
+    尾地址递推 addr' = 2a + (17-E) - bit_sp(c6 奇数→分支位取反,吸收进递推);
+    round4/5 入口 pbar→pos 一个 xor;round7 出口转回 raw d=8 地址。
+  - defer 集合扩到 {0..6, 10..14};store→load 用 sync[d] 假 scratch 边排序。
+  - slot: valu 6218, alu 9424, load 2147(1074c,现为约束引擎), store 62, flow 704。
+- 工具:`/tmp/slots.py` 各引擎 slot 统计(适配新 schedule_ops_serial 返回签名)。
 
 ## 机器语义(problem.py)
 

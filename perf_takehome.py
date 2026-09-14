@@ -39,7 +39,9 @@ from problem import (
 
 CFG = {
     "SCALAR_MOD": 3,   # 1 in N offloadable vector ops -> scalar alu
-    "D4_FLOW": 0,      # of n_vec vectors per depth-4 round, this many use flow trees
+    "NG4": 4,          # first this many vectors gather at round 4 (rest blend)
+    "NB15": 3,         # last this many vectors blend at round 15 (rest gather)
+    "L1MADD": True,    # d=4 blend level-1 as valu madd (else flow vselect)
     "GROUPS": 1,       # split vectors into this many start-staggered groups
     "DELAY": 0,        # cycles between group starts (fake alu chain)
     "EA": 64,          # priority: eround = h*EA + v*EB
@@ -541,28 +543,41 @@ class KernelBuilder:
         # carried value is sp = val^c6 and the position is pbar = p^mask, so
         # the node xor sp^(node^c6) = val^node comes out right while the c6
         # xor of hash stage 6 is skipped entirely on those rounds.
-        stage = alloc(16)
-        maxtab = 4 if CFG["D4_FLOW"] > 0 else 3
+        BLEND4 = CFG["NG4"] < n_vec or CFG["NB15"] > 0
+        maxtab = 4 if BLEND4 else 3
         tb = {}
         for d in range(0, maxtab + 1):
             ntab = 1 << d
             base = sconst(forest_p + ntab - 1)
+            # vload each table block into a fresh vreg: dead right after the
+            # broadcasts, so the binder can reuse the space (no static staging)
+            blocks = []
             for off in range(0, ntab, VLEN):
                 if off == 0:
-                    emit("load", ("vload", stage, base), [(base, 1)], [(stage, VLEN)])
+                    sv = vnew()
+                    emit("load", ("vload", sv, base), [(base, 1)], [(sv, VLEN)])
                 else:
                     b2 = sconst(forest_p + ntab - 1 + off)
-                    emit("load", ("vload", stage + off, b2), [(b2, 1)], [(stage + off, VLEN)])
+                    sv = vnew()
+                    emit("load", ("vload", sv, b2), [(b2, 1)], [(sv, VLEN)])
+                blocks.append(sv)
             tb[d] = []
-            c6tab = C6DEF and 0 < d <= 3  # deferred entries only reach d<=3
+            c6tab = C6DEF and 0 < d  # deferred entries read node^c6, bar-indexed
             for j in range(ntab):
                 v = alloc(VLEN)
-                src = stage + (j ^ (ntab - 1) if c6tab else j)
+                lanej = j ^ (ntab - 1) if c6tab else j
+                src = lane(blocks[lanej // VLEN], lanej % VLEN)
                 emit("valu", ("vbroadcast", v, src), [(src, 1)], [(v, VLEN)])
                 if c6tab:
                     emit("valu", ("^", v, v, c6v), [(v, VLEN), (c6v, VLEN)],
                          [(v, VLEN)])
                 tb[d].append(v)
+        if BLEND4:
+            # static diffs for level-1 madd blends: sel = b0*(l - r) + r
+            dif4 = [vderive("-", tb[4][2 * i + 1], tb[4][2 * i])
+                    for i in range(8)]
+        else:
+            dif4 = None
         # root ^ c6 for deferred entries into depth-0 rounds (after wrap)
         rootc6v = alloc(VLEN)
         emit("valu", ("^", rootc6v, tb[0][0], c6v),
@@ -680,18 +695,25 @@ class KernelBuilder:
         pow2v = {0: onev, 1: twov, 2: vderive("+", twov, twov)}
         pow2v[3] = vderive("+", pow2v[2], pow2v[2])
 
-        def emit_tree(d, p):
+        def emit_tree(d, p, bits=None):
             """node = table_d[p] via a tournament: level j halves the
-            candidates with vselect on (p & 2^j). d=3: 3 & + 7 vsel vs the
-            linear scan's 7 xor + 7 vsel; also log-depth dependency chains."""
-            if d == 1:
-                return vsel(tb[1][1], tb[1][0], p)
-            if CFG["TREE"] == "linear":
+            candidates with vselect on bit j of p. The condition bits are
+            the branch bits produced by earlier rounds' p-updates (kept in
+            bit_hist), so no p & 2^j extraction is needed at all.
+            For d=4 the level-1 blends are valu madds over the static
+            diff table (sel = b0*(l-r)+r), keeping flow for levels 2-4."""
+            if CFG["TREE"] == "linear" and d > 1:
                 return emit_tree_linear(d, p)
-            bits = [vop("&", p, pow2v[j]) for j in range(d)]
+            if bits is None:
+                bits = [vop("&", p, pow2v[j]) for j in range(d)]
+            if d == 1:
+                return vsel(tb[1][1], tb[1][0], bits[0])
             lev = tb[d]
-            for j in range(d):
-                bj = bits[j]
+            if d == 4 and CFG["L1MADD"]:
+                b0 = bits[0]
+                lev = [vmadd(b0, dif4[i], lev[2 * i]) for i in range(8)]
+                bits = bits[1:]
+            for bj in bits:
                 lev = [vsel(lev[2 * i + 1], lev[2 * i], bj)
                        for i in range(len(lev) // 2)]
             return lev[0]
@@ -735,6 +757,7 @@ class KernelBuilder:
         adj_r = [h > 0 and defer_r[h - 1] for h in range(rounds)]
 
         p_v = [None] * n_vec
+        bit_hist = [dict() for _ in range(n_vec)]  # round -> branch bit vreg
         for h in range(rounds):
             cur_h[0] = h
             d = dseq[h]
@@ -747,8 +770,18 @@ class KernelBuilder:
                 p = p_v[v]
                 if d == 0:
                     a = vop("^", a, rootc6v if adj else tb[0][0])
-                elif d <= 3 or (d == 4 and v < CFG["D4_FLOW"]):
-                    a = vop("^", a, emit_tree(d, p))
+                elif d <= 3 or (d == 4 and adj and BLEND4 and
+                                (v >= CFG["NG4"] if not last
+                                 else v >= n_vec - CFG["NB15"])):
+                    # tournament conds are the branch bits computed by the
+                    # p-updates of the last d rounds (bar form, like the
+                    # c6-adjusted tables); no p & 2^j extraction needed
+                    bits = None
+                    if adj:
+                        bits = [bit_hist[v].get(h - 1 - j) for j in range(d)]
+                        if any(b is None for b in bits):
+                            bits = None
+                    a = vop("^", a, emit_tree(d, p, bits))
                 else:
                     if d == 4:
                         if adj:
@@ -773,29 +806,28 @@ class KernelBuilder:
                     a = vop("^", a, t)
                 a = emit_hash(a, defer)
                 if not last and d < forest_height:
+                    bit = vop("&", a, onev)  # branch bit (bar form when adj)
+                    bit_hist[v][h] = bit
                     if d == 0:
-                        p = vop("&", a, onev)  # p' = val & 1 (p == 0)
+                        p = bit  # p' = val & 1 (p == 0)
                     elif d <= 4:
                         if C6DEF and not defer and not PREXOR and d <= 3:
                             # leaving the deferred stretch: pbar -> true p
                             p = vop("^", p, gv[min(d, 4)])
-                        bit = vop("&", a, onev)  # p' = 2p + bit (position)
-                        p = vmadd(p, twov, bit)
+                        p = vmadd(p, twov, bit)  # p' = 2p + bit (position)
                     elif PREXOR and adj and d <= 6:
                         # tail recurrence: addr' = 2*addr + (17-E) - bit_sp
-                        bit = vop("&", a, onev)
                         p = vmadd(p, twov, k2v)
                         p = vop("-", p, bit, allow_scalar=False)
                     elif PREXOR and adj and d == 7:
                         # exit the tail: pos7 = addr - base_7 (already true),
                         # raw depth-8 addr = forest_p + 255 + 2*pos7 + bit
                         # (round d==7 is never deferred: bit is the true bit)
-                        bit = vop("&", a, onev)
                         q = vop("-", p, basev7tv, allow_scalar=False)
                         p = vmadd(q, twov, basev8v)
                         p = vop("+", p, bit, allow_scalar=False)
                     else:
-                        bit = vop("&", a, onev)  # addr' = 2a + (1-forest_p) + bit
+                        # addr' = 2a + (1-forest_p) + bit
                         p = vmadd(p, twov, negv)
                         p = vop("+", p, bit)
                 # d == forest_height: wrap to 0, nothing to emit
