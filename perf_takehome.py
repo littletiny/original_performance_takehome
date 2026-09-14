@@ -60,6 +60,94 @@ CFG = {
 }
 
 
+VA_BASE = 1 << 20
+
+
+class V(int):
+    """Virtual-register reference. Its int value is a unique virtual scratch
+    address (VA_BASE + vid*8 + lane_off) used for dependency tracking before
+    binding; after scheduling, each vid is bound to a real scratch base and
+    slots are materialized to plain ints."""
+
+    def __new__(cls, vid, off=0):
+        obj = int.__new__(cls, VA_BASE + vid * 8 + off)
+        obj.vid = vid
+        obj.off = off
+        return obj
+
+
+def bind_vregs(ops, opcycle, vsize, lo, hi=SCRATCH_SIZE):
+    """Post-schedule linear-scan binding of virtual registers to scratch
+    words in [lo, hi). A vreg's live interval is [first_write, last_use] in
+    scheduled cycles; intervals may touch (e <= s) because reads see
+    pre-cycle state and writes land at end of cycle. Returns vid -> base, or
+    None if it does not fit."""
+    import bisect
+
+    n = len(vsize)
+    first_w = [None] * n
+    last_u = [-1] * n
+    for i in range(len(ops)):
+        c = opcycle[i]
+        for base, ln in ops[i][3]:
+            if isinstance(base, V):
+                vid = base.vid
+                if first_w[vid] is None or c < first_w[vid]:
+                    first_w[vid] = c
+                if c > last_u[vid]:
+                    last_u[vid] = c
+        for base, ln in ops[i][2]:
+            if isinstance(base, V):
+                vid = base.vid
+                if c > last_u[vid]:
+                    last_u[vid] = c
+    for vid in range(n):
+        if first_w[vid] is None:
+            first_w[vid] = last_u[vid]  # never written: pin at its use
+    order = sorted(range(n), key=lambda v: (first_w[v], last_u[v], v))
+    segs = [(lo, hi)]  # free segments (start, end), sorted by start
+    active = []  # (end, base, size)
+    bindbase = [0] * n
+    for v in order:
+        s = first_w[v]
+        keep = []
+        for e, b0, sz in active:
+            if e <= s:
+                bisect.insort(segs, (b0, b0 + sz))
+            else:
+                keep.append((e, b0, sz))
+        active = keep
+        if len(segs) > 1:
+            merged = [list(segs[0])]
+            for a_, b_ in segs[1:]:
+                if a_ == merged[-1][1]:
+                    merged[-1][1] = b_
+                else:
+                    merged.append([a_, b_])
+            segs = [tuple(x) for x in merged]
+        sz = vsize[v]
+        bi = -1
+        for idx in range(len(segs)):
+            a_, b_ = segs[idx]
+            if b_ - a_ >= sz and (bi < 0 or b_ - a_ < segs[bi][1] - segs[bi][0]):
+                bi = idx
+        if bi < 0:
+            return None
+        a_, b_ = segs[bi]
+        if sz >= VLEN:
+            base = a_
+            rest = (a_ + sz, b_)
+        else:
+            base = b_ - sz
+            rest = (a_, b_ - sz)
+        segs.pop(bi)
+        if rest[0] < rest[1]:
+            bisect.insort(segs, rest)
+        bindbase[v] = base
+        active.append((last_u[v], base, sz))
+    return bindbase
+
+
 def build_dep_lists(ops):
     """Return (preds_strict, preds_nonstrict) predecessor index lists.
 
@@ -165,14 +253,18 @@ def schedule_ops_serial(ops):
     for i, c in enumerate(place):
         bundles[c].append(i)
     out = []
+    opcycle = [0] * n
+    cyc = -1
     for c in range(maxc + 1):
         if not bundles[c]:
             continue  # drop empty cycles (safe: only widens gaps)
+        cyc += 1
         bundle = {}
         for i in bundles[c]:
             bundle.setdefault(ops[i][0], []).append(ops[i][1])
+            opcycle[i] = cyc
         out.append(bundle)
-    return out
+    return out, opcycle
 
 
 def schedule_ops(ops, stagger=0):
@@ -340,46 +432,50 @@ class KernelBuilder:
         Techniques:
         - hash affine stages folded into single multiply_adds; S3+S4 fused into
           two madds + one xor (exact mod 2^32 arithmetic).
-        - shallow tree depths resolve node values with vselect trees over the
+        - shallow tree depths resolve node values with vselect scans over the
           level table on the otherwise idle flow engine instead of one scalar
           load per element; deep levels gather via scalar loads.
-        - per-vector dedicated temp block (TT): no false WAW/WAR sharing between
-          the 256 independent element chains, so the scheduler can keep all
-          engines full; gather addresses come from a small FIFO temp pool.
+        - values are emitted into virtual registers (SSA-style, fresh vreg per
+          write); after scheduling, a linear-scan binder packs live intervals
+          into SCRATCH_SIZE. This removes all false WAW/WAR sharing between
+          the 256 independent element chains.
         - index math: position p with p' = 2p + (val&1) via one madd; inside
           the deep-load stretch the address is kept directly:
           addr' = 2*addr + (1-forest_p) + bit. Wrap is unconditional at
           depth == forest_height (p' = 0, nothing emitted).
         - a fraction of xor/shift/& ops are emitted as scalar alu ops to use
           the alu engine alongside valu.
-        - vselect conditionals use (p & 2^j) directly (cond is != 0), so bit
-          extraction is a single & per level.
         """
         assert batch_size % VLEN == 0
         n_vec = batch_size // VLEN
         forest_p = 7
         inp_indices_p = forest_p + n_nodes
         inp_values_p = inp_indices_p + batch_size
+        extra_p = inp_values_p + batch_size  # mem[7]: writable tail room
         MOD32 = 2**32
 
-        # knobs
-        SCALAR_MOD = CFG["SCALAR_MOD"]
-        D4_FLOW = CFG["D4_FLOW"]
         C6DEF = CFG["C6DEF"]
-        STAGGER = 0
 
         ops = []  # [engine, slot, ins[(base,len)], outs[(base,len)], tag(h,v)]
+        vsize = []  # vid -> vreg size in words
+        cur_tag = [0, 0]
+        cur_h = [0]
 
-        def emit(engine, slot, ins, outs, tag=(0, 0)):
-            ops.append([engine, slot, ins, outs, tag])
+        def emit(engine, slot, ins, outs):
+            ops.append([engine, slot, ins, outs, tuple(cur_tag)])
+
+        def vnew(n=VLEN):
+            vid = len(vsize)
+            vsize.append(n)
+            return V(vid)
 
         def alloc(n):
             return self.alloc_scratch(None, n)
 
-        vals = alloc(batch_size)  # current values (8 lanes per vector)
-        pp = alloc(batch_size)  # positions in tree level
-        TT = alloc(batch_size)  # dedicated temp per vector (node / hash temp / bit)
+        def lane(x, j):
+            return V(x.vid, x.off + j) if isinstance(x, V) else x + j
 
+        # ---- constants (static scratch) ----
         def sconst(val):
             s = alloc(1)
             emit("load", ("const", s, val), [], [(s, 1)])
@@ -438,7 +534,7 @@ class KernelBuilder:
         # the node xor sp^(node^c6) = val^node comes out right while the c6
         # xor of hash stage 6 is skipped entirely on those rounds.
         stage = alloc(16)
-        maxtab = 4 if D4_FLOW > 0 else 3
+        maxtab = 4 if CFG["D4_FLOW"] > 0 else 3
         tb = {}
         for d in range(0, maxtab + 1):
             ntab = 1 << d
@@ -464,16 +560,11 @@ class KernelBuilder:
         emit("valu", ("^", rootc6v, tb[0][0], c6v),
              [(tb[0][0], VLEN), (c6v, VLEN)], [(rootc6v, VLEN)])
 
-        # ---- per-vector dedicated cond temp (select condition / gather     ----
-        # ---- address). Chain-local like TT: no cross-vector sharing, so   ----
-        # ---- the 32 element chains stay independent.                      ----
-        CT = alloc(batch_size)
-
-        # ---- op emitters ----
+        # ---- op emitters (virtual registers, value-threaded) ----
         scalar_ctr = [0]
-        cur_h = [0]
 
-        def vop(op, d, a, b, allow_scalar=True):
+        def vop(op, a, b, allow_scalar=True):
+            d = vnew()
             if allow_scalar and op in ("^", ">>", "&", "+"):
                 # Bresenham offload: fraction P/Q of offloadable ops -> alu
                 P, Q = (CFG["OFF_P"], CFG["OFF_Q"]) if cur_h[0] < CFG["HSW"] \
@@ -481,52 +572,58 @@ class KernelBuilder:
                 scalar_ctr[0] += 1
                 if (scalar_ctr[0] * P) // Q != ((scalar_ctr[0] - 1) * P) // Q:
                     for j in range(VLEN):
-                        emit("alu", (op, d + j, a + j, b + j),
-                             [(a + j, 1), (b + j, 1)], [(d + j, 1)])
-                    return
+                        emit("alu", (op, lane(d, j), lane(a, j), lane(b, j)),
+                             [(lane(a, j), 1), (lane(b, j), 1)],
+                             [(lane(d, j), 1)])
+                    return d
             emit("valu", (op, d, a, b), [(a, VLEN), (b, VLEN)], [(d, VLEN)])
+            return d
 
-        def vmadd(d, a, b, c_):
+        def vmadd(a, b, c_):
+            d = vnew()
             emit("valu", ("multiply_add", d, a, b, c_),
                  [(a, VLEN), (b, VLEN), (c_, VLEN)], [(d, VLEN)])
+            return d
 
-        def vsel(d, cond, a, b):
-            emit("flow", ("vselect", d, cond, a, b),
-                 [(cond, VLEN), (a, VLEN), (b, VLEN)], [(d, VLEN)])
+        def vsel(a, b, c):
+            d = vnew()
+            emit("flow", ("vselect", d, c, a, b),
+                 [(c, VLEN), (a, VLEN), (b, VLEN)], [(d, VLEN)])
+            return d
 
-        def emit_hash(a, t, defer=False):
-            # a ^= node already done; 6-stage hash in 11 vector ops, one temp.
+        def emit_hash(a, defer=False):
+            # a ^= node already done; 6-stage hash in 11 vector ops.
             # defer=True skips S6's ^c6: the carried value stays val^c6 and
             # the next round's node xor absorbs c6 via the tables (C6DEF).
-            vmadd(a, a, k1v, c1v)      # S1
-            vop(">>", t, a, sh19v)     # S2
-            vop("^", a, a, c2v)
-            vop("^", a, a, t)
-            vmadd(t, a, m33v, c34v)    # S3+S4
-            vmadd(a, a, m169v, c35v)
-            vop("^", a, a, t)
-            vmadd(a, a, m9v, c5v)      # S5
-            vop(">>", t, a, sh16v)     # S6
+            a = vmadd(a, k1v, c1v)     # S1
+            t = vop(">>", a, sh19v)    # S2
+            a = vop("^", a, c2v)
+            a = vop("^", a, t)
+            t = vmadd(a, m33v, c34v)   # S3+S4
+            a = vmadd(a, m169v, c35v)
+            a = vop("^", a, t)
+            a = vmadd(a, m9v, c5v)     # S5
+            t = vop(">>", a, sh16v)    # S6
             if not defer:
-                vop("^", a, a, c6v)
-            vop("^", a, a, t)
+                a = vop("^", a, c6v)
+            a = vop("^", a, t)
+            return a
 
-        def emit_tree(d, p_v, out_v, ct_v):
-            """out_v[i] = table_d[p_v[i]] via a linear vselect scan on the
-            flow engine: acc = (p==k) ? leaf_k : acc for k = 1..2^d-1.
-            cond_k = p ^ k is computed as a running xor chain:
-            cond_k = cond_{k-1} ^ (k ^ (k-1)), and k^(k-1) == 2^(tz(k)+1)-1,
-            so only the four constants gv[1..4] = 1,3,7,15 are needed.
-            Uses only per-vector dedicated temps -> chains stay independent."""
+        def emit_tree(d, p):
+            """node = table_d[p] via a linear vselect scan on the flow
+            engine: acc = (p==k) ? leaf_k : acc for k = 1..2^d-1.
+            cond_k = p ^ k is a running xor chain: cond_k = cond_{k-1} ^
+            (k ^ (k-1)), and k^(k-1) == 2^(tz(k)+1)-1, so only the four
+            constants gv[1..4] = 1,3,7,15 are needed."""
             if d == 1:
-                vsel(out_v, p_v, tb[1][1], tb[1][0])
-                return
-            vop("^", ct_v, p_v, onev)  # cond_1 = p ^ 1
-            vsel(out_v, ct_v, tb[d][0], tb[d][1])
+                return vsel(tb[1][1], tb[1][0], p)
+            c = vop("^", p, onev)  # cond_1 = p ^ 1
+            out = vsel(tb[d][0], tb[d][1], c)
             for k in range(2, 1 << d):
                 m = (k & -k).bit_length()  # tz(k) + 1
-                vop("^", ct_v, ct_v, gv[m])  # cond_k = cond_{k-1} ^ (k^(k-1))
-                vsel(out_v, ct_v, out_v, tb[d][k])
+                c = vop("^", c, gv[m])  # cond_k = cond_{k-1} ^ (k^(k-1))
+                out = vsel(out, tb[d][k], c)
+            return out
 
         # ---- I/O address constants ----
         # 5 const loads + a stride-32 alu chain instead of 32 const loads
@@ -537,32 +634,20 @@ class KernelBuilder:
                  [], [(vaddr[k], 1)])
         for k in range(4, n_vec):
             emit("alu", ("+", vaddr[k], vaddr[k - 4], c32),
-                 [(vaddr[k - 4], 1), (c32, 1)], [(vaddr[k], 1)], (0, 0))
+                 [(vaddr[k - 4], 1), (c32, 1)], [(vaddr[k], 1)])
 
-        # Staggering: desynchronize vector groups by DELAY cycles so that at
-        # any time different groups sit in different round types (share-round
-        # flow work overlaps gather-round load work). A serial dummy alu chain
-        # provides the delay; group g's initial vloads read the chain after
-        # g*DELAY increments (WAW tracking gives each group its own delay).
-        GROUPS = CFG["GROUPS"]
-        DELAY = CFG["DELAY"]
-        dummy = sconst(0)  # delay chain base (and zero const)
-        zero_s = dummy
-        for g in range(GROUPS):
-            if g > 0:
-                for _ in range(DELAY):
-                    emit("alu", ("+", dummy, dummy, zero_s),
-                         [(dummy, 1), (zero_s, 1)], [(dummy, 1)], (0, 0))
-            for k in range(g * n_vec // GROUPS, (g + 1) * n_vec // GROUPS):
-                deps = [(vaddr[k], 1)] + ([(dummy, 1)] if g > 0 else [])
-                emit("load", ("vload", vals + VLEN * k, vaddr[k]),
-                     deps, [(vals + VLEN * k, VLEN)], (0, 0))
+        val_v = []
+        for k in range(n_vec):
+            vv = vnew()
+            emit("load", ("vload", vv, vaddr[k]), [(vaddr[k], 1)], [(vv, VLEN)])
+            val_v.append(vv)
 
         # ---- main loop ----
-        # invariant: at share rounds (d <= 4) pp holds the position p; during
-        # the deep-load stretch (d >= 5) pp holds the gather address directly
-        # (addr' = 2*addr + (1 - forest_p) + bit), except at the d==4 load
-        # vectors where a pool temp holds the addr for that round only.
+        # invariant: at share rounds (d <= 4) p holds the position; during
+        # the deep-load stretch (d >= 5) p holds the gather address directly
+        # (addr' = 2*addr + (1 - forest_p) + bit), except at d==4 where a
+        # fresh temp holds the addr for that round only.
+        p_v = [None] * n_vec
         d = 0
         for h in range(rounds):
             cur_h[0] = h
@@ -572,61 +657,63 @@ class KernelBuilder:
             # constant (a depth<=3 tree leaf, or the root after a wrap)
             defer = C6DEF and (not last) and nxt_d <= 3
             for v in range(n_vec):
-                a = vals + VLEN * v
-                p_v = pp + VLEN * v
-                t = TT + VLEN * v
-                _emit = emit
-                tag = (h, v)
-                def emit(engine, slot, ins, outs, _tag=tag, _emit=_emit):
-                    _emit(engine, slot, ins, outs, _tag)
+                cur_tag[:] = (h, v)
+                a = val_v[v]
+                p = p_v[v]
                 if d == 0:
-                    vop("^", a, a, rootc6v if (C6DEF and h) else tb[0][0])
-                elif d <= 3 or (d == 4 and v < D4_FLOW):
-                    emit_tree(d, p_v, t, CT + VLEN * v)  # node -> t
-                    vop("^", a, a, t)
+                    a = vop("^", a, rootc6v if (C6DEF and h) else tb[0][0])
+                elif d <= 3 or (d == 4 and v < CFG["D4_FLOW"]):
+                    a = vop("^", a, emit_tree(d, p))
                 else:
                     if d == 4:
-                        # p_v still needed for the p update; use the dedicated
-                        # cond temp as addr scratch for this round only
-                        u = CT + VLEN * v
-                        vop("+", u, p_v, basev[4], allow_scalar=False)
+                        u = vop("+", p, basev[4], allow_scalar=False)
                     elif d == 5:
-                        vop("+", p_v, p_v, basev[5], allow_scalar=False)
-                        u = p_v
+                        p = vop("+", p, basev[5], allow_scalar=False)
+                        u = p
                     else:
-                        u = p_v  # pp already holds the gather address
+                        u = p  # p already holds the gather address
+                    t = vnew()
                     for j in range(VLEN):
-                        emit("load", ("load", t + j, u + j),
-                             [(u + j, 1)], [(t + j, 1)])
-                    vop("^", a, a, t)
-                emit_hash(a, t, defer)
+                        emit("load", ("load", lane(t, j), lane(u, j)),
+                             [(lane(u, j), 1)], [(lane(t, j), 1)])
+                    a = vop("^", a, t)
+                a = emit_hash(a, defer)
                 if not last and d < forest_height:
                     if d == 0:
-                        vop("&", p_v, a, onev)  # p' = val & 1 (p == 0)
+                        p = vop("&", a, onev)  # p' = val & 1 (p == 0)
                     elif d <= 4:
                         if C6DEF and not defer and d <= 3:
                             # leaving the deferred stretch: pbar -> true p
-                            vop("^", p_v, p_v, gv[min(d, 4)])
-                        vop("&", t, a, onev)  # p' = 2p + bit (position)
-                        vmadd(p_v, p_v, twov, t)
+                            p = vop("^", p, gv[min(d, 4)])
+                        bit = vop("&", a, onev)  # p' = 2p + bit (position)
+                        p = vmadd(p, twov, bit)
                         # d==5 entry adds basev[5] to turn position -> address
-                    elif d <= forest_height - 1:
-                        vop("&", t, a, onev)  # addr' = 2*addr + (1-forest_p) + bit
-                        vmadd(p_v, p_v, twov, negv)
-                        vop("+", p_v, p_v, t)
+                    else:
+                        bit = vop("&", a, onev)  # addr' = 2a + (1-forest_p) + bit
+                        p = vmadd(p, twov, negv)
+                        p = vop("+", p, bit)
                 # d == forest_height: wrap to 0, nothing to emit
+                val_v[v] = a
+                p_v[v] = p
             d = nxt_d
 
         # ---- final stores ----
+        cur_tag[:] = (rounds, 0)
         for k in range(n_vec):
-            emit("store", ("vstore", vaddr[k], vals + VLEN * k),
-                 [(vaddr[k], 1), (vals + VLEN * k, VLEN)], [])
+            emit("store", ("vstore", vaddr[k], val_v[k]),
+                 [(vaddr[k], 1), (val_v[k], VLEN)], [])
 
-        if CFG["SCHED"] == "serial":
-            bundles = schedule_ops_serial(ops)
-        else:
-            bundles = schedule_ops(ops, stagger=STAGGER)
-        self.instrs = [{"flow": [("pause",)]}] + bundles
+        bundles, opcycle = schedule_ops_serial(ops)
+        bindbase = bind_vregs(ops, opcycle, vsize, self.scratch_ptr)
+        assert bindbase is not None, "virtual registers do not fit in scratch"
+        self.vreg_peak = max(
+            bindbase[v] + vsize[v] for v in range(len(vsize)))
+        self.instrs = [{"flow": [("pause",)]}]
+        for bundle in bundles:
+            self.instrs.append({
+                eng: [tuple(int(bindbase[s.vid] + s.off) if isinstance(s, V)
+                            else s for s in slot) for slot in slots]
+                for eng, slots in bundle.items()})
 
     def build_kernel_baseline(
         self, forest_height: int, n_nodes: int, batch_size: int, rounds: int
