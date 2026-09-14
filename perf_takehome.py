@@ -634,9 +634,11 @@ class KernelBuilder:
         sync = {}
         if PREXOR:
             base_d = {dd: extra_p + ((1 << dd) - 16) for dd in range(4, 8)}
-            gv5v = vmderive(gv4, twov, onev)        # 31
-            basev4t = vconst(base_d[4])             # E
-            basev5t = vconst(base_d[5])             # E + 16
+            neg1v = vconst(MOD32 - 1)
+            # p < 2^d at these entries, so p ^ (2^d-1) == (2^d-1) - p and the
+            # xor+add entry folds into one multiply_add: base' + (-1)*p
+            basev4t = vconst(base_d[4] + 15)        # E + 15
+            basev5t = vconst(base_d[5] + 31)        # E + 47
             k2v = vconst((17 - extra_p) % MOD32)    # tail addr recurrence
             basev7tv = vconst(base_d[7])            # E + 112
             basev8v = vconst(forest_p + 255)        # raw depth-8 base
@@ -822,14 +824,12 @@ class KernelBuilder:
                 else:
                     if d == 4:
                         if adj:
-                            u = vop("+", vop("^", p, gv[4]), basev4t,
-                                    allow_scalar=False)
+                            u = vmadd(p, neg1v, basev4t)
                         else:
                             u = vop("+", p, basev[4], allow_scalar=False)
                     elif d == 5:
                         if adj:
-                            p = vop("+", vop("^", p, gv5v), basev5t,
-                                    allow_scalar=False)
+                            p = vmadd(p, neg1v, basev5t)
                         else:
                             p = vop("+", p, basev[5], allow_scalar=False)
                         u = p
