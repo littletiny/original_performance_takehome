@@ -562,12 +562,13 @@ class KernelBuilder:
                 if not last and d < forest_height:
                     if d == 0:
                         vop("&", p_v, a, onev)  # p' = val & 1 (p == 0)
-                    elif d <= 3:
-                        if C6DEF and not defer:
+                    elif d <= 4:
+                        if C6DEF and not defer and d <= 3:
                             # leaving the deferred stretch: pbar -> true p
                             vop("^", p_v, p_v, gv[min(d, 4)])
-                        vop("&", t, a, onev)  # p' = 2p + bit
+                        vop("&", t, a, onev)  # p' = 2p + bit (position)
                         vmadd(p_v, p_v, twov, t)
+                        # d==5 entry adds basev[5] to turn position -> address
                     elif d <= forest_height - 1:
                         vop("&", t, a, onev)  # addr' = 2*addr + (1-forest_p) + bit
                         vmadd(p_v, p_v, twov, negv)
