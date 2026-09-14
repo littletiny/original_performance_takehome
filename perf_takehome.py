@@ -51,6 +51,7 @@ CFG = {
     "KB": 1,            # serial SGS Kahn key: vector weight
     "KSEC": "h",        # serial SGS Kahn key: tie-break on "h" or "v"
     "C6DEF": True,      # defer the stage-6 xor of hash c6 across consecutive rounds
+    "PREXOR": True,     # pre-xor depth 4..7 nodes with c6 into the mem tail
     "TREE": "tournament",  # "tournament" (bit & cond) or "linear" (cond xor chain)
     "HSW": 6,           # rounds >= HSW use SCALAR_MOD2 instead
     "SCALAR_MOD2": 5,
@@ -452,7 +453,13 @@ class KernelBuilder:
         forest_p = 7
         inp_indices_p = forest_p + n_nodes
         inp_values_p = inp_indices_p + batch_size
-        extra_p = inp_values_p + batch_size  # mem[7]: writable tail room
+        # NOTE: build_mem_image's "extra_room" is truncated away by the slice
+        # assignment mem[inp_values_p:] = inp.values, so there is NO room
+        # past the input values. But the inp_indices region is never read by
+        # this kernel (all indices start at 0, statically known), the machine
+        # runs on its own copy of mem, and only inp_values is checked at the
+        # end: use it as 256 words of writable scratch memory.
+        extra_p = inp_indices_p
         MOD32 = 2**32
 
         C6DEF = CFG["C6DEF"]
@@ -561,6 +568,49 @@ class KernelBuilder:
         emit("valu", ("^", rootc6v, tb[0][0], c6v),
              [(tb[0][0], VLEN), (c6v, VLEN)], [(rootc6v, VLEN)])
 
+        # ---- pre-xor deep nodes (depth 4..7) into the writable mem tail ----
+        # tail[base_d + pos] = tree[2^d-1 + pos] ^ c6 in NATURAL order (no
+        # lane reversal needed). With c6 deferred through the gather rounds
+        # the carried value is sp = val^c6 whose branch bit is complemented
+        # (c6 is odd); that folds into the tail address recurrence:
+        #   addr' = 2*addr + (17 - extra_p) - bit_sp
+        # and into one pbar->pos xor at the d=4 / d=5 entries. Gathers on
+        # adjusted rounds then read node^c6 directly and the S6 ^c6 vanishes.
+        # sync[d] fake scratch edges order the pre-xor vstores before the
+        # tail gathers (the dependency tracker only sees scratch, not mem).
+        PREXOR = CFG["PREXOR"] and C6DEF and forest_height >= 7
+        sync = {}
+        if PREXOR:
+            base_d = {dd: extra_p + ((1 << dd) - 16) for dd in range(4, 8)}
+            gv5v = vmderive(gv4, twov, onev)        # 31
+            basev4t = vconst(base_d[4])             # E
+            basev5t = vconst(base_d[5])             # E + 16
+            k2v = vconst((17 - extra_p) % MOD32)    # tail addr recurrence
+            basev7tv = vconst(base_d[7])            # E + 112
+            basev8v = vconst(forest_p + 255)        # raw depth-8 base
+            c8s = sconst(VLEN)
+            for dd in range(4, 8):
+                sync[dd] = alloc(1)
+                saddr = sconst(forest_p + (1 << dd) - 1)
+                taddr = sconst(base_d[dd])
+                for off in range(0, 1 << dd, VLEN):
+                    if off:
+                        s2 = alloc(1)
+                        emit("alu", ("+", s2, saddr, c8s),
+                             [(saddr, 1), (c8s, 1)], [(s2, 1)])
+                        saddr = s2
+                        t2 = alloc(1)
+                        emit("alu", ("+", t2, taddr, c8s),
+                             [(taddr, 1), (c8s, 1)], [(t2, 1)])
+                        taddr = t2
+                    v = vnew()
+                    emit("load", ("vload", v, saddr), [(saddr, 1)], [(v, VLEN)])
+                    x = vnew()
+                    emit("valu", ("^", x, v, c6v),
+                         [(v, VLEN), (c6v, VLEN)], [(x, VLEN)])
+                    emit("store", ("vstore", taddr, x),
+                         [(taddr, 1), (x, VLEN)], [(sync[dd], 1)])
+
         # ---- op emitters (virtual registers, value-threaded) ----
         scalar_ctr = [0]
 
@@ -665,50 +715,85 @@ class KernelBuilder:
 
         # ---- main loop ----
         # invariant: at share rounds (d <= 4) p holds the position; during
-        # the deep-load stretch (d >= 5) p holds the gather address directly
-        # (addr' = 2*addr + (1 - forest_p) + bit), except at d==4 where a
-        # fresh temp holds the addr for that round only.
+        # the deep-load stretch (d >= 5) p holds the gather address directly.
+        # Under PREXOR, adjusted rounds (adj_r) read node^c6 from the mem
+        # tail; p at d==4/d==5 entry is the bit-complemented pbar and the
+        # tail address recurrence carries the complemented branch bit.
+        dseq = []
+        dd = 0
+        for h in range(rounds):
+            dseq.append(dd)
+            dd = 0 if dd == forest_height else dd + 1
+
+        def adj_possible(r):
+            dr = dseq[r]
+            return dr <= 3 or (PREXOR and 4 <= dr <= 7)
+
+        # defer the S6 ^c6 iff the next round reads a c6-adjusted node
+        defer_r = [C6DEF and h < rounds - 1 and adj_possible(h + 1)
+                   for h in range(rounds)]
+        adj_r = [h > 0 and defer_r[h - 1] for h in range(rounds)]
+
         p_v = [None] * n_vec
-        d = 0
         for h in range(rounds):
             cur_h[0] = h
+            d = dseq[h]
             last = h == rounds - 1
-            nxt_d = 0 if d == forest_height else d + 1
-            # defer the S6 ^c6 iff next round's node is a compile-time
-            # constant (a depth<=3 tree leaf, or the root after a wrap)
-            defer = C6DEF and (not last) and nxt_d <= 3
+            defer = defer_r[h]
+            adj = adj_r[h]
             for v in range(n_vec):
                 cur_tag[:] = (h, v)
                 a = val_v[v]
                 p = p_v[v]
                 if d == 0:
-                    a = vop("^", a, rootc6v if (C6DEF and h) else tb[0][0])
+                    a = vop("^", a, rootc6v if adj else tb[0][0])
                 elif d <= 3 or (d == 4 and v < CFG["D4_FLOW"]):
                     a = vop("^", a, emit_tree(d, p))
                 else:
                     if d == 4:
-                        u = vop("+", p, basev[4], allow_scalar=False)
+                        if adj:
+                            u = vop("+", vop("^", p, gv[4]), basev4t,
+                                    allow_scalar=False)
+                        else:
+                            u = vop("+", p, basev[4], allow_scalar=False)
                     elif d == 5:
-                        p = vop("+", p, basev[5], allow_scalar=False)
+                        if adj:
+                            p = vop("+", vop("^", p, gv5v), basev5t,
+                                    allow_scalar=False)
+                        else:
+                            p = vop("+", p, basev[5], allow_scalar=False)
                         u = p
                     else:
                         u = p  # p already holds the gather address
                     t = vnew()
+                    deps = [(sync[d], 1)] if (PREXOR and adj and d <= 7) else []
                     for j in range(VLEN):
                         emit("load", ("load", lane(t, j), lane(u, j)),
-                             [(lane(u, j), 1)], [(lane(t, j), 1)])
+                             [(lane(u, j), 1)] + deps, [(lane(t, j), 1)])
                     a = vop("^", a, t)
                 a = emit_hash(a, defer)
                 if not last and d < forest_height:
                     if d == 0:
                         p = vop("&", a, onev)  # p' = val & 1 (p == 0)
                     elif d <= 4:
-                        if C6DEF and not defer and d <= 3:
+                        if C6DEF and not defer and not PREXOR and d <= 3:
                             # leaving the deferred stretch: pbar -> true p
                             p = vop("^", p, gv[min(d, 4)])
                         bit = vop("&", a, onev)  # p' = 2p + bit (position)
                         p = vmadd(p, twov, bit)
-                        # d==5 entry adds basev[5] to turn position -> address
+                    elif PREXOR and adj and d <= 6:
+                        # tail recurrence: addr' = 2*addr + (17-E) - bit_sp
+                        bit = vop("&", a, onev)
+                        p = vmadd(p, twov, k2v)
+                        p = vop("-", p, bit, allow_scalar=False)
+                    elif PREXOR and adj and d == 7:
+                        # exit the tail: pos7 = addr - base_7 (already true),
+                        # raw depth-8 addr = forest_p + 255 + 2*pos7 + bit
+                        # (round d==7 is never deferred: bit is the true bit)
+                        bit = vop("&", a, onev)
+                        q = vop("-", p, basev7tv, allow_scalar=False)
+                        p = vmadd(q, twov, basev8v)
+                        p = vop("+", p, bit, allow_scalar=False)
                     else:
                         bit = vop("&", a, onev)  # addr' = 2a + (1-forest_p) + bit
                         p = vmadd(p, twov, negv)
@@ -716,7 +801,6 @@ class KernelBuilder:
                 # d == forest_height: wrap to 0, nothing to emit
                 val_v[v] = a
                 p_v[v] = p
-            d = nxt_d
 
         # ---- final stores ----
         cur_tag[:] = (rounds, 0)
