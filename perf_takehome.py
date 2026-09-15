@@ -74,6 +74,7 @@ CFG = {
     "L1MD2_Q": 5,       #   where flow supply dips at the round-10/11 wrap)
     "VB_ALU": 28,       # first this many broadcasts emitted as 8 alu copies
     "CONST_ALU": True,  # synthesize small scalar consts on alu (saves loads)
+    "HASHC_LD": True,   # const-load hash-stage vector consts (ramp critical)
 }
 
 
@@ -2017,10 +2018,19 @@ class KernelBuilder:
         gv2 = vgderive("+", twov, onev)          # 3
         gv3 = vgmderive(gv2, twov, onev)         # 7
         gv4 = vmderive(gv3, twov, onev)          # 15 (main-loop: d=4 pbar->pos)
-        sh16v = vderive("+", gv4, onev)          # 16
-        sh19v = vderive("+", sh16v, gv2)         # 19
-        m9v = vderive("+", gv3, twov)            # 9:  S5: a*9 + c5
-        m33v = vmderive(sh16v, twov, onev)       # 33: S3+S4 fused
+        if CFG["HASHC_LD"]:
+            # hash-stage consts on the group-0 ramp critical path: a const
+            # load + broadcast is ready by ~c3, the derived chain only by
+            # ~c8-10, pushing the first hash (and first flow op) back ~5c
+            sh16v = vconst(16)
+            sh19v = vconst(19)
+            m9v = vconst(9)              # S5: a*9 + c5
+            m33v = vconst(33)            # S3+S4 fused
+        else:
+            sh16v = vderive("+", gv4, onev)          # 16
+            sh19v = vderive("+", sh16v, gv2)         # 19
+            m9v = vderive("+", gv3, twov)            # 9:  S5: a*9 + c5
+            m33v = vmderive(sh16v, twov, onev)       # 33: S3+S4 fused
         forest_ps = sconst(forest_p)
         forest_pv = vnew()
         bcast_into(forest_pv, forest_ps)
@@ -2039,6 +2049,47 @@ class KernelBuilder:
             c8s = sconst(VLEN)           # 8
             c16s = sderive("+", c8s, c8s)  # 16
             c32s = sconst(4 * VLEN)        # 32
+
+        # ---- I/O addresses + input vloads, emitted FIRST so the list
+        # scheduler's index tie-break fast-tracks them: they gate the whole
+        # pipeline (a group's round-0 hash needs its input vload). one const
+        # + a +8 alu ramp to 4 base scalars, then a DEPTH-LOG offset tree:
+        # off[m] = 32m by doubling, and every remaining address is ONE
+        # parallel alu add va[4m+j] = va[j] + off[m]. A serial +32 chain
+        # instead puts ~2 cycles between links under early-alu saturation, so
+        # the last input vloads only land ~c40 and the whole gather wave (and
+        # the load-bound drain) pays for it. All 32 addresses are ready by
+        # ~c8. Rebuilt for the final vstores, so no static scratch is tied
+        # up across the whole program
+        def gen_vaddr():
+            va = [sconst(inp_values_p)]  # one const load: ramp-critical base
+            for k in range(1, min(4, n_vec)):
+                s = vnew(1)
+                emit("alu", ("+", s, va[k - 1], c8s),
+                     [(va[k - 1], 1), (c8s, 1)], [(s, 1)])
+                va.append(s)
+            maxm = (n_vec - 1) // 4
+            offv = {1: c32s}
+            for m in range(2, maxm + 1):
+                a = offv[m >> 1]
+                b = offv[m - (m >> 1)]
+                s = vnew(1)
+                emit("alu", ("+", s, a, b), [(a, 1), (b, 1)], [(s, 1)])
+                offv[m] = s
+            for k in range(4, n_vec):
+                m, j = divmod(k, 4)
+                s = vnew(1)
+                emit("alu", ("+", s, va[j], offv[m]),
+                     [(va[j], 1), (offv[m], 1)], [(s, 1)])
+                va.append(s)
+            return va
+
+        vaddr = gen_vaddr()
+        val_v = []
+        for k in range(n_vec):
+            vv = vnew()
+            emit("load", ("vload", vv, vaddr[k]), [(vaddr[k], 1)], [(vv, VLEN)])
+            val_v.append(vv)
         # gv[m] = 2^m - 1; linear-select cond for step k is cond_{k-1} ^ gv[tz(k)+1]
         # because k ^ (k-1) == 2^(tz(k)+1) - 1
         gv = {1: onev, 2: gv2, 3: gv3, 4: gv4}
@@ -2143,24 +2194,33 @@ class KernelBuilder:
                 bcast_into(v, s)
                 return v
 
-            # address scalars run as ONE continuous +8 alu chain across all
-            # 30 blocks: both the forest source blocks and the tail target
-            # blocks are contiguous with stride 8 (base_{d+1} = base_d + 2^d
-            # and each depth contributes 2^d - 8 advance, so the boundary
-            # step is exactly +8). Saves 7 const loads vs per-depth sconst.
-            saddr = base if maxtab == 4 else sderive("+", base, c8s)  # f+15
-            taddr = (_saltd[extra_p]() if CFG["CONST_ALU"]
-                     else sconst(base_d[4]))     # 2054: the one big const
+            # address scalars for the 30 pre-xor blocks: source and target
+            # blocks are each contiguous with stride 8 (base_{d+1} = base_d +
+            # 2^d and each depth contributes 2^d - 8 advance, so the boundary
+            # step is exactly +8). Addresses are sbase+8k / tbase+8k with a
+            # doubling-tree of 8k offsets (depth ~5, all parallel) instead of
+            # a 30-link serial +8 chain: under early-alu saturation the chain
+            # delayed the last block vloads to ~c40, pushing the whole gather
+            # wave (and the load-bound drain) back by ~20 cycles.
+            sbase0 = base if maxtab == 4 else sderive("+", base, c8s)  # f+15
+            tbase0 = (_saltd[extra_p]() if CFG["CONST_ALU"]
+                      else sconst(base_d[4]))     # 2054: the one big const
+            NB = sum((1 << dd) // VLEN for dd in range(4, 8))  # 30
+            o8 = {1: c8s}
+            for m in range(2, NB):
+                a = o8[m >> 1]
+                b = o8[m - (m >> 1)]
+                o8[m] = sderive("+", a, b)
             taddr_d = {}
-            first = True
+            k = 0
             for dd in range(4, 8):
                 sync[dd] = alloc(1)
                 for off in range(0, 1 << dd, VLEN):
-                    if first:
-                        first = False
+                    if k == 0:
+                        saddr, taddr = sbase0, tbase0
                     else:
-                        saddr = sderive("+", saddr, c8s)
-                        taddr = sderive("+", taddr, c8s)
+                        saddr = sderive("+", sbase0, o8[k])
+                        taddr = sderive("+", tbase0, o8[k])
                     if off == 0:
                         taddr_d[dd] = taddr
                     v = vnew()
@@ -2170,6 +2230,7 @@ class KernelBuilder:
                          [(v, VLEN), (c6v, VLEN)], [(x, VLEN)])
                     emit("store", ("vstore", taddr, x),
                          [(taddr, 1), (x, VLEN)], [(sync[dd], 1)])
+                    k += 1
             # p < 2^d at these entries, so p ^ (2^d-1) == (2^d-1) - p and the
             # xor+add entry folds into one multiply_add: base' + (-1)*p
             basev4t = vbcast(sderive("+", taddr_d[4], s15))  # E + 15
@@ -2320,44 +2381,9 @@ class KernelBuilder:
             return lev[0]
 
         # ---- I/O addresses ----
-        # one const + a +8 alu ramp to 4 base scalars, then a DEPTH-LOG
-        # offset tree: off[m] = 32m built by doubling (off[m]=off[m>>1]+off[m-
-        # (m>>1)]), and every remaining address is ONE parallel alu add
-        # va[4m+j] = va[j] + off[m]. The old va[k]=va[k-4]+32 serial chain
-        # put ~2 cycles between links under early-alu saturation, so the last
-        # input vloads only landed ~c40 and the whole gather wave (and the
-        # load-bound drain) paid for it. All 32 addresses are now ready by
-        # ~c8. Built once for the input vloads and rebuilt for the final
-        # vstores, so no static scratch is tied up across the whole program
-        def gen_vaddr():
-            va = [sconst(inp_values_p)]  # one const load: ramp-critical base
-            for k in range(1, min(4, n_vec)):
-                s = vnew(1)
-                emit("alu", ("+", s, va[k - 1], c8s),
-                     [(va[k - 1], 1), (c8s, 1)], [(s, 1)])
-                va.append(s)
-            maxm = (n_vec - 1) // 4
-            offv = {1: c32s}
-            for m in range(2, maxm + 1):
-                a = offv[m >> 1]
-                b = offv[m - (m >> 1)]
-                s = vnew(1)
-                emit("alu", ("+", s, a, b), [(a, 1), (b, 1)], [(s, 1)])
-                offv[m] = s
-            for k in range(4, n_vec):
-                m, j = divmod(k, 4)
-                s = vnew(1)
-                emit("alu", ("+", s, va[j], offv[m]),
-                     [(va[j], 1), (offv[m], 1)], [(s, 1)])
-                va.append(s)
-            return va
-
-        vaddr = gen_vaddr()
-        val_v = []
-        for k in range(n_vec):
-            vv = vnew()
-            emit("load", ("vload", vv, vaddr[k]), [(vaddr[k], 1)], [(vv, VLEN)])
-            val_v.append(vv)
+        # (gen_vaddr and the input vloads are emitted up front, right after
+        # the small-const definitions, for scheduler priority; see there.
+        # The final-store addresses are rebuilt at the end via gen_vaddr.)
 
         # ---- main loop ----
         # invariant: at share rounds (d <= 4) p holds the position; during
