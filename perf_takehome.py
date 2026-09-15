@@ -73,6 +73,7 @@ CFG = {
     "L1MD2_P": 2,       # same but for rounds >= 11 (the post-wrap stretch
     "L1MD2_Q": 5,       #   where flow supply dips at the round-10/11 wrap)
     "VB_ALU": 28,       # first this many broadcasts emitted as 8 alu copies
+    "CONST_ALU": True,  # synthesize small scalar consts on alu (saves loads)
 }
 
 
@@ -1943,10 +1944,40 @@ class KernelBuilder:
                 emit("valu", ("vbroadcast", v, src), [(src, 1)], [(v, VLEN)])
 
         def vconst(val):
-            s = sconst(val)
+            s = _saltd[val]() if val in _saltd else sconst(val)
             v = alloc(VLEN)
             bcast_into(v, s)
             return v
+
+        # ---- small scalar seeds: sconst(1) is the only seed const load;
+        # everything else below is alu-derived (one alu slot each, dead
+        # after setup so the binder reclaims it) to keep the load engine
+        # free for the input/prexor vload ramp ----
+        _saltd = {}
+        if CFG["CONST_ALU"]:
+            s1 = sconst(1)
+            s2 = sderive("+", s1, s1)
+            s4 = sderive("+", s2, s2)
+            s3 = sderive("+", s2, s1)
+            c8s_d = sderive("+", s4, s4)          # 8
+            c16s_d = sderive("+", c8s_d, c8s_d)   # 16
+            c32s_d = sderive("+", c16s_d, c16s_d)  # 32
+            s9 = sderive("+", c8s_d, s1)
+            s11 = sderive("+", c8s_d, s3)
+            s12 = sderive("+", c8s_d, s4)
+            s256 = sderive("<<", s1, c8s_d)
+            s2048 = sderive("<<", s1, s11)
+            s2054 = sderive("+", s2048, sderive("+", s4, s2))  # extra_p
+            _saltd[4097] = lambda: sderive("+", sderive("<<", s1, s12), s1)
+            _saltd[33 * 512] = lambda: sderive("<<", s33 := sderive("+", c32s_d, s1), s9)
+            _saltd[MOD32 - 1] = lambda: sderive("-", s1, s2)
+            _saltd[forest_p] = lambda: sderive("-", c8s_d, s1)
+            _saltd[forest_p + 255] = lambda: sderive(
+                "+", _saltd[forest_p](), sderive("-", s256, s1))
+            _saltd[extra_p] = lambda: s2054
+            _saltd[(17 - extra_p) % MOD32] = lambda: sderive(
+                "-", sderive("+", c16s_d, s1), s2054)
+            _saltd[inp_values_p] = lambda: sderive("+", s2054, s256)
 
         c1, c2, c3, c4, c5, c6 = (s[1] for s in HASH_STAGES)
         k1v = vconst(4097)      # S1: a*4097 + c1
@@ -1992,7 +2023,7 @@ class KernelBuilder:
         sh19v = vderive("+", sh16v, gv2)         # 19
         m9v = vderive("+", gv3, twov)            # 9:  S5: a*9 + c5
         m33v = vmderive(sh16v, twov, onev)       # 33: S3+S4 fused
-        forest_ps = sconst(forest_p)
+        forest_ps = _saltd[forest_p]() if CFG["CONST_ALU"] else sconst(forest_p)
         forest_pv = vnew()
         bcast_into(forest_pv, forest_ps)
         negv = vderive("-", onev, forest_pv)  # addr' = 2*addr + (1-forest_p) + bit
@@ -2000,12 +2031,15 @@ class KernelBuilder:
         negvp1v = vgderive("+", negv, onev) if CFG["FOLDR"] else None
         # small derived scalars: one alu op each into dead-after-setup vregs,
         # replacing const loads (alu is cheaper than load in the setup ramp)
-        s1 = sconst(1)               # dedup cache hits onev's scalar
-        s2 = sderive("+", s1, s1)    # 2
-        s4 = sderive("+", s2, s2)    # 4
-        c8s = sconst(VLEN)           # 8
-        c16s = sderive("+", c8s, c8s)  # 16
-        c32s = sconst(4 * VLEN)        # 32
+        if CFG["CONST_ALU"]:
+            c8s, c16s, c32s = c8s_d, c16s_d, c32s_d
+        else:
+            s1 = sconst(1)               # dedup cache hits onev's scalar
+            s2 = sderive("+", s1, s1)    # 2
+            s4 = sderive("+", s2, s2)    # 4
+            c8s = sconst(VLEN)           # 8
+            c16s = sderive("+", c8s, c8s)  # 16
+            c32s = sconst(4 * VLEN)        # 32
         # gv[m] = 2^m - 1; linear-select cond for step k is cond_{k-1} ^ gv[tz(k)+1]
         # because k ^ (k-1) == 2^(tz(k)+1) - 1
         gv = {1: onev, 2: gv2, 3: gv3, 4: gv4}
@@ -2116,7 +2150,8 @@ class KernelBuilder:
             # and each depth contributes 2^d - 8 advance, so the boundary
             # step is exactly +8). Saves 7 const loads vs per-depth sconst.
             saddr = base if maxtab == 4 else sderive("+", base, c8s)  # f+15
-            taddr = sconst(base_d[4])            # 2054: the one big const
+            taddr = (_saltd[extra_p]() if CFG["CONST_ALU"]
+                     else sconst(base_d[4]))     # 2054: the one big const
             taddr_d = {}
             first = True
             for dd in range(4, 8):
@@ -2291,7 +2326,8 @@ class KernelBuilder:
         # rebuilt for the final vstores, so no static scratch is tied up
         # across the whole program
         def gen_vaddr():
-            va = [sconst(inp_values_p)]  # dedup cache: one const total
+            va = [(_saltd[inp_values_p]() if CFG["CONST_ALU"]
+                   else sconst(inp_values_p))]  # one const/derive total
             for k in range(1, min(4, n_vec)):
                 s = vnew(1)
                 emit("alu", ("+", s, va[k - 1], c8s),
