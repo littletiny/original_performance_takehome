@@ -1835,7 +1835,8 @@ class KernelBuilder:
           dynamic DAG scheduler below.
         """
         blob = EMBEDDED_SCHEDULES.get(
-            (forest_height, n_nodes, batch_size, rounds))
+            (forest_height, n_nodes, batch_size, rounds)) if CFG.get(
+                "USE_EMBEDDED", True) else None
         if blob is not None:
             import base64, pickle, zlib
             self.instrs = pickle.loads(zlib.decompress(base64.b85decode(blob)))
@@ -1893,9 +1894,21 @@ class KernelBuilder:
             return V(x.vid, x.off + j) if isinstance(x, V) else x + j
 
         # ---- constants (static scratch) ----
+        _sconst_cache = {}
+
         def sconst(val):
+            if val in _sconst_cache:
+                return _sconst_cache[val]
             s = alloc(1)
             emit("load", ("const", s, val), [], [(s, 1)])
+            _sconst_cache[val] = s
+            return s
+
+        def sderive(op, a, b):
+            """scalar derived via one alu op into a fresh vreg (dead after
+            setup, so the binder reclaims it); replaces a const load"""
+            s = vnew(1)
+            emit("alu", (op, s, a, b), [(a, 1), (b, 1)], [(s, 1)])
             return s
 
         def vconst(val):
@@ -1953,6 +1966,14 @@ class KernelBuilder:
         emit("valu", ("vbroadcast", forest_pv, forest_ps),
              [(forest_ps, 1)], [(forest_pv, VLEN)])
         negv = vderive("-", onev, forest_pv)  # addr' = 2*addr + (1-forest_p) + bit
+        # small derived scalars: one alu op each into dead-after-setup vregs,
+        # replacing const loads (alu is cheaper than load in the setup ramp)
+        s1 = sconst(1)               # dedup cache hits onev's scalar
+        s2 = sderive("+", s1, s1)    # 2
+        s4 = sderive("+", s2, s2)    # 4
+        c8s = sconst(VLEN)           # 8
+        c16s = sderive("+", c8s, c8s)  # 16
+        c32s = sconst(4 * VLEN)        # 32
         # gv[m] = 2^m - 1; linear-select cond for step k is cond_{k-1} ^ gv[tz(k)+1]
         # because k ^ (k-1) == 2^(tz(k)+1) - 1
         gv = {1: onev, 2: gv2, 3: gv3, 4: gv4}
@@ -1974,9 +1995,13 @@ class KernelBuilder:
         BLEND4 = CFG["NG4"] < n_vec or CFG["NB15"] > 0
         maxtab = 4 if BLEND4 else 3
         tb = {}
+        base = None
+        step = {1: s1, 2: s2, 3: s4}
         for d in range(0, maxtab + 1):
             ntab = 1 << d
-            base = sconst(forest_p + ntab - 1)
+            # table base forest_p + ntab - 1: alu-derived chain (8,10,14,22)
+            # instead of one const load per depth
+            base = forest_ps if d == 0 else sderive("+", base, step.get(d, c8s))
             # vload each table block into a fresh vreg: dead right after the
             # broadcasts, so the binder can reuse the space (no static staging)
             blocks = []
@@ -1985,7 +2010,7 @@ class KernelBuilder:
                     sv = vnew()
                     emit("load", ("vload", sv, base), [(base, 1)], [(sv, VLEN)])
                 else:
-                    b2 = sconst(forest_p + ntab - 1 + off)
+                    b2 = sderive("+", base, c8s)
                     sv = vnew()
                     emit("load", ("vload", sv, b2), [(b2, 1)], [(sv, VLEN)])
                 blocks.append(sv)
@@ -2025,28 +2050,35 @@ class KernelBuilder:
         if PREXOR:
             base_d = {dd: extra_p + ((1 << dd) - 16) for dd in range(4, 8)}
             neg1v = vconst(MOD32 - 1)
-            # p < 2^d at these entries, so p ^ (2^d-1) == (2^d-1) - p and the
-            # xor+add entry folds into one multiply_add: base' + (-1)*p
-            basev4t = vconst(base_d[4] + 15)        # E + 15
-            basev5t = vconst(base_d[5] + 31)        # E + 47
             k2v = vconst((17 - extra_p) % MOD32)    # tail addr recurrence
-            basev7tv = vconst(base_d[7])            # E + 112
             basev8v = vconst(forest_p + 255)        # raw depth-8 base
-            c8s = sconst(VLEN)
+            s15 = sderive("-", c16s, s1)
+            s31 = sderive("-", c32s, s1)
+
+            def vbcast(s):
+                v = alloc(VLEN)
+                emit("valu", ("vbroadcast", v, s), [(s, 1)], [(v, VLEN)])
+                return v
+
+            # address scalars run as ONE continuous +8 alu chain across all
+            # 30 blocks: both the forest source blocks and the tail target
+            # blocks are contiguous with stride 8 (base_{d+1} = base_d + 2^d
+            # and each depth contributes 2^d - 8 advance, so the boundary
+            # step is exactly +8). Saves 7 const loads vs per-depth sconst.
+            saddr = base if maxtab == 4 else sderive("+", base, c8s)  # f+15
+            taddr = sconst(base_d[4])            # 2054: the one big const
+            taddr_d = {}
+            first = True
             for dd in range(4, 8):
                 sync[dd] = alloc(1)
-                saddr = sconst(forest_p + (1 << dd) - 1)
-                taddr = sconst(base_d[dd])
                 for off in range(0, 1 << dd, VLEN):
-                    if off:
-                        s2 = alloc(1)
-                        emit("alu", ("+", s2, saddr, c8s),
-                             [(saddr, 1), (c8s, 1)], [(s2, 1)])
-                        saddr = s2
-                        t2 = alloc(1)
-                        emit("alu", ("+", t2, taddr, c8s),
-                             [(taddr, 1), (c8s, 1)], [(t2, 1)])
-                        taddr = t2
+                    if first:
+                        first = False
+                    else:
+                        saddr = sderive("+", saddr, c8s)
+                        taddr = sderive("+", taddr, c8s)
+                    if off == 0:
+                        taddr_d[dd] = taddr
                     v = vnew()
                     emit("load", ("vload", v, saddr), [(saddr, 1)], [(v, VLEN)])
                     x = vnew()
@@ -2054,6 +2086,11 @@ class KernelBuilder:
                          [(v, VLEN), (c6v, VLEN)], [(x, VLEN)])
                     emit("store", ("vstore", taddr, x),
                          [(taddr, 1), (x, VLEN)], [(sync[dd], 1)])
+            # p < 2^d at these entries, so p ^ (2^d-1) == (2^d-1) - p and the
+            # xor+add entry folds into one multiply_add: base' + (-1)*p
+            basev4t = vbcast(sderive("+", taddr_d[4], s15))  # E + 15
+            basev5t = vbcast(sderive("+", taddr_d[5], s31))  # E + 47
+            basev7tv = vbcast(taddr_d[7])                    # E + 112
 
         # ---- op emitters (virtual registers, value-threaded) ----
         scalar_ctr = [0]
@@ -2154,21 +2191,21 @@ class KernelBuilder:
             return lev[0]
 
         # ---- I/O addresses ----
-        # consts + a stride-32 alu chain in scalar vregs; the chain is built
-        # once for the input vloads and rebuilt for the final vstores, so no
-        # static scratch is tied up across the whole program
-        c32 = sconst(4 * VLEN)
-
+        # one const + a +8 alu ramp to 4 scalars, then a stride-32 alu chain
+        # in scalar vregs; the chain is built once for the input vloads and
+        # rebuilt for the final vstores, so no static scratch is tied up
+        # across the whole program
         def gen_vaddr():
-            va = []
-            for k in range(min(4, n_vec)):
+            va = [sconst(inp_values_p)]  # dedup cache: one const total
+            for k in range(1, min(4, n_vec)):
                 s = vnew(1)
-                emit("load", ("const", s, inp_values_p + VLEN * k), [], [(s, 1)])
+                emit("alu", ("+", s, va[k - 1], c8s),
+                     [(va[k - 1], 1), (c8s, 1)], [(s, 1)])
                 va.append(s)
             for k in range(4, n_vec):
                 s = vnew(1)
-                emit("alu", ("+", s, va[k - 4], c32),
-                     [(va[k - 4], 1), (c32, 1)], [(s, 1)])
+                emit("alu", ("+", s, va[k - 4], c32s),
+                     [(va[k - 4], 1), (c32s, 1)], [(s, 1)])
                 va.append(s)
             return va
 
@@ -2185,6 +2222,26 @@ class KernelBuilder:
         # Under PREXOR, adjusted rounds (adj_r) read node^c6 from the mem
         # tail; p at d==4/d==5 entry is the bit-complemented pbar and the
         # tail address recurrence carries the complemented branch bit.
+        # p liveness: p is only read by gather rounds (d >= 4 non-blend);
+        # d <= 3 tournaments read bit_hist, d == 0 reads nothing. A p-update
+        # whose product is never read before the next d == 0 reset is dead
+        # (e.g. rounds 12..14 for vectors that blend at round 15).
+        def blends(r, v):
+            dr = dseq[r]
+            return dr <= 3 or (dr == 4 and adj_r[r] and BLEND4 and
+                               (v >= CFG["NG4"] if r != rounds - 1
+                                else v >= n_vec - CFG["NB15"]))
+
+        p_dead = [[False] * n_vec for _ in range(rounds)]
+        for v in range(n_vec):
+            needed = False
+            for h in range(rounds - 1, -1, -1):
+                d = dseq[h]
+                p_dead[h][v] = not needed
+                if d >= 4 and not blends(h, v):
+                    needed = True
+                if d == 0:
+                    needed = False
         p_v = [None] * n_vec
         bit_hist = [dict() for _ in range(n_vec)]  # round -> branch bit vreg
         for h in range(rounds):
@@ -2237,6 +2294,7 @@ class KernelBuilder:
                     bit_hist[v][h] = bit
                     if DBG_HOOK[1] is not None:
                         DBG_HOOK[1](h, v, bit)
+                if not last and d < forest_height and not p_dead[h][v]:
                     if d == 0:
                         p = bit  # p' = val & 1 (p == 0)
                     elif d <= 4:
