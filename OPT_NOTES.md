@@ -24,6 +24,15 @@
 - **M4.7(231f1c5)**:L1MADD_N——d=4 blend 的 level-1 按向量选引擎,超过 N 的
   向量用 8 flow vselect 代替 8 valu madd(-8 valu/+8 flow 每向量)。
   L1MADD_N=22: valu 5759(960c) flow 939。
+- **M4.8(057a26f)**:NG3——d==3 节点 pre-xor 到 tail 2294(8 字),前 NG3 个向量
+  在 round 3/14 走 gather(u = 2301 - pbar,同 d==4 的 xor+add 折 madd)代替 flow
+  tournament。默认 0(关)。NG3=2: flow 880(-28)/load 1934(+33)/valu 5797(+6),
+  load 下界 967 超过 valu 966 —— 计数变差,只能靠 ramp 填充回本(搜索验证中)。
+- 大规模搜索(4000 basins,交替+jitter):D=默认 counts → 985;E=L1MADD_N=21 → 988;
+  F=NG3=2(2000 basins)→ 988(进行中,可能再降)。**count 更低≠绝对值更低,
+  slack 19-28 不随 count 下降 —— 搜索质量是瓶颈**。
+- 新工具:/tmp/polish.py <iters> <seed> <cfg> <in-pkl> <out-pkl> —— 从 incumbent
+  暖启动,加噪 backward/forward 交替精调(smoke 通过)。
 - 986 的 profile:[100,900] valu/alu/load 三引擎全 ~100%,ramp [0,100] 和
   尾 [900,986] 各 ~90% —— 计数和调度都已接近当前 DAG 的极限,再降必须删真操作。
 - 与 959 文档对照:valu 5759 vs 5719(-40),load 1901 vs 1891(-10:const 17 vs 8,
