@@ -450,3 +450,58 @@ alu 合成链要 3-7 拍,ramp 被拉长 = flow idle 增大(§10.2 的 ramp 项)�
 结论:pfold 的收益形状由 **gather 边界位置**决定,不是调度问题,也不是
 "valu 压不下来"(valu 每次都精确按预测下降)。在我们的 d≥4 才 gather
 的结构里,它的净收益恒为 0。
+
+## §11 外部方案调研(web,2026-09-15)
+
+动机:980 平台期后,扫描公开方案寻找我们没有的思路。结论:**980 已低于
+所有能找到公开代码的成绩**;paradigm 排行榜前三名(869/870/875)均无公开
+代码或 writeup。
+
+### 11.1 公开成绩地图(同一 problem.py 直接可比)
+
+| 来源 | Cycles | 路线 |
+|---|---|---|
+| paradigm 排行榜 #1-3(@HaydenCc51623 / @SaifAlHarthi / @LigengZhu) | 869/870/875 | 无公开代码;Ligeng Zhu 只有 agent-loop 方法论的 slides,无 kernel 细节 |
+| 我们 | **980** | 见 §10 |
+| kerneloptimization.fun 社区最佳(rubinownz111 日志转述) | 1001 | — |
+| rubinownz111/1063-cycles-original-performance-takehome | 1063 | 在线贪心 list scheduler + retroactive ALU offload;**problem.py 与我们逐字节相同**(已 md5 验证) |
+| 0xquinto/vliw-kernel-optimization | 1285 | 人指导 Claude 循环 + trace MCP;JOURNEY.md 有理论下界分析 |
+| fiigii/ai-comp | 未标注 | 完整编译器管线(HIR→LIR→MIR→VLIW,DCE/CSE/SLP) |
+| zolotukhin | 1307 | vselect 浅层 + 静态调度 |
+| obviyus(obviy.us blog) | 1524 | 相位交错 + list scheduler + madd 融合 |
+| stalkermustang | 2262 | 教学向迭代 |
+
+### 11.2 rubinownz111(1063)相对我们的增量信息
+
+精读其 166KB AGENTS.md 优化日志(git clone 在 /tmp/rubin,未入库)。
+他们与我们清单的重合度很高(madd 融合、stage2+3 跨级融合、树节点
+预 XOR C6、vselect 浅层),但**从未发射 gather**(误以为 ISA 没有
+lane-permute/gather 原语,实际上 `load_offset` 存在),导致
+valu 5999/load 1991 双高,slack 63c(我们 20c)。
+
+我们没有的三个机制:
+
+1. **Retroactive ALU split-offload**:调度期把放不下的 valu 向量 op 拆成
+   8 个标量,**回填到当前及过去周期的空闲 ALU 槽**。比我们的构建期
+   flex/mflex 二选一更动态。对我们的适用性存疑:valu 墙在计数(5760)
+   不在调度,回填按 8/12 效率换成 alu,而 alu 已在 954.7c,没有容量。
+2. **Round-gate 拥塞闸**:用标量 token 依赖人为限制指定轮的在飞 group
+   数(如 {5:30}),平滑深轮 load 洪峰。他们全套 gate 搜索净收益仅
+   1-2 cycle。
+3. **CP-SAT 窗口调度器**(tools/schedule_window_cp_sat.py):对 40-op
+   窗口建 makespan 最优模型。他们搭好后从未使用(日志零提及),且模型
+   缺跨窗依赖、引擎选择、scratch 约束。对我们合理的用法是**下界
+   oracle**:扫小窗口定位 20c slack 的具体归因,而非直接产出改进;
+   且 ramp 饥饿属依赖空转,窗内重排本来救不了。
+
+他们的已证伪清单与我们高度一致(branch-bit 奇偶捷径、stage-5 fusion、
+split-tail hash、index 拆两个向量加、preconst 分支重写),并反复记录
+"op 计数下降 ≠ cycle 下降"(计数墙≠cycle 墙)——与我们的
+flow 定律/ramp 修复证伪是同一教训的两个实例。
+
+### 11.3 结论
+
+- 无公开的 <959 方案细节可借鉴;869-875 三人的方法不可见。
+- 两个可借鉴机制(retroactive offload、CP-SAT 诊断)经分析对我们当前
+  瓶颈(valu 计数墙 + ramp/链尾 slack)预期收益 ≤0 或仅为诊断价值。
+- 980→960 的差距仍在 §10.6 归因的两个点上,外部调研没有发现第三条路。
