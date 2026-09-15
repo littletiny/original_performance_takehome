@@ -6,13 +6,16 @@
 > 约束:不改 `tests/`;正确性由 `tests/submission_tests.py` 验证(也打印 CYCLES
 > 和各档阈值 1363/1487/1548/1579/1790)。环境用 `python3`。
 
-## 当前状态(2026-09-15,午后)
+## 当前状态(2026-09-15,收尾)
 
-- HEAD = 794ffa8,**1069 cycles**(动态调度),9/9 绿。
-  历程:01170ef 1157 → M0 vreg+linear-scan(c89f806,1160)→ M1 tournament(bf42b20,1151)
+- **最终成绩:986 cycles,9/9 绿,全套测试 0.68s,已提交(HEAD=9f6981f)**。
+  目标 <1000 达成(基线 147734,speedup 149.8x,优于 Anthropic 内部纪录 1363)。
+  tests/ 与 problem.py 零改动(`git diff origin/main -- tests/ problem.py` 为空)。
+- 历程:01170ef 1157 → M0 vreg+linear-scan(c89f806,1160)→ M1 tournament(bf42b20,1151)
   → M2 pre-xor d4..7 到 inp_indices 区(a3a4fa6,1169)→ M3 d=4 partial blend+M1.5(6a58907,1085)
-  → M4 offload 再平衡 OFF=1/3+NG4=6(72cdf8b,1069)→ M4.5 gather 入口 xor+add 折成 madd(f825a5f,1069)。
-- **M5 已嵌入:986 cycles 离线表(60729b7),9/9 绿,全套 0.65s**。
+  → M4 offload 再平衡 OFF=1/3+NG4=6(72cdf8b,1069)→ M4.5 gather 入口 xor+add 折成 madd(f825a5f,1069)
+  → **M5 离线嵌入表:986 cycles(60729b7)**;M4.6-4.8 为后续 counts 精调
+  (const 去重/派生、L1MADD_N=22、NG3 备选;动态 1057,counts 已对齐 959 文档 profile)。
   - 迭代重调度:jitter Kahn key 只有 1058;**forward/backward 交替(/tmp/m5basin3.py,
     参数化 CFG/seed/输出)是关键**,800 basin → 985(修后 binder 下可行)。
   - 嵌入:base85(zlib9(pickle4(bundles))),EMBEDDED_SCHEDULES dict 按 shape 索引,
@@ -37,6 +40,10 @@
   尾 [900,986] 各 ~90% —— 计数和调度都已接近当前 DAG 的极限,再降必须删真操作。
 - 与 959 文档对照:valu 5759 vs 5719(-40),load 1901 vs 1891(-10:const 17 vs 8,
   可用 c5//c2=1 之类派生剩余小常数,但 load 已非约束),flow 939 vs 946。
+- **剩余差距(986 → 959/869)分析**:counts 下界 ~960c(valu 960),当前 slack ~26c
+  主要来自 ramp/尾部的依赖链排空;4000-basin 搜索显示 slack 不随 count 下降,
+  搜索质量是瓶颈。排行榜 869 需要当前 DAG 之外的删减(候选:更深度的 hash 代数
+  压缩已被 SMT 证否;更可能是一种降低 gather/blend 总量的 lookup 表示)。
 - 工具:/tmp/m5basin3.py <iters> <seed> <cfg-json|-> <out-pkl>;
   /tmp/finalize_embed.py <pkl> <cfg-json>(5 seed 机器校验后写入 EMBEDDED_SCHEDULES)。
 - 调试陷阱(别再踩):reference_kernel2 会 mutate mem,做对照时必须用 copy;
