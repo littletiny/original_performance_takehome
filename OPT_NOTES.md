@@ -12,15 +12,24 @@
   历程:01170ef 1157 → M0 vreg+linear-scan(c89f806,1160)→ M1 tournament(bf42b20,1151)
   → M2 pre-xor d4..7 到 inp_indices 区(a3a4fa6,1169)→ M3 d=4 partial blend+M1.5(6a58907,1085)
   → M4 offload 再平衡 OFF=1/3+NG4=6(72cdf8b,1069)→ M4.5 gather 入口 xor+add 折成 madd(f825a5f,1069)。
-- **M5 进行中:离线调度表 + 迭代重调度**。
-  - 串行 SGS 基线 1068;jitter Kahn key 只到 1058;**forward/backward 交替
-    (m5basin.py, /tmp)大幅更好:60 basin 就到 986**。
-  - ⚠️ **binder WAW bug(已修,794ffa8)**:bind_vregs 旧用 last_use=max(读,写)做
-    expire,dead-after-write vreg(如 v29 的 p14,round15 blend 不读)在写当拍就被
-    释放,导致同一拍两个 writer 共用 base(v25 的 p14 被覆盖,round15 gather 错)。
-    修复:interval 结束于 max(last_read, last_write+1)(读可与新写同拍,写不行)。
-  - slot(1069 配置):valu 5800(967c)alu 11372(948c)load 1924(962c)
-    flow 907 store 62;count bound 967c。959 文档:valu 5719/alu 11392/load 1891/flow 946。
+- **M5 已嵌入:986 cycles 离线表(60729b7),9/9 绿,全套 0.65s**。
+  - 迭代重调度:jitter Kahn key 只有 1058;**forward/backward 交替(/tmp/m5basin3.py,
+    参数化 CFG/seed/输出)是关键**,800 basin → 985(修后 binder 下可行)。
+  - 嵌入:base85(zlib9(pickle4(bundles))),EMBEDDED_SCHEDULES dict 按 shape 索引,
+    其他 shape 回退动态调度;CFG["USE_EMBEDDED"]=False 可绕开(开发/扫描时用)。
+- **M4.6(19bcbb8)**:sconst 按值去重;小常数/表地址/prexor 地址全部改 alu 派生
+  (dead-after-setup vreg),prexor 30 块一条 +8 连续链;gen_vaddr 4 const→1 const+3 alu;
+  p 活性分析删掉 round12-14 对 round15-blend 向量的死 p-update(-9 valu)。
+  counts: valu 5791(966c) alu 11396(950c) load 1901(951c) flow 907;static 517。
+- **M4.7(231f1c5)**:L1MADD_N——d=4 blend 的 level-1 按向量选引擎,超过 N 的
+  向量用 8 flow vselect 代替 8 valu madd(-8 valu/+8 flow 每向量)。
+  L1MADD_N=22: valu 5759(960c) flow 939。
+- 986 的 profile:[100,900] valu/alu/load 三引擎全 ~100%,ramp [0,100] 和
+  尾 [900,986] 各 ~90% —— 计数和调度都已接近当前 DAG 的极限,再降必须删真操作。
+- 与 959 文档对照:valu 5759 vs 5719(-40),load 1901 vs 1891(-10:const 17 vs 8,
+  可用 c5//c2=1 之类派生剩余小常数,但 load 已非约束),flow 939 vs 946。
+- 工具:/tmp/m5basin3.py <iters> <seed> <cfg-json|-> <out-pkl>;
+  /tmp/finalize_embed.py <pkl> <cfg-json>(5 seed 机器校验后写入 EMBEDDED_SCHEDULES)。
 - 调试陷阱(别再踩):reference_kernel2 会 mutate mem,做对照时必须用 copy;
   debug vcompare 放在 instrs[lu+1] 读到的是 lu 拍结束后的值(含同拍 touch 写入),
   读"reader 视角"要放 instrs[lu];递延 round 携带值是 stage5^c6 不是 hashed_val。
