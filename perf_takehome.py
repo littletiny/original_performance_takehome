@@ -73,6 +73,9 @@ CFG = {
                         #   2-bit flow select tree (-1 valu, +2 flow per group)
                         #   MEASURED: no gain (PF2=12 -> 983, PF2=20 -> 1001;
                         #   flow total rises toward its own ramp-bound wall)
+    "PF2MODE": 0,       # 0 = 2-bit vsel tree; 1 = vsel(V0-2, V0, b13) with
+                        #   the -2 as 8 alu lane subs (-1 valu, +1 flow,
+                        #   +8 alu per group; alu headroom caps it at ~8 groups)
     "L1MD_P": 2,        # Bresenham fraction P/Q of d<=3 level-1 selects
     "L1MD_Q": 5,        #   emitted as valu madds instead of flow vselects
     "L1MD2_P": 2,       # same but for rounds >= 11 (the post-wrap stretch
@@ -2411,10 +2414,26 @@ class KernelBuilder:
                                 and v < n_vec - CFG["NB15"]:
                             if pf2_lo <= v < pf2_hi:
                                 # r13 p-update skipped (see d==2): recover
-                                # addr4 from pbar2 with the 2-bit select tree
+                                # addr4 from pbar2 at r14
                                 b13 = bit_hist[v][h - 1]
-                                aux = vsel(vsel(b4tm3v, b4tm2v, bit),
-                                           vsel(b4tm1v, basev4t, bit), b13)
+                                if CFG["PF2MODE"] == 1:
+                                    # +1-flow form: aux = vsel(V0-2, V0, b13)
+                                    # with V0 = base4t - b14 (the plain FOLD15
+                                    # select); V0-2 runs as 8 alu lane subs
+                                    # (valu has no headroom to absorb it)
+                                    v0 = vsel(b4tm1v, basev4t, bit)
+                                    v0m2 = vnew()
+                                    for j in range(VLEN):
+                                        emit("alu", ("-", lane(v0m2, j),
+                                                     lane(v0, j), lane(twov, j)),
+                                             [(lane(v0, j), 1),
+                                              (lane(twov, j), 1)],
+                                             [(lane(v0m2, j), 1)])
+                                    aux = vsel(v0m2, v0, b13)
+                                else:
+                                    # 2-bit select tree (+2 flow per group)
+                                    aux = vsel(vsel(b4tm3v, b4tm2v, bit),
+                                               vsel(b4tm1v, basev4t, bit), b13)
                                 p = vmadd(p, neg4v, aux)
                             else:
                                 # addr4 = base4t - (2*pbar3 + bit): r15 entry
