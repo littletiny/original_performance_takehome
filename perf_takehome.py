@@ -2320,10 +2320,15 @@ class KernelBuilder:
             return lev[0]
 
         # ---- I/O addresses ----
-        # one const + a +8 alu ramp to 4 scalars, then a stride-32 alu chain
-        # in scalar vregs; the chain is built once for the input vloads and
-        # rebuilt for the final vstores, so no static scratch is tied up
-        # across the whole program
+        # one const + a +8 alu ramp to 4 base scalars, then a DEPTH-LOG
+        # offset tree: off[m] = 32m built by doubling (off[m]=off[m>>1]+off[m-
+        # (m>>1)]), and every remaining address is ONE parallel alu add
+        # va[4m+j] = va[j] + off[m]. The old va[k]=va[k-4]+32 serial chain
+        # put ~2 cycles between links under early-alu saturation, so the last
+        # input vloads only landed ~c40 and the whole gather wave (and the
+        # load-bound drain) paid for it. All 32 addresses are now ready by
+        # ~c8. Built once for the input vloads and rebuilt for the final
+        # vstores, so no static scratch is tied up across the whole program
         def gen_vaddr():
             va = [sconst(inp_values_p)]  # one const load: ramp-critical base
             for k in range(1, min(4, n_vec)):
@@ -2331,10 +2336,19 @@ class KernelBuilder:
                 emit("alu", ("+", s, va[k - 1], c8s),
                      [(va[k - 1], 1), (c8s, 1)], [(s, 1)])
                 va.append(s)
-            for k in range(4, n_vec):
+            maxm = (n_vec - 1) // 4
+            offv = {1: c32s}
+            for m in range(2, maxm + 1):
+                a = offv[m >> 1]
+                b = offv[m - (m >> 1)]
                 s = vnew(1)
-                emit("alu", ("+", s, va[k - 4], c32s),
-                     [(va[k - 4], 1), (c32s, 1)], [(s, 1)])
+                emit("alu", ("+", s, a, b), [(a, 1), (b, 1)], [(s, 1)])
+                offv[m] = s
+            for k in range(4, n_vec):
+                m, j = divmod(k, 4)
+                s = vnew(1)
+                emit("alu", ("+", s, va[j], offv[m]),
+                     [(va[j], 1), (offv[m], 1)], [(s, 1)])
                 va.append(s)
             return va
 
