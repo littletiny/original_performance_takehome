@@ -1955,29 +1955,27 @@ class KernelBuilder:
         # free for the input/prexor vload ramp ----
         _saltd = {}
         if CFG["CONST_ALU"]:
+            # selective: only LATE-used consts are alu-derived. Ramp-critical
+            # consts (4097/16896 hash multipliers, forest_p, inp_values_p)
+            # keep the 1-cycle const load; deriving them adds 3-7 alu levels
+            # to the first group's hash / input-vload ramp and costs more
+            # cycles than the saved loads.
             s1 = sconst(1)
             s2 = sderive("+", s1, s1)
             s4 = sderive("+", s2, s2)
             s3 = sderive("+", s2, s1)
             c8s_d = sderive("+", s4, s4)          # 8
             c16s_d = sderive("+", c8s_d, c8s_d)   # 16
-            c32s_d = sderive("+", c16s_d, c16s_d)  # 32
-            s9 = sderive("+", c8s_d, s1)
             s11 = sderive("+", c8s_d, s3)
-            s12 = sderive("+", c8s_d, s4)
             s256 = sderive("<<", s1, c8s_d)
             s2048 = sderive("<<", s1, s11)
             s2054 = sderive("+", s2048, sderive("+", s4, s2))  # extra_p
-            _saltd[4097] = lambda: sderive("+", sderive("<<", s1, s12), s1)
-            _saltd[33 * 512] = lambda: sderive("<<", s33 := sderive("+", c32s_d, s1), s9)
             _saltd[MOD32 - 1] = lambda: sderive("-", s1, s2)
-            _saltd[forest_p] = lambda: sderive("-", c8s_d, s1)
             _saltd[forest_p + 255] = lambda: sderive(
-                "+", _saltd[forest_p](), sderive("-", s256, s1))
+                "+", s256, sderive("+", s4, s2))  # 262, dead after setup
             _saltd[extra_p] = lambda: s2054
             _saltd[(17 - extra_p) % MOD32] = lambda: sderive(
                 "-", sderive("+", c16s_d, s1), s2054)
-            _saltd[inp_values_p] = lambda: sderive("+", s2054, s256)
 
         c1, c2, c3, c4, c5, c6 = (s[1] for s in HASH_STAGES)
         k1v = vconst(4097)      # S1: a*4097 + c1
@@ -2023,7 +2021,7 @@ class KernelBuilder:
         sh19v = vderive("+", sh16v, gv2)         # 19
         m9v = vderive("+", gv3, twov)            # 9:  S5: a*9 + c5
         m33v = vmderive(sh16v, twov, onev)       # 33: S3+S4 fused
-        forest_ps = _saltd[forest_p]() if CFG["CONST_ALU"] else sconst(forest_p)
+        forest_ps = sconst(forest_p)
         forest_pv = vnew()
         bcast_into(forest_pv, forest_ps)
         negv = vderive("-", onev, forest_pv)  # addr' = 2*addr + (1-forest_p) + bit
@@ -2032,7 +2030,8 @@ class KernelBuilder:
         # small derived scalars: one alu op each into dead-after-setup vregs,
         # replacing const loads (alu is cheaper than load in the setup ramp)
         if CFG["CONST_ALU"]:
-            c8s, c16s, c32s = c8s_d, c16s_d, c32s_d
+            c8s, c16s = c8s_d, c16s_d
+            c32s = sconst(4 * VLEN)  # 32: on the gen_vaddr ramp, keep 1-cycle load
         else:
             s1 = sconst(1)               # dedup cache hits onev's scalar
             s2 = sderive("+", s1, s1)    # 2
@@ -2326,8 +2325,7 @@ class KernelBuilder:
         # rebuilt for the final vstores, so no static scratch is tied up
         # across the whole program
         def gen_vaddr():
-            va = [(_saltd[inp_values_p]() if CFG["CONST_ALU"]
-                   else sconst(inp_values_p))]  # one const/derive total
+            va = [sconst(inp_values_p)]  # one const load: ramp-critical base
             for k in range(1, min(4, n_vec)):
                 s = vnew(1)
                 emit("alu", ("+", s, va[k - 1], c8s),
