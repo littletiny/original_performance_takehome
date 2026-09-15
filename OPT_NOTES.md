@@ -6,23 +6,26 @@
 > 约束:不改 `tests/`;正确性由 `tests/submission_tests.py` 验证(也打印 CYCLES
 > 和各档阈值 1363/1487/1548/1579/1790)。环境用 `python3`。
 
-## 当前状态(2026-09-15)
+## 当前状态(2026-09-15,午后)
 
-- **M0 已提交(c89f806):vreg 重写 + 调度后 linear-scan 绑定,1160 cycles**。
-  SSA 式 value threading,假依赖全消;static scratch 1392→367,vreg peak 1079。
-- **M1 已提交:tournament blend(d<=3),1151 cycles**。条件 (p & 2^j) 单 flex &;
-  d=3: 3&+7vsel vs 线性 7xor+7vsel。valu 6456→6222, alu 10492→9820。
-- **M2 已提交:pre-xor d4..7 节点到 inp_indices 内存区,1169 cycles**(正确)。
-  - ⚠️ **重大事实**:`build_mem_image` 的 extra_room 是假象——
-    `mem[inp_values_p:] = inp.values` 切片赋值把尾部截掉了,mem 恰好 2566 字,
-    **没有尾部空间**。改用 inp_indices 区 [2054,2310) 做可写 scratch mem
-    (kernel 从不读 indices;Machine 跑在 copy 上,reference 看原 mem;只查 inp_values)。
-  - 自然序存储(无需 lane 反转),base_d = 2054 + 2^d - 16;
-    尾地址递推 addr' = 2a + (17-E) - bit_sp(c6 奇数→分支位取反,吸收进递推);
-    round4/5 入口 pbar→pos 一个 xor;round7 出口转回 raw d=8 地址。
-  - defer 集合扩到 {0..6, 10..14};store→load 用 sync[d] 假 scratch 边排序。
-  - slot: valu 6218, alu 9424, load 2147(1074c,现为约束引擎), store 62, flow 704。
-- 工具:`/tmp/slots.py` 各引擎 slot 统计(适配新 schedule_ops_serial 返回签名)。
+- HEAD = 794ffa8,**1069 cycles**(动态调度),9/9 绿。
+  历程:01170ef 1157 → M0 vreg+linear-scan(c89f806,1160)→ M1 tournament(bf42b20,1151)
+  → M2 pre-xor d4..7 到 inp_indices 区(a3a4fa6,1169)→ M3 d=4 partial blend+M1.5(6a58907,1085)
+  → M4 offload 再平衡 OFF=1/3+NG4=6(72cdf8b,1069)→ M4.5 gather 入口 xor+add 折成 madd(f825a5f,1069)。
+- **M5 进行中:离线调度表 + 迭代重调度**。
+  - 串行 SGS 基线 1068;jitter Kahn key 只到 1058;**forward/backward 交替
+    (m5basin.py, /tmp)大幅更好:60 basin 就到 986**。
+  - ⚠️ **binder WAW bug(已修,794ffa8)**:bind_vregs 旧用 last_use=max(读,写)做
+    expire,dead-after-write vreg(如 v29 的 p14,round15 blend 不读)在写当拍就被
+    释放,导致同一拍两个 writer 共用 base(v25 的 p14 被覆盖,round15 gather 错)。
+    修复:interval 结束于 max(last_read, last_write+1)(读可与新写同拍,写不行)。
+  - slot(1069 配置):valu 5800(967c)alu 11372(948c)load 1924(962c)
+    flow 907 store 62;count bound 967c。959 文档:valu 5719/alu 11392/load 1891/flow 946。
+- 调试陷阱(别再踩):reference_kernel2 会 mutate mem,做对照时必须用 copy;
+  debug vcompare 放在 instrs[lu+1] 读到的是 lu 拍结束后的值(含同拍 touch 写入),
+  读"reader 视角"要放 instrs[lu];递延 round 携带值是 stage5^c6 不是 hashed_val。
+- 调试工具:perf_takehome.py 里 DBG_HOOK[0/1/2] 钩子(hook(h,v,val/bit/p) vreg);
+  /tmp/dbg_round.py 按 round 二分;build_mem_image 无 tail 空间(见 M2 注)。
 
 ## 机器语义(problem.py)
 
