@@ -63,6 +63,16 @@ CFG = {
     "OFF_P2": 1, "OFF_Q2": 3,   # offload fraction for h >= HSW
     "RUSH": 2,          # fast-track this many vectors through all rounds first
     "RB": 40,           # rush priority bonus in the Kahn key
+    "FOLD5": True,      # fold r5 entry into r4 p-update via flow aux select
+    "FOLDT": True,      # fold tail-recurrence -bit into the next madd (r5/r6)
+    "FOLD7": True,      # fold r7 exit (sub+madd+add) into one madd + flow aux
+    "FOLDR": True,      # fold raw recurrence +bit into the next madd (r8/r9)
+    "FOLD15": True,     # fold r15 entry into r14 p-update via flow aux select
+    "L1MD_P": 2,        # Bresenham fraction P/Q of d<=3 level-1 selects
+    "L1MD_Q": 5,        #   emitted as valu madds instead of flow vselects
+    "L1MD2_P": 2,       # same but for rounds >= 11 (the post-wrap stretch
+    "L1MD2_Q": 5,       #   where flow supply dips at the round-10/11 wrap)
+    "VB_ALU": 28,       # first this many broadcasts emitted as 8 alu copies
 }
 
 
@@ -1917,10 +1927,25 @@ class KernelBuilder:
             emit("alu", (op, s, a, b), [(a, 1), (b, 1)], [(s, 1)])
             return s
 
+        # broadcast helper: the first VB_ALU broadcasts are emitted as 8
+        # scalar alu copies (src|src) instead of one valu vbroadcast; this
+        # shrinks the valu+flow op total (the binding pair) by spending the
+        # otherwise-idle alu capacity.
+        vb_ctr = [0]
+
+        def bcast_into(v, src):
+            vb_ctr[0] += 1
+            if vb_ctr[0] <= CFG["VB_ALU"]:
+                for j in range(VLEN):
+                    emit("alu", ("|", lane(v, j), src, src),
+                         [(src, 1)], [(lane(v, j), 1)])
+            else:
+                emit("valu", ("vbroadcast", v, src), [(src, 1)], [(v, VLEN)])
+
         def vconst(val):
             s = sconst(val)
             v = alloc(VLEN)
-            emit("valu", ("vbroadcast", v, s), [(s, 1)], [(v, VLEN)])
+            bcast_into(v, s)
             return v
 
         c1, c2, c3, c4, c5, c6 = (s[1] for s in HASH_STAGES)
@@ -1969,9 +1994,10 @@ class KernelBuilder:
         m33v = vmderive(sh16v, twov, onev)       # 33: S3+S4 fused
         forest_ps = sconst(forest_p)
         forest_pv = vnew()
-        emit("valu", ("vbroadcast", forest_pv, forest_ps),
-             [(forest_ps, 1)], [(forest_pv, VLEN)])
+        bcast_into(forest_pv, forest_ps)
         negv = vderive("-", onev, forest_pv)  # addr' = 2*addr + (1-forest_p) + bit
+        # FOLDR aux: 2*addr + (negv + bit) in one madd, bit selects the +1
+        negvp1v = vgderive("+", negv, onev) if CFG["FOLDR"] else None
         # small derived scalars: one alu op each into dead-after-setup vregs,
         # replacing const loads (alu is cheaper than load in the setup ramp)
         s1 = sconst(1)               # dedup cache hits onev's scalar
@@ -2026,7 +2052,7 @@ class KernelBuilder:
                 v = alloc(VLEN)
                 lanej = j ^ (ntab - 1) if c6tab else j
                 src = lane(blocks[lanej // VLEN], lanej % VLEN)
-                emit("valu", ("vbroadcast", v, src), [(src, 1)], [(v, VLEN)])
+                bcast_into(v, src)
                 if c6tab:
                     emit("valu", ("^", v, v, c6v), [(v, VLEN), (c6v, VLEN)],
                          [(v, VLEN)])
@@ -2037,6 +2063,24 @@ class KernelBuilder:
                     for i in range(8)]
         else:
             dif4 = None
+        # d<=3 level-1 diffs: lets the scheduler-era balance move a tunable
+        # fraction of tournament level-1 selects from flow vselect to valu
+        # madd (identical algebra: b0 ? l : r == b0*(l - r) + r)
+        difs = {}
+        if CFG["L1MD_P"] or CFG["L1MD2_P"]:
+            for dd in (1, 2, 3):
+                difs[dd] = [vderive("-", tb[dd][2 * i + 1], tb[dd][2 * i])
+                            for i in range(1 << (dd - 1))]
+        l1_ctr = [0, 0]
+
+        def l1_madd_tick():
+            ph = 0 if cur_h[0] < 11 else 1
+            P, Q = (CFG["L1MD_P"], CFG["L1MD_Q"]) if ph == 0 \
+                else (CFG["L1MD2_P"], CFG["L1MD2_Q"])
+            if not P:
+                return False
+            l1_ctr[ph] += 1
+            return (l1_ctr[ph] * P) // Q != ((l1_ctr[ph] - 1) * P) // Q
         # root ^ c6 for deferred entries into depth-0 rounds (after wrap)
         rootc6v = alloc(VLEN)
         emit("valu", ("^", rootc6v, tb[0][0], c6v),
@@ -2063,7 +2107,7 @@ class KernelBuilder:
 
             def vbcast(s):
                 v = alloc(VLEN)
-                emit("valu", ("vbroadcast", v, s), [(s, 1)], [(v, VLEN)])
+                bcast_into(v, s)
                 return v
 
             # address scalars run as ONE continuous +8 alu chain across all
@@ -2097,6 +2141,15 @@ class KernelBuilder:
             basev4t = vbcast(sderive("+", taddr_d[4], s15))  # E + 15
             basev5t = vbcast(sderive("+", taddr_d[5], s31))  # E + 47
             basev7tv = vbcast(taddr_d[7])                    # E + 112
+            # folded-entry constants: a flow vsel aux (base +/- bit) replaces
+            # one valu madd per gather entry / recurrence step
+            k2vm1v = vgderive("-", k2v, onev)      # tail step 2A + (k2v - bit)
+            neg2v = vgderive("-", neg1v, onev)     # -2 mod 2^32
+            b4tm1v = vgderive("-", basev4t, onev)  # r15 fold: base4t - bit
+            b5tm1v = vgderive("-", basev5t, onev)  # r5 fold:  base5t - bit
+            # r7 exit: addr8 = 2*addr7 + (basev8v - 2*basev7tv) + bit
+            k7v = vgderive("-", basev8v, vgderive("+", basev7tv, basev7tv))
+            k7p1v = vgderive("+", k7v, onev)
             if NG3 > 0:
                 # depth-3 nodes pre-xored into the last 8 free tail words
                 # (E+240); the first NG3 vectors gather rounds 3/14 to fill
@@ -2201,6 +2254,8 @@ class KernelBuilder:
             if bits is None:
                 bits = [vop("&", p, get_pow2v(j)) for j in range(d)]
             if d == 1:
+                if l1_madd_tick():
+                    return vmadd(bits[0], difs[1][0], tb[1][0])
                 return vsel(tb[1][1], tb[1][0], bits[0])
             lev = tb[d]
             if d == 4 and CFG["L1MADD"]:
@@ -2213,6 +2268,18 @@ class KernelBuilder:
                     b0 = bits[0]
                     lev = [vmadd(b0, dif4[i], lev[2 * i]) for i in range(8)]
                     bits = bits[1:]
+            if d <= 3 and (CFG["L1MD_P"] or CFG["L1MD2_P"]):
+                # level-1 selects: per-pair Bresenham split between flow
+                # vselect and valu madd over the static diffs
+                b0 = bits[0]
+                newlev = []
+                for i in range(len(lev) // 2):
+                    if l1_madd_tick():
+                        newlev.append(vmadd(b0, difs[d][i], lev[2 * i]))
+                    else:
+                        newlev.append(vsel(lev[2 * i + 1], lev[2 * i], b0))
+                lev = newlev
+                bits = bits[1:]
             for bj in bits:
                 lev = [vsel(lev[2 * i + 1], lev[2 * i], bj)
                        for i in range(len(lev) // 2)]
@@ -2272,6 +2339,17 @@ class KernelBuilder:
                     needed = True
                 if d == 0:
                     needed = False
+        # folded gather entries: round h's p-update directly produces the
+        # NEXT round's gather address, using a flow vsel to inject the bit:
+        #   addr = base - (2*pbar + bit) = madd(pbar, -2, vsel(base-1, base, bit))
+        #   addr' = 2*addr + K - bit    = madd(addr, 2, vsel(K-1, K, bit))
+        # each fold swaps one valu madd for one flow vselect.
+        fold5_r = [CFG["FOLD5"] and PREXOR and adj_r[h] and h + 1 < rounds
+                   and dseq[h + 1] == 5 and adj_r[h + 1]
+                   and not blends(h + 1, 0) for h in range(rounds)]
+        fold15_r = [CFG["FOLD15"] and PREXOR and adj_r[h]
+                    and h + 1 == rounds - 1 and dseq[h + 1] == 4
+                    and adj_r[h + 1] for h in range(rounds)]
         p_v = [None] * n_vec
         bit_hist = [dict() for _ in range(n_vec)]  # round -> branch bit vreg
         for h in range(rounds):
@@ -2304,12 +2382,17 @@ class KernelBuilder:
                         u = vmadd(p, neg1v, basev3t)
                     elif d == 4:
                         if adj:
-                            u = vmadd(p, neg1v, basev4t)
+                            if last and fold15_r[h - 1]:
+                                u = p  # addr4 folded into the r14 p-update
+                            else:
+                                u = vmadd(p, neg1v, basev4t)
                         else:
                             u = vop("+", p, basev[4], allow_scalar=False)
                     elif d == 5:
                         if adj:
-                            p = vmadd(p, neg1v, basev5t)
+                            if not fold5_r[h - 1]:
+                                p = vmadd(p, neg1v, basev5t)
+                            # else: p already holds addr5 (folded at round h-1)
                         else:
                             p = vop("+", p, basev[5], allow_scalar=False)
                         u = p
@@ -2334,22 +2417,42 @@ class KernelBuilder:
                         if C6DEF and not defer and not PREXOR and d <= 3:
                             # leaving the deferred stretch: pbar -> true p
                             p = vop("^", p, gv[min(d, 4)])
-                        p = vmadd(p, twov, bit)  # p' = 2p + bit (position)
+                        if fold5_r[h] and d == 4:
+                            # addr5 = base5t - (2*pbar4 + bit): the r5 entry
+                            # madd folds into this p-update via a flow aux
+                            p = vmadd(p, neg2v, vsel(b5tm1v, basev5t, bit))
+                        elif fold15_r[h] and d == 3 \
+                                and v < n_vec - CFG["NB15"]:
+                            # addr4 = base4t - (2*pbar3 + bit): r15 entry
+                            # folded in here (only for r15 gather vectors)
+                            p = vmadd(p, neg2v, vsel(b4tm1v, basev4t, bit))
+                        else:
+                            p = vmadd(p, twov, bit)  # p' = 2p + bit (position)
                     elif PREXOR and adj and d <= 6:
                         # tail recurrence: addr' = 2*addr + (17-E) - bit_sp
-                        p = vmadd(p, twov, k2v)
-                        p = vop("-", p, bit, allow_scalar=False)
+                        if CFG["FOLDT"]:
+                            p = vmadd(p, twov, vsel(k2vm1v, k2v, bit))
+                        else:
+                            p = vmadd(p, twov, k2v)
+                            p = vop("-", p, bit, allow_scalar=False)
                     elif PREXOR and adj and d == 7:
                         # exit the tail: pos7 = addr - base_7 (already true),
                         # raw depth-8 addr = forest_p + 255 + 2*pos7 + bit
                         # (round d==7 is never deferred: bit is the true bit)
-                        q = vop("-", p, basev7tv, allow_scalar=False)
-                        p = vmadd(q, twov, basev8v)
-                        p = vop("+", p, bit, allow_scalar=False)
+                        if CFG["FOLD7"]:
+                            # addr8 = 2*addr7 + (basev8v - 2*basev7tv) + bit
+                            p = vmadd(p, twov, vsel(k7p1v, k7v, bit))
+                        else:
+                            q = vop("-", p, basev7tv, allow_scalar=False)
+                            p = vmadd(q, twov, basev8v)
+                            p = vop("+", p, bit, allow_scalar=False)
                     else:
                         # addr' = 2a + (1-forest_p) + bit
-                        p = vmadd(p, twov, negv)
-                        p = vop("+", p, bit)
+                        if CFG["FOLDR"]:
+                            p = vmadd(p, twov, vsel(negvp1v, negv, bit))
+                        else:
+                            p = vmadd(p, twov, negv)
+                            p = vop("+", p, bit)
                 # d == forest_height: wrap to 0, nothing to emit
                 val_v[v] = a
                 p_v[v] = p
