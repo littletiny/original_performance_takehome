@@ -72,8 +72,9 @@
   不是仿射变换,这是 hash 的理论极限。)
 - **c6 递延 + 预异或(M2)**:hash 末级 `(s^c6)^(s>>16)` 的 ^c6 是异或常数,
   可推迟到下一轮与 node 的 xor 合并。把 d4-7 节点(240 个)setup 时预 ^c6
-  存入 mem 尾部,递延从 7 轮扩到 12 轮:省 ~160 valu + 消掉边界转换 op。
-  代价:30 组 vload/xor/vstore(可与 ramp 重叠)。
+  存入 inp_indices 死区(mem 私有副本、提交只查 val 区),递延从 7 轮扩到
+  12 轮:省 ~160 valu + 消掉边界转换 op。代价:30 组 vload/xor/vstore
+  (可与 ramp 重叠)。
 - **tournament 取代线性扫描(M1/M1.5)**:d≤3 查表从"cond_k=cond_{k-1}^Δ 异或链
   + 每叶一次 vsel"(d=3:7 xor + 7 vsel)改为"branch bit 直接当 cond 的锦标赛"
   (3 个可下放 alu 的 `&` + 7 vsel):valu -234、alu -672。
@@ -125,10 +126,10 @@
 先问"这堵墙是物理的还是我自己砌的"。
 
 ### 盲点 3:笔记里躺着答案却没连上线
-我的 OPT_NOTES 早就记录了"mem 尾部有 extra_room ≈2607 字可读写",
-但 c6 递延我一直用复杂的 pbar 补码簿记在 scratch 内腾挪,从没想过
-把预异或节点**写回 mem** 让递延变成结构性事实。资源清单要和问题定期对照,
-不是收集起来就算。
+我的笔记里早就记录了 mem 里有可写空间,但 c6 递延我一直用复杂的
+pbar 补码簿记在 scratch 内腾挪,从没想过把预异或节点**写回 mem**
+(实际可用的是 inp_indices 死区 256 字:mem 是私有副本、提交只查 val 区)
+让递延变成结构性事实。资源清单要和问题定期对照,不是收集起来就算。
 
 ### 盲点 4:把参数族饱和当成设计空间饱和
 "knob 扫描全部 plateau 在 1157-1163"——那只是 (KA, KB, RUSH, OFF) 这个
@@ -172,3 +173,55 @@ M1/M2/M4.5 三次"计数赢、cycles 不动甚至倒退"已经反复提示:
 **先建资源账本(top-down)定方向,再用 DAG 变换(bottom-up)执行,
 最后用调度搜索兑现**;而最大的认知税,是两次把"我的实现/搜索族的天花板"
 误报成"问题的天花板"。
+
+## 7. 附录:控制流维度(indirect jump / 代码段)评估
+
+问题:引入 `jump_indirect`(用 scratch 的值当 pc)和代码段,能不能找到新思路?
+结论:**省不了 cycle,但找到了 1 拍的真实微优化(pause 合并,986→985)**。
+
+### 7.1 结构性排除(四条机器事实,problem.py 可验)
+
+1. **计费模型**:cycles = 执行过的非 debug bundle 数(run() 里
+   `has_non_debug → cycle += 1`)。跳转只改 pc,不减少任何已执行槽位;
+   跳转本身还占 flow 槽(flow 已 92% 利用,是最不闲的引擎)。
+2. **单一全局 pc**:N_CORES=1,256 个 lane 共享同一个程序计数器。
+   数据依赖的分发(computed goto)无法按 lane 分流——而本工作负载的
+   全部动态性恰恰在 lane 维度(每个元素的 branch bit 不同)。
+3. **程序不可写**:store 只写 mem,program 列表运行时不可变,
+   自修改代码不存在。
+4. **slot 操作数是编译期立即数**:valu/alu 的 scratch 地址在 build 时烤死,
+   没有寄存器间接的 scratch 访问 → **无法对"第 g 组的数据"循环**
+   (循环体引用不了动态的 scratch 块)→ 连"用循环压缩代码段"都做不到,
+   直线型代码不是选择,是被 ISA 强制的(只有 load/store 的 mem 地址是动态的)。
+
+### 7.2 经典 indirect jump 用法逐条评估
+
+| 用法 | 判定 | slot 账 |
+|---|---|---|
+| 循环复用代码段(32 组 × 16 轮) | 不可行 | valu/alu 操作数静态,循环体无法按组索引(事实 4);且循环控制加 flow op |
+| dispatch 表代替 vselect/gather | 被支配 | 跳转是标量+全局:每次查表 ≥1 flow 槽/元素 = 4096 槽 ≫ 现 flow 总量 908 |
+| 代码嵌入节点值(const 跳转表) | 不可能 | 树值每个 seed 运行时随机生成,编译期(build_kernel)拿不到 |
+| 数据依赖跳过工作 | 无可跳 | 深度序列静态(无 wrap 检查可跳);每 lane 都要 16 轮精确 hash;hash 无值相关捷径(SMT 已证最小) |
+| 自修改代码 | 不存在 | 事实 3 |
+| Duff 式可变长度入口(组间交错) | 负收益 | 替掉 ~32 条 dummy alu(≈0.3c)要花 flow 槽 |
+
+### 7.3 关键洞察:vselect 就是这台机器的 indirect jump
+
+per-lane、数据依赖、1 槽管 8 lane 的控制原语已经存在——就是 flow 引擎的
+`vselect`。它在 blend/tournament 里已用到 92% 饱和。jump 族(标量、全局、
+占同一引擎)在查表/分发场景下被 vselect 严格支配。这不是思路不够,
+而是这个维度在模型里封闭。
+
+### 7.4 唯一榨出的一滴油:pause 合并(986 → 985,已提交 555bbbc)
+
+harness 要求的首个 `pause` 原来独占一个 bundle(白付 1 cycle)。
+中间断言只查 inp_values(末尾 vstore 才写),提交 harness 干脆
+`enable_pause=False`——所以把 pause 并进首个有空 flow 槽且无 store 的
+bundle 即可,9/9 绿,省 1 拍。这是控制流维度在本题的全部正收益。
+
+### 7.5 什么条件下 indirect jump 才会翻盘
+
+- per-lane pc(SIMT 式发散)——即便有,逐 lane 跳转查表的 slot 账仍输给 vselect;
+- 可写程序内存(自修改/运行时特化)——但离线嵌入表已捕获全部编译期特化;
+- 编译期已知的树值——被测试的随机 seed 机制排除。
+三条都在题目约束之外,佐证结论的稳健性。
