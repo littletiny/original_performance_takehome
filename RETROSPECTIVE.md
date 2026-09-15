@@ -315,3 +315,87 @@ ramp 与 drain 的其余空闲是依赖地板(工作尚不存在)或延迟收尾
 (−29 valu)并把 ~27 个 blend select 移到 flow,valu 下界可降到 ~958,
 配合更重的调度搜索,~960 是可及的;再往下(959→869)才需要真正未知的
 新 lookup 表示。
+
+## §10 第二轮优化(985 → 目标 960):folds 代数 + flow 定律 + 选择性常量合成
+
+承接 §9 的结论("缺 pfold 类结构技巧 + 平衡极致度"),本轮实际落地的
+是等价的自制版本。
+
+### 10.1 入口折叠(FOLD5/FOLDT/FOLD7/FOLDR/FOLD15)
+
+思想与对方的 pfold 相同——**把"位置→地址"转换从 valu madd 挪到 flow
+vselect**——但作用点更多:不只是 round 13,而是所有 gather 入口/出口
+和尾递归。
+
+代数:地址递推原本是
+
+    addr' = 2*addr + K + bit        (K 为常量,bit ∈ {0,1})
+
+拆成两步是 `t = madd(addr, 2, K)`(valu)+ `addr' = t + bit`(valu)。
+折叠后用 vsel 的"按 bit 选常量"能力:
+
+    aux   = vsel(K+1, K, bit)       (flow,1 槽)
+    addr' = madd(addr, 2, aux)      (valu,1 槽)
+
+净效果:**每个折叠点 −1 valu、+1 flow**,且依赖链不变(bit 仍是最后
+到达的输入)。r7 出口原本 3 个 valu(sub + madd + add)折成
+1 madd + 1 vsel。5 个开关合计把 valu 下界从 967 压到 954。
+
+定性教训:§9 把 pfold 当成"对方独有的技巧",其实它只是
+"flow 引擎能按 bit 免费做 ±1 常量选择"这一个事实的一个应用。
+**先提炼机器能力(free const-select on flow),再枚举所有应用点**,
+比照搬对方的具体变换更系统。
+
+### 10.2 C = flow_total + flow_idle(实测定律)
+
+本轮对调度质量做了精确归因。对 flow-bound 的程序实测:
+
+    CYCLES = flow 总操作数 + flow 引擎空闲槽数
+
+且 "idle-with-supply"(有 ready 的 flow 操作却仍空闲的槽)= 0 ——
+交替前后向搜索在给定窗口下已经是**完美的 flow 打包器**。这意味着
+继续堆调度搜索次数(800 局收敛 982-984)不会突破;要降 cycles 只有
+两条路:减 flow 操作数,或减结构性的 flow idle(ramp ~31c 等首个
+hash 链、中段 r10-12 wrap dip ~30c、drain ~15-18c 末组收尾)。
+
+这也是判断"还能不能压"的定量标准:当前 folds 后 flow 总数 ~950,
+若 idle 不变(~79),预期 ~1029?? —— 实测远好于此,因为 folds
+同时缩短了 ramp 关键链(first flow op 提前)。**结构改动既减总数
+也减 idle,双重收益**,这是它比纯调度搜索强的原因。
+
+### 10.3 CONST_ALU 的选择性版本(回归与修正)
+
+全量 CONST_ALU(所有小常量走 alu 合成链)把 load 1901→1891(=对方
+的 load 数),但**搜索从 981 回归到 985-988**。原因:4097/16896
+(hash 第一轮乘子)、forest_p、inp_values_p、c32 这些常量位于
+group-0 hash 与输入 vload 的 ramp 关键路径上,const load 只要 1 拍,
+alu 合成链要 3-7 拍,ramp 被拉长 = flow idle 增大(§10.2 的 ramp 项)。
+
+修正为选择性版本:只有**晚用常量**(MOD32−1、forest_p+255、extra_p、
+17−extra_p)走 alu 派生,ramp 关键常量保留 1 拍 const load。
+结果:load 1896(仍比全量前省 5),ramp 链恢复原状。
+
+定性教训:**资源计数(load −10)和关键路径(ramp +N 拍)要分开算账**。
+"alu 有空闲所以把常量搬过去"在稳态成立,在 ramp 区不成立——ramp 区
+的约束是依赖深度,不是吞吐量。
+
+### 10.4 本轮已证伪/确认的方向(补充 §4)
+
+| 方向 | 结果 | 原因 |
+|---|---|---|
+| NG3=2(更多 d3 gather) | 992,回归 | load 是墙,加 load 必亏 |
+| L1MD 高比例 7/13 | 985/987 | 过度移动 flow→valu,valu 先撞墙 |
+| NG4=4 | 无益 | 同上类 |
+| KF flow 关键性项 | 984 | 已是完美 flow 打包器,优先级项无空间 |
+| 纯拉长搜索 800 局 | 收敛 982-984 | 同上,C=flow+idle 定律 |
+| 全量 CONST_ALU | 985-988 | ramp 关键常量链变长(§10.3)|
+| **folds(§10.1)** | **valu 967→954** | 唯一被确认的大杠杆 |
+| **VB_ALU=28** | valu+flow −28 | broadcast 搬 alu,稳态成立 |
+
+### 10.5 当前计数(folds + VB_ALU + 选择性 CONST_ALU 后)
+
+    valu=5725(954c)  alu=11456(955c)  load=1896(948c)  flow=950(950c)
+
+资源下界 955,四引擎 spread 仅 7 拍(原 59)。与对方 959
+(954 下界 + 5 slack)相比,我们下界高 1 拍;若调度 slack 能压到
+对方的 ~5,cycles ≈ 960 恰好达标。这就是本轮搜索的目标窗口。
