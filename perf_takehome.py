@@ -66,6 +66,8 @@ CFG = {
 
 VA_BASE = 1 << 20
 
+DBG_HOOK = [None, None]  # debug: fn(h, v, val_vreg) / fn(h, v, bit_vreg)
+
 
 class V(int):
     """Virtual-register reference. Its int value is a unique virtual scratch
@@ -82,15 +84,17 @@ class V(int):
 
 def bind_vregs(ops, opcycle, vsize, lo, hi=SCRATCH_SIZE):
     """Post-schedule linear-scan binding of virtual registers to scratch
-    words in [lo, hi). A vreg's live interval is [first_write, last_use] in
-    scheduled cycles; intervals may touch (e <= s) because reads see
-    pre-cycle state and writes land at end of cycle. Returns vid -> base, or
-    None if it does not fit."""
+    words in [lo, hi). A vreg's live interval ends at max(last_read,
+    last_write + 1) in scheduled cycles; a new interval may start (first
+    write) at cycle s when s >= that end: reads at cycle s still see the
+    old value (pre-cycle reads), but a same-cycle write would be a WAW
+    hazard. Returns vid -> base, or None if it does not fit."""
     import bisect
 
     n = len(vsize)
     first_w = [None] * n
-    last_u = [-1] * n
+    last_u = [-1] * n   # last READ cycle
+    last_wr = [-1] * n  # last WRITE cycle
     for i in range(len(ops)):
         c = opcycle[i]
         for base, ln in ops[i][3]:
@@ -98,8 +102,8 @@ def bind_vregs(ops, opcycle, vsize, lo, hi=SCRATCH_SIZE):
                 vid = base.vid
                 if first_w[vid] is None or c < first_w[vid]:
                     first_w[vid] = c
-                if c > last_u[vid]:
-                    last_u[vid] = c
+                if c > last_wr[vid]:
+                    last_wr[vid] = c
         for base, ln in ops[i][2]:
             if isinstance(base, V):
                 vid = base.vid
@@ -108,7 +112,13 @@ def bind_vregs(ops, opcycle, vsize, lo, hi=SCRATCH_SIZE):
     for vid in range(n):
         if first_w[vid] is None:
             first_w[vid] = last_u[vid]  # never written: pin at its use
-    order = sorted(range(n), key=lambda v: (first_w[v], last_u[v], v))
+    # An interval may be reused only when the new vreg's first write at cycle
+    # s cannot collide with the old one's last events: reads at cycle s are
+    # fine (they see pre-cycle state) but a write at cycle s is a WAW hazard
+    # (both land at end of cycle). So expire when s >= max(last_read,
+    # last_write + 1).
+    keep_until = [max(last_u[v], last_wr[v] + 1) for v in range(n)]
+    order = sorted(range(n), key=lambda v: (first_w[v], keep_until[v], v))
     segs = [(lo, hi)]  # free segments (start, end), sorted by start
     active = []  # (end, base, size)
     bindbase = [0] * n
@@ -148,7 +158,7 @@ def bind_vregs(ops, opcycle, vsize, lo, hi=SCRATCH_SIZE):
         if rest[0] < rest[1]:
             bisect.insort(segs, rest)
         bindbase[v] = base
-        active.append((last_u[v], base, sz))
+        active.append((keep_until[v], base, sz))
     return bindbase
 
 
@@ -845,6 +855,8 @@ class KernelBuilder:
                 if not last and d < forest_height:
                     bit = vop("&", a, onev)  # branch bit (bar form when adj)
                     bit_hist[v][h] = bit
+                    if DBG_HOOK[1] is not None:
+                        DBG_HOOK[1](h, v, bit)
                     if d == 0:
                         p = bit  # p' = val & 1 (p == 0)
                     elif d <= 4:
@@ -870,6 +882,10 @@ class KernelBuilder:
                 # d == forest_height: wrap to 0, nothing to emit
                 val_v[v] = a
                 p_v[v] = p
+                if DBG_HOOK[0] is not None:
+                    DBG_HOOK[0](h, v, a)
+                if len(DBG_HOOK) > 2 and DBG_HOOK[2] is not None:
+                    DBG_HOOK[2](h, v, p)
 
         # ---- final stores ----
         cur_tag[:] = (rounds, 0)
