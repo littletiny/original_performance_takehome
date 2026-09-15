@@ -42,6 +42,7 @@ CFG = {
     "NG4": 6,          # first this many vectors gather at round 4 (rest blend)
     "NB15": 3,         # last this many vectors blend at round 15 (rest gather)
     "L1MADD": True,    # d=4 blend level-1 as valu madd (else flow vselect)
+    "L1MADD_N": 32,    # per round, only this many blend vectors keep L1 madd
     "GROUPS": 1,       # split vectors into this many start-staggered groups
     "DELAY": 0,        # cycles between group starts (fake alu chain)
     "EA": 64,          # priority: eround = h*EA + v*EB
@@ -2182,9 +2183,15 @@ class KernelBuilder:
                 return vsel(tb[1][1], tb[1][0], bits[0])
             lev = tb[d]
             if d == 4 and CFG["L1MADD"]:
-                b0 = bits[0]
-                lev = [vmadd(b0, dif4[i], lev[2 * i]) for i in range(8)]
-                bits = bits[1:]
+                # level-1 blend as valu madd (sel = b0*(l-r)+r) for the
+                # first L1MADD_N vectors of the blend range, flow vselect
+                # for the rest: trades valu for the otherwise-idle flow
+                h_, v_ = cur_tag
+                lo_ = CFG["NG4"] if h_ != rounds - 1 else n_vec - CFG["NB15"]
+                if v_ - lo_ < CFG["L1MADD_N"]:
+                    b0 = bits[0]
+                    lev = [vmadd(b0, dif4[i], lev[2 * i]) for i in range(8)]
+                    bits = bits[1:]
             for bj in bits:
                 lev = [vsel(lev[2 * i + 1], lev[2 * i], bj)
                        for i in range(len(lev) // 2)]
