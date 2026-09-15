@@ -41,6 +41,7 @@ CFG = {
     "SCALAR_MOD": 3,   # 1 in N offloadable vector ops -> scalar alu
     "NG4": 6,          # first this many vectors gather at round 4 (rest blend)
     "NB15": 3,         # last this many vectors blend at round 15 (rest gather)
+    "NG3": 0,          # first this many vectors also gather rounds 3/14 (d==3)
     "L1MADD": True,    # d=4 blend level-1 as valu madd (else flow vselect)
     "L1MADD_N": 32,    # per round, only this many blend vectors keep L1 madd
     "GROUPS": 1,       # split vectors into this many start-staggered groups
@@ -1860,6 +1861,9 @@ class KernelBuilder:
 
         # ---- round plan: depth sequence, c6-deferral and adjusted rounds ----
         PREXOR = CFG["PREXOR"] and C6DEF and forest_height >= 7
+        # d==3 gathers read p, which is only alive into rounds 4/15 for
+        # vectors that gather there too: clamp into that range
+        NG3 = min(CFG["NG3"], CFG["NG4"], n_vec - CFG["NB15"]) if PREXOR else 0
         dseq = []
         dd = 0
         for h in range(rounds):
@@ -2092,6 +2096,22 @@ class KernelBuilder:
             basev4t = vbcast(sderive("+", taddr_d[4], s15))  # E + 15
             basev5t = vbcast(sderive("+", taddr_d[5], s31))  # E + 47
             basev7tv = vbcast(taddr_d[7])                    # E + 112
+            if NG3 > 0:
+                # depth-3 nodes pre-xored into the last 8 free tail words
+                # (E+240); the first NG3 vectors gather rounds 3/14 to fill
+                # early load bubbles instead of running the flow tournament
+                sync[3] = alloc(1)
+                saddr3 = base if maxtab == 3 else sderive("-", base, c8s)
+                taddr3 = sderive("+", taddr, c8s)      # 2294 (chain end +8)
+                v = vnew()
+                emit("load", ("vload", v, saddr3), [(saddr3, 1)], [(v, VLEN)])
+                x = vnew()
+                emit("valu", ("^", x, v, c6v),
+                     [(v, VLEN), (c6v, VLEN)], [(x, VLEN)])
+                emit("store", ("vstore", taddr3, x),
+                     [(taddr3, 1), (x, VLEN)], [(sync[3], 1)])
+                # u = (E+240+7) - pbar = taddr3 + pos, same fold as d==4
+                basev3t = vbcast(sderive("+", taddr3, sderive("-", c8s, s1)))
 
         # ---- op emitters (virtual registers, value-threaded) ----
         scalar_ctr = [0]
@@ -2229,7 +2249,9 @@ class KernelBuilder:
         # Under PREXOR, adjusted rounds (adj_r) read node^c6 from the mem
         # tail; p at d==4/d==5 entry is the bit-complemented pbar and the
         # tail address recurrence carries the complemented branch bit.
-        # p liveness: p is only read by gather rounds (d >= 4 non-blend);
+        # p liveness: p is only read by gather rounds (d >= 4 non-blend, plus
+        # d == 3 for v < NG3 — those vectors also gather at rounds 4/15 by
+        # the NG3 clamp, so the existing d >= 4 rule keeps p alive for them);
         # d <= 3 tournaments read bit_hist, d == 0 reads nothing. A p-update
         # whose product is never read before the next d == 0 reset is dead
         # (e.g. rounds 12..14 for vectors that blend at round 15).
@@ -2261,9 +2283,10 @@ class KernelBuilder:
                 cur_tag[:] = (h, v)
                 a = val_v[v]
                 p = p_v[v]
+                gather3 = d == 3 and adj and v < NG3
                 if d == 0:
                     a = vop("^", a, rootc6v if adj else tb[0][0])
-                elif d <= 3 or (d == 4 and adj and BLEND4 and
+                elif (d <= 3 and not gather3) or (d == 4 and adj and BLEND4 and
                                 (v >= CFG["NG4"] if not last
                                  else v >= n_vec - CFG["NB15"])):
                     # tournament conds are the branch bits computed by the
@@ -2276,7 +2299,9 @@ class KernelBuilder:
                             bits = None
                     a = vop("^", a, emit_tree(d, p, bits))
                 else:
-                    if d == 4:
+                    if d == 3:
+                        u = vmadd(p, neg1v, basev3t)
+                    elif d == 4:
                         if adj:
                             u = vmadd(p, neg1v, basev4t)
                         else:
