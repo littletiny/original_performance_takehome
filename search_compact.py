@@ -10,7 +10,7 @@ import numpy as np
 from optimize import build, counts, Scheduler, allocate
 
 
-def warm_keys(source, graph):
+def warm_keys(source, graph, scheduler=None):
     old = build(json.loads((source / 'config.json').read_text()))
     times = np.load(source / 'best.npz')['times']
     named = dict(zip(old.names, map(int, times)))
@@ -18,9 +18,18 @@ def warm_keys(source, graph):
         if '.lane' in name:
             stem = name.rsplit('.lane', 1)[0]
             named[stem] = min(named.get(stem, t), t)
-    return np.array([named.get(graph.names[rows[0][0]],
-                              named.get(graph.names[rows[0][0]].rsplit('.lane', 1)[0], 0))
-                     for rows in graph.units], dtype=np.float64)
+    keys = [named.get(graph.names[rows[0][0]],
+                      named.get(graph.names[rows[0][0]].rsplit('.lane', 1)[0]))
+            for rows in graph.units]
+    if any(key is None for key in keys):
+        scheduler = scheduler or Scheduler(graph)
+        # Give new operations their consumers' approximate release window.
+        # Sending every new address or gather to priority zero needlessly
+        # disrupts the known ordering of the rest of a warm schedule.
+        for u in reversed(scheduler.order):
+            if keys[u] is None:
+                keys[u] = min((keys[child]-lag for child, lag in scheduler.children[u]), default=0)
+    return np.array(keys, dtype=np.float64)
 
 
 def static_size(graph, cycles):
@@ -33,7 +42,7 @@ def search(job):
     graph = build(config)
     scheduler = Scheduler(graph)
     rng = random.Random(733 + index)
-    incumbent = warm_keys(source, graph)
+    incumbent = warm_keys(source, graph, scheduler)
     best_score = 100000
     directory = output / f'candidate_{index:03}'
     for trial in range(trials):

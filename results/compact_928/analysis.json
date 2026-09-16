@@ -1,0 +1,129 @@
+{
+  "engines": {
+    "valu": 5483,
+    "alu": 10966,
+    "load": 1726,
+    "store": 879,
+    "flow": 883
+  },
+  "weighted_alu_valu": 54830,
+  "bound": 914,
+  "arithmetic_bound": 914,
+  "table_bundles": 9216,
+  "regions": 46,
+  "values": 7944,
+  "cycles": 928,
+  "bound_scope": "Resource counts for this fixed SSA graph, not a global task lower bound.",
+  "cycle_windows": [
+    {
+      "start": 0,
+      "end": 100,
+      "engines": {
+        "valu": 580,
+        "alu": 1148,
+        "load": 152,
+        "store": 117,
+        "flow": 86
+      }
+    },
+    {
+      "start": 100,
+      "end": 200,
+      "engines": {
+        "load": 200,
+        "alu": 1200,
+        "valu": 600,
+        "flow": 97,
+        "store": 98
+      }
+    },
+    {
+      "start": 200,
+      "end": 300,
+      "engines": {
+        "valu": 600,
+        "alu": 1200,
+        "flow": 100,
+        "store": 80,
+        "load": 200
+      }
+    },
+    {
+      "start": 300,
+      "end": 400,
+      "engines": {
+        "valu": 600,
+        "alu": 1200,
+        "flow": 100,
+        "load": 200,
+        "store": 80
+      }
+    },
+    {
+      "start": 400,
+      "end": 500,
+      "engines": {
+        "alu": 1193,
+        "valu": 600,
+        "flow": 91,
+        "load": 200,
+        "store": 48
+      }
+    },
+    {
+      "start": 500,
+      "end": 600,
+      "engines": {
+        "valu": 600,
+        "alu": 1200,
+        "flow": 97,
+        "load": 200,
+        "store": 56
+      }
+    },
+    {
+      "start": 600,
+      "end": 700,
+      "engines": {
+        "valu": 600,
+        "flow": 99,
+        "alu": 1177,
+        "store": 114,
+        "load": 200
+      }
+    },
+    {
+      "start": 700,
+      "end": 800,
+      "engines": {
+        "load": 200,
+        "valu": 600,
+        "alu": 1200,
+        "flow": 100,
+        "store": 106
+      }
+    },
+    {
+      "start": 800,
+      "end": 900,
+      "engines": {
+        "valu": 595,
+        "alu": 1200,
+        "flow": 100,
+        "load": 144,
+        "store": 133
+      }
+    },
+    {
+      "start": 900,
+      "end": 928,
+      "engines": {
+        "valu": 108,
+        "alu": 248,
+        "store": 47,
+        "flow": 13,
+        "load": 30
+      }
+    }
+  ]
+}

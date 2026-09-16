@@ -2,6 +2,6 @@ trace.json
 **/*.pyc
 .hypothesis
 .DS_Store
-.schedule.so
+.schedule*.so
 .lane_allocate*.so
 .solver-venv/

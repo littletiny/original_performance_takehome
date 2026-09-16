@@ -1,17 +1,17 @@
 # Sub-900 optimization checkpoint
 
-The current verified entry point is **934 cycles with 9,782 static bundles**,
+The current verified entry point is **928 cycles with 9,776 static bundles**,
 down from the initial 980 cycles.
 The requested **<900-cycle target has not been reached**.
 
 The user revised the static VLIW instruction-bundle limit to **10,000**
 (`len(KernelBuilder.instrs)`). Both the exporter and the standalone decoder
-enforce this limit. The current program contains **220,215 individual
+enforce this limit. The current program contains **220,244 individual
 engine-slot operations**, including the initial pause; those are a different
 quantity from bundles.
 
 The preceding 932-cycle checkpoint used 477,092 static bundles. The current
-version reduces that count by **97.95%** at a cost of 2 dynamic cycles. Its
+version reduces that count by **97.95%** and uses 4 fewer dynamic cycles. Its
 verified artifacts remain at `results/portfolio_1/`, and its submitted source
 is preserved in commit `e2c302f`; it is no longer the default implementation.
 The first compressed checkpoint, 971 cycles and 9,819 bundles, remains in
@@ -20,13 +20,15 @@ The depth-5 prefetch checkpoint remains in `results/compact_939/` and commit
 `5954122` (939 cycles, 9,787 bundles).
 The address-chain checkpoint remains in `results/compact_936/` and commit
 `1d667e6` (936 cycles, 9,784 bundles).
+The first lane-allocation checkpoint remains in `results/compact_934/` and
+commit `188b459` (934 cycles, 9,782 bundles).
 
 ## Verified checkpoint
 
-Source configuration and schedule: `results/compact_934/config.json` and
-`results/compact_934/best.npz`. Frozen verification and export metadata:
-`results/compact_934/verification.json`. Fixed-graph resource counts and
-100-cycle utilization windows are in `results/compact_934/analysis.json`.
+Source configuration and schedule: `results/compact_928/config.json` and
+`results/compact_928/best.npz`. Frozen verification and export metadata:
+`results/compact_928/verification.json`. Fixed-graph resource counts and
+100-cycle utilization windows are in `results/compact_928/analysis.json`.
 
 The submitted `perf_takehome.py` is self-contained: its standard-shape builder
 expands an embedded logical schedule and dense dispatch descriptors with Python
@@ -36,11 +38,14 @@ saved artifacts. Other shapes retain the previous implementation.
 Validation completed:
 
 - The unchanged `python3 tests/submission_tests.py` passes all nine tests at
-  934 cycles.
+  928 cycles.
 - The three native tests in `python3 perf_takehome.py` also pass.
 - Five machine-level allocator tests in `test_lane_allocate.py` pass, covering
   progressive in-place vector updates, later reads, simultaneous writes,
   initial-zero reuse, and rejection of same-cycle RAW dependencies.
+- Two scheduler regression tests in `test_schedule.py` pass. They cover
+  preserving a feasible warm schedule with negative inter-unit lags and
+  rejecting infeasible hints as incumbents.
 - Seeds 0–9 each pass 20,480 retained hash-stage checkpoints and final output
   comparisons in `tests/frozen_problem.py`.
 - The verifier checks every executed PC against its logical cycle, and checks
@@ -64,15 +69,17 @@ Validation completed:
 3. Main-program positions replaced by out-of-line handlers are removed. The
    lowerer relocates absolute jumps and table-address constants; the frozen
    verifier checks the resulting PC-to-logical-cycle mapping on every step.
-   Removing these 368 unreachable positions leaves 566 main-program bundles.
+   Removing these 368 unreachable positions leaves 560 main-program bundles.
 4. The last four groups use late gathers. The compressed variant uses MADD
    path updates and FLOW shallow selections. Mirrored memory addresses remove
    several later address selections. There is no separate depth-5 dispatch.
 5. Small setup constants and addresses are synthesized selectively. Root I/O
    addresses that affect startup retain direct constant loads.
-6. Twelve groups cache four depth-5 grandchildren in the existing depth-3
+6. Eleven groups cache four depth-5 grandchildren in the existing depth-3
    handlers. Three vector selections later resolve the depth-5 node, replacing
-   eight scalar loads per group (96 total), without adding table entries.
+   eight scalar loads per group (88 total), without adding table entries.
+   Removing group 6's cache reduced work by 32 ALU instructions and three FLOW
+   selections, while adding eight loads; the resulting schedule reached 931.
 7. Output addresses are reconstructed near the final stores, using two
    16-group chains. This adds 30 ALU operations while shortening scalar-address
    lifetimes and allowing a two-cycle scheduling improvement.
@@ -82,7 +89,11 @@ Validation completed:
    reconstructs depth 4 from its biased cache, and backs up depths 6–7 in the
    unused index area. Backups are ordered before bias computation, so original
    loaded values can be released promptly. All modified memory is restored.
-10. The current embedded payload is 151,168 bytes before source quoting.
+10. Ninety-eight named binary operations explicitly select ALU or VALU instead
+    of relying only on a global fraction. Moves are first placed in measured
+    resource holes with all dependencies checked, then rescheduled. Two rounds
+    of these changes reduced 931 cycles to 928 without increasing weighted
+    arithmetic work. The current payload is 149,597 bytes before source quoting.
 
 All tree values and input values remain runtime data. Dispatch tables encode
 scratch operand choices, not precomputed answers.
@@ -130,10 +141,10 @@ Additional verified experimental choices remain available in `optimize.py`:
   temporary stores using runtime child values when conditional loads are also
   enabled; it must not store the child-address constants instead.
 
-The present graph contains 10,966 ALU and 5,487 VALU operations, with weighted
-work `10966 + 8*5487 = 54,862`. The machine can issue at most 60 such weighted
-operations per cycle. Thus this particular graph needs at least 915 cycles
-from arithmetic counts alone (also 915 from its fixed VALU count). Reordering
+The present graph contains 10,966 ALU and 5,483 VALU operations, with weighted
+work `10966 + 8*5483 = 54,830`. The machine can issue at most 60 such weighted
+operations per cycle. Thus this particular graph needs at least 914 cycles
+from arithmetic counts alone (also 914 from its fixed VALU count). Reordering
 it cannot reach <900. This is not a lower bound for alternative algorithms or
 instruction choices; further progress toward the goal requires reducing work.
 
@@ -172,7 +183,7 @@ ranges. Per-round scalar/VALU choices and additional grandchild prefetches
 reached 938 cycles with a 1,338-word peak. Retaining depth-5 originals and
 sharing shallow setup reached the current verified 934-cycle entry point.
 
-The current per-lane live-value peak is 1,366 words; the allocated address span
+The current per-lane live-value peak is 1,343 words; the allocated address span
 remains 1,536 words. Retaining both depths 6 and 7 at the preserved 938-cycle
 schedule still failed 84 tested packing strategies, despite a 1,506-word live
 peak. That result is a limitation of those strategies, not a proof of an
@@ -190,6 +201,36 @@ entry point in the screened schedules. Precise entry dependencies (only the
 first PC word is read by the entry jump) are enabled; handlers retain all their
 own data dependencies. A cleanup-phase indexing bug in per-round scalar
 settings was fixed before the successful per-round experiments above.
+
+## Warm scheduling and measured engine moves
+
+Serial placement could make a valid warm schedule worse: a negative lag can
+hide an early consumer unit behind a parent whose start is later. The native
+scheduler now independently checks a supplied integral schedule's dependencies
+and resource usage, and retains a valid one as an incumbent. It periodically
+restarts from its best schedule instead of indefinitely drifting away. Native
+library builds use a temporary file and atomic replacement.
+
+`search_compact.py` assigns new operations priorities derived from their
+consumers instead of sending every new operation to priority zero.
+`search_neighbors.py` explores single prefetch changes, retained tree levels,
+and short dispatch chains. `rebalance_holes.py` moves independent hash-operation
+packs between ALU and VALU using actual free slots, audits the preserved
+schedule, then searches from it. Saved configurations reproduce every move
+through `scalar_overrides`; neither tool is imported by the submitted kernel.
+
+Mirrored-heap conditional loads are now supported with ascending mirrored
+addresses, an exact eligible-operation budget, and restoration dependencies
+for every depth-4 read. A 32-load probe passed full ten-seed frozen execution
+at 944 cycles and 9,792 bundles (`results/heap_child_loads/candidate_001`). It
+is not enabled in the current checkpoint: the additional load pressure was
+slower than the copied operands. The wider 24-configuration screen did not
+beat 934 cycles before the warm-scheduling and neighborhood refinements.
+
+A separate 240-second CP-SAT attempt on the 934-cycle graph retaining depths
+5 and 6 preserved its feasible 934-cycle result and reported a 917-cycle
+bound (`results/compact_934_cp2`). This applies only to that fixed graph,
+not to the current 928-cycle graph or to alternative algorithms.
 
 ## Remaining work
 

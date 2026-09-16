@@ -46,8 +46,36 @@ extern "C" int schedule_search(
   std::vector<double> keys(initial_keys, initial_keys+n);
   int best_end = horizon;
   int current_end = horizon;
+  // A valid warm schedule is an incumbent, not merely an ordering hint.
+  // Negative inter-unit lags can hide an early unit behind a later parent,
+  // so even noiseless serial placement can make a valid input worse.
+  {
+    bool valid = true;
+    int end = 0;
+    std::vector<std::array<int,5>> occupied(horizon);
+    for (int i = 0; i < n && valid; ++i) {
+      double key = initial_keys[i];
+      if (!std::isfinite(key) || key < 0 || key != std::floor(key) ||
+          key + durations[i] >= horizon) { valid = false; break; }
+      int t = int(key);
+      best[i] = t;
+      end = std::max(end, t + int(durations[i]) + 1);
+      for (auto row : demands[0][i]) {
+        auto& amount = occupied[t+row[0]][row[1]];
+        amount += row[2];
+        if (amount > caps[row[1]]) { valid = false; break; }
+      }
+    }
+    for (int e = 0; e < ne && valid; ++e)
+      valid = best[dests[e]] >= best[sources[e]] + lags[e];
+    if (valid) best_end = end;
+  }
   for (int iteration = 0; iteration < iterations; ++iteration) {
     int dir = iteration % 2;
+    if (iteration && iteration % 64 == 0 && best_end < current_end) {
+      current = best;
+      current_end = best_end;
+    }
     if (iteration) {
       for (int i = 0; i < n; ++i) {
         keys[i] = dir ? current_end - 1 - current[i] - durations[i] : current[i];

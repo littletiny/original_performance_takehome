@@ -1,0 +1,368 @@
+{
+  "jump3": 32,
+  "jump4": 32,
+  "jump15": 32,
+  "jump5": 0,
+  "gather3": 0,
+  "gather14": 0,
+  "blend4": 0,
+  "blend15": 0,
+  "leaf_madd": 0,
+  "scalar": [
+    0.2163,
+    0.2163,
+    0.2163,
+    0.2163,
+    0.31183,
+    0.31183,
+    0.31183,
+    0.31183,
+    0.31183,
+    0.31183,
+    0.31183,
+    0.3063,
+    0.3063,
+    0.3063,
+    0.3063,
+    0.3063
+  ],
+  "offset_scalar": false,
+  "prexor": true,
+  "fold": true,
+  "seed": 0,
+  "prefetch3": true,
+  "prefetch4": false,
+  "width3": 1,
+  "width4": 2,
+  "width5": 1,
+  "last_pair3": false,
+  "prefetch_madd": false,
+  "dce": true,
+  "path2_flow": false,
+  "fold_path4": false,
+  "fuse_tail_pc": false,
+  "load_vectors": [],
+  "synth_scalars": true,
+  "synth_vectors": true,
+  "small_bias_alu": true,
+  "path2_valu_groups": [
+    [
+      12,
+      24
+    ],
+    [
+      12,
+      25
+    ],
+    [
+      12,
+      26
+    ],
+    [
+      12,
+      27
+    ],
+    [
+      12,
+      28
+    ],
+    [
+      12,
+      29
+    ],
+    [
+      12,
+      30
+    ],
+    [
+      12,
+      31
+    ]
+  ],
+  "load_children": false,
+  "scalar_labels": null,
+  "scalar_extra": "h2.b",
+  "scalar_extra_fraction": 0.25,
+  "tail_gathers": 4,
+  "load_child_budget": 128,
+  "oldest_first": true,
+  "store_children": true,
+  "merge_regions": 1,
+  "temp_buffers": 4,
+  "pair_early_end": false,
+  "initial_ones": true,
+  "dispatch_widths": [
+    [
+      3,
+      0,
+      2
+    ],
+    [
+      3,
+      4,
+      2
+    ],
+    [
+      3,
+      8,
+      2
+    ],
+    [
+      3,
+      12,
+      2
+    ],
+    [
+      3,
+      16,
+      2
+    ],
+    [
+      3,
+      20,
+      2
+    ],
+    [
+      3,
+      24,
+      2
+    ],
+    [
+      3,
+      28,
+      2
+    ],
+    [
+      14,
+      0,
+      2
+    ],
+    [
+      14,
+      4,
+      2
+    ],
+    [
+      14,
+      8,
+      2
+    ],
+    [
+      14,
+      12,
+      2
+    ],
+    [
+      14,
+      16,
+      2
+    ],
+    [
+      14,
+      20,
+      2
+    ]
+  ],
+  "compact_main": true,
+  "flow_constants": [],
+  "ahead_bits": [],
+  "prefetch5_groups": [
+    2,
+    3,
+    7,
+    10,
+    11,
+    14,
+    15,
+    18,
+    22,
+    26,
+    30
+  ],
+  "prefetch_madd_groups": [
+    [
+      4,
+      0
+    ],
+    [
+      4,
+      1
+    ],
+    [
+      4,
+      2
+    ],
+    [
+      4,
+      3
+    ],
+    [
+      4,
+      4
+    ],
+    [
+      4,
+      5
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      4,
+      7
+    ],
+    [
+      4,
+      8
+    ],
+    [
+      4,
+      9
+    ],
+    [
+      4,
+      10
+    ],
+    [
+      4,
+      11
+    ],
+    [
+      4,
+      12
+    ],
+    [
+      4,
+      13
+    ],
+    [
+      4,
+      14
+    ],
+    [
+      4,
+      15
+    ]
+  ],
+  "fold_path4_groups": [],
+  "compact_heap": true,
+  "heap_keep_levels": [
+    5
+  ],
+  "heap_reuse_levels": [
+    4
+  ],
+  "heap_backup": true,
+  "heap_restore_window": 64,
+  "output_address_block": 16,
+  "output_address_window": 16,
+  "alias_constants": [],
+  "lane_allocation": true,
+  "merge_chains": [],
+  "precise_dispatch_inputs": true,
+  "heap_backup_before_bias": true,
+  "share_shallow_loads": true,
+  "share_shallow_bias": true,
+  "lane_allocation_trials": 8,
+  "scalar_overrides": {
+    "r15.g8.h2": false,
+    "r15.g17.h2": false,
+    "r15.g2.h6.b": false,
+    "r15.g1.mix": false,
+    "r0.g9.h2.a": false,
+    "r0.g10.h2": false,
+    "r15.g12.h6": false,
+    "r15.g18.h4": false,
+    "r13.g15.mix": false,
+    "r13.g13.h6": false,
+    "r15.g11.h6.b": false,
+    "r14.g15.h6.b": false,
+    "r0.g2.h2.b": false,
+    "r12.g22.h4": false,
+    "r12.g17.h6.b": false,
+    "r12.g16.mix": false,
+    "r3.g15.h2.b": true,
+    "r9.g6.mix": true,
+    "r0.g23.h2": true,
+    "r0.g24.h2.a": true,
+    "r0.g31.h2.b": true,
+    "r10.g2.mix": true,
+    "r3.g18.h2.b": true,
+    "r10.g4.h2.b": true,
+    "r3.g18.h2.a": true,
+    "r0.g26.bit": true,
+    "r0.g30.h2": true,
+    "r0.g31.mix": true,
+    "r0.g29.h2.b": true,
+    "r0.g27.bit": true,
+    "r0.g26.h6.b": true,
+    "r10.g1.h2.b": true,
+    "r15.g15.h6.a": false,
+    "r15.g13.h6.a": true,
+    "r15.g6.h6.b": true,
+    "r15.g2.h6.a": true,
+    "r15.g1.h6.b": false,
+    "r15.g4.h2.a": true,
+    "r15.g13.mix": true,
+    "r15.g17.mix": true,
+    "r15.g7.h6": false,
+    "r13.g8.mix": false,
+    "r15.g15.h6.b": false,
+    "r0.g3.h2": false,
+    "r15.g3.mix": false,
+    "r15.g2.h2.b": false,
+    "r15.g6.h2.b": false,
+    "r15.g14.h4": false,
+    "r13.g4.mix": false,
+    "r0.g7.h4": false,
+    "r13.g4.h6": false,
+    "r0.g4.mix": false,
+    "r13.g19.bit": false,
+    "r12.g13.bit": false,
+    "r11.g15.h6": false,
+    "r0.g6.bit": false,
+    "r15.g25.h6": false,
+    "r7.g22.h2.a": false,
+    "r2.g0.h6.b": false,
+    "r1.g4.h2": false,
+    "r1.g0.bit": false,
+    "r0.g1.h6.b": false,
+    "r0.g1.h2.a": false,
+    "r14.g4.bit": false,
+    "r9.g24.mix": false,
+    "r13.g14.h4": false,
+    "r15.g5.h2.a": false,
+    "r15.g3.h4": false,
+    "r9.g28.h2": false,
+    "r0.g13.h2.b": false,
+    "r11.g5.h6": true,
+    "r10.g1.mix": true,
+    "r9.g5.h2.b": true,
+    "r13.g12.mix": true,
+    "r13.g11.mix": true,
+    "r13.g10.mix": true,
+    "r5.g19.h2.b": true,
+    "r3.g24.h2.a": true,
+    "r15.g13.h6": true,
+    "r15.g6.h6": true,
+    "r15.g8.h6.b": true,
+    "r15.g0.h6.a": true,
+    "r15.g13.h2.a": true,
+    "r15.g11.h2.a": true,
+    "r15.g8.mix": true,
+    "r14.g16.h2.b": true,
+    "r15.g6.h2.a": true,
+    "r14.g6.h2.a": true,
+    "r15.g11.mix": true,
+    "r15.g6.mix": true,
+    "r5.g30.mix": true,
+    "r13.g5.mix": true,
+    "r12.g14.mix": true,
+    "r13.g9.mix": true,
+    "r2.g31.mix": true,
+    "r15.g9.mix": true,
+    "r0.g2.mix": true,
+    "r1.g5.h2.b": true
+  }
+}

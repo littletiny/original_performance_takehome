@@ -82,7 +82,8 @@ def build(config=None):
                alias_constants=(), lane_allocation=False,
                merge_chains=(), precise_dispatch_inputs=False,
                heap_backup_before_bias=False, share_shallow_loads=False,
-               share_shallow_bias=False, lane_allocation_trials=8)
+               share_shallow_bias=False, lane_allocation_trials=8,
+               scalar_overrides=None)
     cfg.update(config or {})
     g = Graph()
     sc, vc = {}, {}
@@ -92,7 +93,7 @@ def build(config=None):
     ahead_bits = set(tuple(x) for x in cfg["ahead_bits"])
     prefetch_madd_groups = set(tuple(x) for x in cfg["prefetch_madd_groups"])
     if cfg["compact_heap"]:
-        assert cfg["prexor"] and not cfg["load_children"]
+        assert cfg["prexor"]
         assert not cfg["fold_path4"] and not cfg["fold_path4_groups"]
         assert not cfg["ahead_bits"]
     if cfg["share_shallow_bias"]:
@@ -191,6 +192,8 @@ def build(config=None):
             if label == cfg["scalar_extra"] and label not in cfg["scalar_labels"]:
                 f = cfg["scalar_extra_fraction"]
                 offload = int((index+1)*f) != int(index*f)
+        if flexible and cfg["scalar_overrides"] and name in cfg["scalar_overrides"]:
+            offload = cfg["scalar_overrides"][name]
         if offload:
             for j in range(8):
                 aa, bb, dd = lane(a, j), lane(b, j), lane(dst, j)
@@ -407,7 +410,12 @@ def build(config=None):
     previous_temp_loads = {}
     temp_reads = []
     temp_output_reads = {}
-    possible_child_loads = sum(8*(2 if width >= 3 else 1) for (r, group), width in dispatch_groups.items() if r == 14)
+    if cfg["compact_heap"]:
+        possible_child_loads = sum(
+            8 * min(2, 2 * (width-int(cfg["store_children"])))
+            for (r, group), width in dispatch_groups.items() if r == 14)
+    else:
+        possible_child_loads = sum(8*(2 if width >= 3 else 1) for (r, group), width in dispatch_groups.items() if r == 14)
     child_load_counter = 0
 
     def dispatch(r, group, values, pointers):
@@ -464,7 +472,10 @@ def build(config=None):
             memory_children = None
             if r == 14 and cfg["load_children"]:
                 assert cfg["prexor"] and not any(prefetch_madd(r+1, group+s) for s in range(width))
-                memory_children = [scalar(bases[d+1]+j) for j in reversed(range(1 << (d+1)))]
+                indices = range(1 << (d+1))
+                if not cfg["compact_heap"]:
+                    indices = reversed(indices)
+                memory_children = [scalar(bases[d+1]+j) for j in indices]
             for stream in range(width):
                 prefetched[r+1, group+stream] = [g.new(), g.new()]
         grand_streams = [s for s in range(width) if r == 3 and group+s in cfg["prefetch5_groups"]]
@@ -503,7 +514,9 @@ def build(config=None):
                         cache = children[child::2] if child == 0 or not prefetch_madd(r+1, group+stream) else child_diffs[d+1]
                         dst = lane(prefetched[r+1, group+stream][child], j)
                         store_child = store_children and stream == 0
-                        load_child = not store_child and memory_children is not None and (2*stream+child+2*j) % (2*width) < (2 if width >= 3 else 1)
+                        eligible_child = (stream == int(store_children) if cfg["compact_heap"] else
+                                          (2*stream+child+2*j) % (2*width) < (2 if width >= 3 else 1))
+                        load_child = not store_child and memory_children is not None and eligible_child
                         if load_child:
                             fraction = min(1, cfg["load_child_budget"] / possible_child_loads)
                             load_child = int((child_load_counter+1)*fraction) != int(child_load_counter*fraction)
@@ -520,6 +533,7 @@ def build(config=None):
                             temp_stores[child].append(op)
                         if load_child:
                             last_gathers.append(op)
+                            gather_levels[op] = d+1
                             g.control.extend((store, start, 1) for store in syncs[d+1])
                         if fused:
                             g.lookup_bits[op] = lane(bits[group+stream][-1], j)
@@ -891,10 +905,19 @@ def counts(g):
 class Scheduler:
     def __init__(self, g):
         import ctypes
+        import os
         import subprocess
+        import tempfile
         lib_path = ROOT / ".schedule.so"
         if not lib_path.exists() or lib_path.stat().st_mtime < (ROOT / "schedule.cpp").stat().st_mtime:
-            subprocess.run(["g++", "-O3", "-std=c++17", "-shared", "-fPIC", str(ROOT/"schedule.cpp"), "-o", str(lib_path)], check=True)
+            fd, temporary = tempfile.mkstemp(prefix=".schedule.", suffix=".so", dir=ROOT)
+            os.close(fd)
+            try:
+                subprocess.run(["g++", "-O3", "-std=c++17", "-shared", "-fPIC", str(ROOT/"schedule.cpp"), "-o", temporary], check=True)
+                os.replace(temporary, lib_path)
+            finally:
+                if os.path.exists(temporary):
+                    os.unlink(temporary)
         self.lib = ctypes.CDLL(str(lib_path))
         ptr = np.ctypeslib.ndpointer(dtype=np.int64, flags="C_CONTIGUOUS")
         fptr = np.ctypeslib.ndpointer(dtype=np.float64, flags="C_CONTIGUOUS")
