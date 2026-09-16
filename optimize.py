@@ -71,7 +71,7 @@ def build(config=None):
                load_vectors=(), synth_scalars=False, synth_vectors=False,
                small_bias_alu=False, path2_valu_groups=(), load_children=False,
                scalar_labels=None, scalar_extra="h2.b", scalar_extra_fraction=0.25)
-    cfg.update(tail_gathers=0, load_child_budget=128, oldest_first=False, store_children=False, merge_regions=1, temp_buffers=0, pair_early_end=False, initial_ones=False)
+    cfg.update(tail_gathers=0, load_child_budget=128, oldest_first=False, store_children=False, merge_regions=1, temp_buffers=0, pair_early_end=False, initial_ones=False, dispatch_widths=(), compact_main=False)
     cfg.update(config or {})
     g = Graph()
     sc, vc = {}, {}
@@ -204,6 +204,7 @@ def build(config=None):
                     modes[r+1][k] = "prefetch"
 
     dispatch_groups = {}
+    width_overrides = {(r, k): width for r, k, width in cfg["dispatch_widths"]}
     for r in (3, 4, 5, 14, 15):
         k = 0
         while k < 32:
@@ -215,6 +216,8 @@ def build(config=None):
                 width = 2
             if r == 3 and k >= 28 and cfg["pair_early_end"]:
                 width = 2
+            width = width_overrides.get((r, k), width)
+            assert 1 <= width <= 4
             width = min(width, 32-k)
             remaining = next((j-k for j in range(k, 32) if modes[r][j] != "jump"), 32-k)
             if width == 3 and remaining == 4:
@@ -899,6 +902,27 @@ def lower(g, times, bases):
                 origins[pos+choice] = cycle
             program[cycle] = {}
             origins[cycle] = -1
+    if g.config["compact_main"]:
+        # Each out-of-line handler replaces a main-program position that is
+        # never executed. Remove those holes and relocate absolute addresses.
+        keep = np.flatnonzero(origins >= 0)
+        addresses = {int(old): new for new, old in enumerate(keep)}
+        addresses[len(program)] = len(keep)
+        constants = {(int(times[i]), slots[i]) for i in g.pc_constants}
+        compact = []
+        for old in keep:
+            bundle = {}
+            for engine, instructions in program[old].items():
+                out = []
+                for slot in instructions:
+                    if slot[0] == "jump":
+                        slot = ("jump", addresses[slot[1]])
+                    elif engine == "load" and (int(origins[old]), slot) in constants:
+                        slot = ("const", slot[1], addresses[slot[2]])
+                    out.append(slot)
+                bundle[engine] = out
+            compact.append(bundle)
+        program, origins = compact, origins[keep]
     assert len(program) < 500_000, len(program)
     return program, origins, logical
 

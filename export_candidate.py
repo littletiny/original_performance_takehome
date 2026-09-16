@@ -38,7 +38,7 @@ def _build_tuned_standard():
                     slot = ("load", operation[1], operation[3+index])
                 bundle[engine][position] = slot
             program[base+choice] = bundle
-    assert len(program) < 500_000
+    assert len(program) <= 10_000
     return program
 
 '''
@@ -50,19 +50,21 @@ def export(source, write=False):
     bases, allocation = allocate(graph, times)
     assert bases is not None, allocation
     program, origins, logical = lower(graph, times, bases)
+    assert len(program) <= 10_000, f"Static bundle limit exceeded: {len(program)}"
     # Pause shares the first bundle so the native two-yield harness sees its
     # initial memory checkpoint without moving any absolute dispatch PC.
     assert not program[0].get('flow') and not program[0].get('store')
     program[0]['flow'] = [('pause',)]
     verification = verify_frozen(graph, times, bases, program, origins, range(10))
     cycles = len(logical)
+    main_size = len(program) - graph.total_table_words
     cases = []
     for region in graph.regions:
         n, width = region['n'], region['width']
         count = n ** width
         for part, (lookups, jump) in enumerate(region['parts']):
             cycle = int(times[jump])
-            base = cycles + region['table'] + part*count
+            base = main_size + region['table'] + part*count
             patches = []
             for op_id, stream in lookups:
                 engine = graph.ops[op_id][0]
@@ -70,7 +72,7 @@ def export(source, write=False):
                 position = logical[cycle][engine].index(operation)
                 patches.append((engine, position, operation, n**(width-1-stream), n))
             cases.append((base, count, program[base], patches))
-    payload = (program[:cycles], graph.total_table_words, cases)
+    payload = (program[:main_size], graph.total_table_words, cases)
     blob = base64.b85encode(zlib.compress(pickle.dumps(payload, protocol=4), 9)).decode()
     scope = dict(_TUNED_STANDARD=blob)
     exec(DECODER, scope)
@@ -90,7 +92,7 @@ def export(source, write=False):
             text = start + block + rest.lstrip('\n')
         else:
             text = text.replace('class V(int):\n', block + 'class V(int):\n', 1)
-        marker = '        blob = EMBEDDED_SCHEDULES.get(\n'
+        marker = '        assert batch_size % VLEN == 0\n'
         hook = '''        if ((forest_height, n_nodes, batch_size, rounds) == (10, 2047, 256, 16)
                 and CFG.get("USE_EMBEDDED", True)):
             self.instrs = _build_tuned_standard()
