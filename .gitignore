@@ -3,4 +3,5 @@ trace.json
 .hypothesis
 .DS_Store
 .schedule.so
+.lane_allocate*.so
 .solver-venv/

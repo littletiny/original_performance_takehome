@@ -79,7 +79,10 @@ def build(config=None):
                compact_heap=False, heap_keep_levels=(), heap_reuse_levels=(),
                heap_backup=False, heap_restore_window=0,
                output_address_block=0, output_address_window=32,
-               alias_constants=())
+               alias_constants=(), lane_allocation=False,
+               merge_chains=(), precise_dispatch_inputs=False,
+               heap_backup_before_bias=False, share_shallow_loads=False,
+               share_shallow_bias=False, lane_allocation_trials=8)
     cfg.update(config or {})
     g = Graph()
     sc, vc = {}, {}
@@ -92,6 +95,10 @@ def build(config=None):
         assert cfg["prexor"] and not cfg["load_children"]
         assert not cfg["fold_path4"] and not cfg["fold_path4_groups"]
         assert not cfg["ahead_bits"]
+    if cfg["share_shallow_bias"]:
+        assert cfg["share_shallow_loads"]
+    if cfg["share_shallow_loads"]:
+        assert cfg["small_bias_alu"] or cfg["share_shallow_bias"]
 
     def prefetch_madd(r, k):
         return cfg["prefetch_madd"] or (r, k) in prefetch_madd_groups
@@ -175,7 +182,7 @@ def build(config=None):
         scalar_tick += bool(flexible)
         fraction = cfg["scalar"]
         if isinstance(fraction, list):
-            fraction = fraction[max(0, g.tag[0])]
+            fraction = fraction[min(len(fraction)-1, max(0, g.tag[0]))]
         offload = flexible and int(scalar_tick * fraction) != int((scalar_tick - 1) * fraction)
         if flexible and cfg["scalar_labels"] is not None and name.startswith("r"):
             label = ".".join(name.split(".")[2:])
@@ -275,6 +282,7 @@ def build(config=None):
     raw_nodes, adjusted_nodes = {}, {}
     raw_blocks, pending_stores, tree_loads = {}, [], []
     heap_backups = {}
+    shallow_raw = shallow_biased = None
     needed = {0}
     for r in range(16):
         if any(mode in ("blend", "jump", "prefetch", "grand") for mode in modes[r]):
@@ -288,21 +296,33 @@ def build(config=None):
         raw_nodes[d], adjusted_nodes[d] = [], []
         raw_blocks[d] = []
         for off in range(0, 1 << d, 8):
-            raw = vload(scalar(7 + (1 << d) - 1 + off), f"tree.d{d}.raw{off}")
+            if cfg["share_shallow_loads"] and d <= 2:
+                if shallow_raw is None:
+                    shallow_raw = vload(scalar(7), "tree.d0.raw0")
+                    tree_loads.append((len(g.ops)-1, 7))
+                raw = lane(shallow_raw, (1 << d)-1)
+            else:
+                raw = vload(scalar(7 + (1 << d) - 1 + off), f"tree.d{d}.raw{off}")
+                tree_loads.append((len(g.ops)-1, 6+(1 << d)+off))
             raw_blocks[d].append(raw)
-            tree_loads.append((len(g.ops)-1, 6+(1 << d)+off))
             if (cfg["compact_heap"] and cfg["heap_backup"] and 4 <= d <= 7
                     and d not in cfg["heap_keep_levels"] and d not in cfg["heap_reuse_levels"]):
                 backup = scalar(2054+(1 << d)-16+off)
                 op = g.emit(f"tree.d{d}.backup{off}", "store", ("vstore", backup, raw), [(backup, 1), (raw, 8)], [])
                 heap_backups[d, off] = backup, op
             mirrored = cfg["compact_heap"] and 4 <= d <= 7
-            if mirrored:
+            if cfg["share_shallow_bias"] and d <= 2:
+                if shallow_biased is None:
+                    shallow_biased = binary("^", shallow_raw, vector(c[5]), "tree.shallow.bias", False)
+                bias = lane(shallow_biased, (1 << d)-1)
+            elif mirrored:
                 bias = g.new()
                 src = scalar(c[5])
                 for j in range(8):
                     dst, source = lane(bias, 7-j), lane(raw, j)
-                    g.emit(f"tree.d{d}.bias{off}.lane{j}", "alu", ("^", dst, source, src), [(source, 1), (src, 1)], [(dst, 1)])
+                    op = g.emit(f"tree.d{d}.bias{off}.lane{j}", "alu", ("^", dst, source, src), [(source, 1), (src, 1)], [(dst, 1)])
+                    if cfg["heap_backup_before_bias"] and (d, off) in heap_backups:
+                        g.control.append((heap_backups[d, off][1], op, 1))
             elif d <= 2 and cfg["small_bias_alu"]:
                 bias = g.new()
                 src = scalar(c[5])
@@ -458,6 +478,10 @@ def build(config=None):
                        [(targets, 8), *[(values[group+s], 8) for s in range(width)], *[(x, 1) for x in adjusted_nodes[d]],
                         *([(x, 1) for x in children] if fetch else []),
                         *([(x, 1) for x in child_diffs[d+1]] if fetch and any(prefetch_madd(r+1, group+s) for s in range(width)) else [])], [])
+        if cfg["precise_dispatch_inputs"]:
+            # Entry reads only PC lane zero. The handlers carry their own
+            # data dependencies at the cycle where each word is consumed.
+            g.ops[start][2] = [(targets, 1)]
         if fetch and store_children:
             g.control.extend((op, start, -1) for op in previous_temp_loads.get(buffer, ()))
             for source_group in (2*buffer, 2*buffer+1):
@@ -756,7 +780,9 @@ def build(config=None):
     g.total_table_words = total_words
     if cfg["dce"]:
         eliminate_dead(g)
-    if cfg["merge_regions"] > 1:
+    if cfg["merge_chains"]:
+        merge_dispatch_regions(g, max(len(chain) for chain in cfg["merge_chains"]))
+    elif cfg["merge_regions"] > 1:
         merge_dispatch_regions(g, cfg["merge_regions"])
     return g
 
@@ -796,31 +822,43 @@ def merge_dispatch_regions(g, number):
     assert 2 <= number <= 4 and g.config["store_children"]
     unit_of = {i:u for u, rows in enumerate(g.units) for i, off in rows}
     aliases, removed_units, replacement_units = {}, set(), {}
-    for rnd in sorted({r["round"] for r in g.regions}):
-        regions = [r for r in g.regions if r["round"] == rnd]
-        for start in range(0, len(regions), number):
-            batch = regions[start:start+number]
-            if len(batch) == 1:
-                continue
-            combined = []
-            first_unit = unit_of[batch[0]["start"]]
-            for j, region in enumerate(batch):
-                unit = unit_of[region["start"]]
-                removed_units.add(unit)
-                for i, off in g.units[unit]:
-                    if j and i == region["start"]:
-                        continue
-                    combined.append((i, off+j*8))
-                if j+1 < len(batch):
-                    region["chain_exit"] = True
-                    next_start = batch[j+1]["start"]
-                    previous_exit = region["parts"][-1][1]
-                    aliases[next_start] = previous_exit
-                    g.ops[previous_exit] = [*g.ops[next_start][:4], g.ops[previous_exit][4]]
-                    for i in region.get("temp_loads", ()):
-                        removed_units.add(unit_of[i])
-                        combined.append((i, j*8+9))
-            replacement_units[first_unit] = combined
+    if g.config["merge_chains"]:
+        region_of = {(r["round"], r["groups"][0]): r for r in g.regions}
+        seen = set()
+        batches = []
+        for chain in g.config["merge_chains"]:
+            keys = [tuple(key) for key in chain]
+            assert 2 <= len(keys) <= 4 and not seen.intersection(keys)
+            assert len(set(keys)) == len(keys)
+            seen.update(keys)
+            batches.append([region_of[key] for key in keys])
+    else:
+        batches = []
+        for rnd in sorted({r["round"] for r in g.regions}):
+            regions = [r for r in g.regions if r["round"] == rnd]
+            batches.extend(regions[start:start+number] for start in range(0, len(regions), number))
+    for batch in batches:
+        if len(batch) == 1:
+            continue
+        combined = []
+        first_unit = unit_of[batch[0]["start"]]
+        for j, region in enumerate(batch):
+            unit = unit_of[region["start"]]
+            removed_units.add(unit)
+            for i, off in g.units[unit]:
+                if j and i == region["start"]:
+                    continue
+                combined.append((i, off+j*8))
+            if j+1 < len(batch):
+                region["chain_exit"] = True
+                next_start = batch[j+1]["start"]
+                previous_exit = region["parts"][-1][1]
+                aliases[next_start] = previous_exit
+                g.ops[previous_exit] = [*g.ops[next_start][:4], g.ops[previous_exit][4]]
+                for i in region.get("temp_loads", ()):
+                    removed_units.add(unit_of[i])
+                    combined.append((i, j*8+9))
+        replacement_units[first_unit] = combined
     units = []
     for u, rows in enumerate(g.units):
         if u in replacement_units:
@@ -946,6 +984,8 @@ class Scheduler:
 
 
 def allocate(g, times, policy=0):
+    if g.config.get("lane_allocation") and policy == 0:
+        return allocate_lanes(g, times)
     import bisect
     first, last_read, last_write = {}, {}, {}
     for v in g.initial_zero:
@@ -1009,6 +1049,78 @@ def allocate(g, times, policy=0):
         active.append((end[v], addr, size))
         peak = max(peak, addr+size)
     return bases, dict(scratch_words=peak, allocation_policy=policy)
+
+
+def allocate_lanes(g, times):
+    """Respect read-before-write timing separately for each scratch word."""
+    import ctypes
+    import os
+    import subprocess
+    import tempfile
+    path = ROOT / ".lane_allocate.so"
+    if not path.exists() or path.stat().st_mtime < (ROOT / "lane_allocate.cpp").stat().st_mtime:
+        fd, temporary = tempfile.mkstemp(prefix=".lane_allocate.", suffix=".so", dir=ROOT)
+        os.close(fd)
+        try:
+            subprocess.run(["g++", "-O3", "-std=c++17", "-shared", "-fPIC", str(ROOT/"lane_allocate.cpp"), "-o", temporary], check=True)
+            os.replace(temporary, path)
+        finally:
+            Path(temporary).unlink(missing_ok=True)
+    lib = ctypes.CDLL(str(path))
+    ptr = np.ctypeslib.ndpointer(dtype=np.int64, flags="C_CONTIGUOUS")
+    lib.allocate_lanes_native.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ptr, ptr, ptr, ctypes.c_int, ptr]
+    lib.allocate_lanes_native.restype = ctypes.c_int
+    n, horizon = len(g.sizes), int(max(times))+3
+    first = np.full((n, 8), horizon, dtype=np.int64)
+    end = np.full((n, 8), -1, dtype=np.int64)
+    for v in g.initial_zero:
+        first[v.vid, :g.sizes[v.vid]] = 0
+        end[v.vid, :g.sizes[v.vid]] = 1
+    for i, op in enumerate(g.ops):
+        t = int(times[i])
+        for base, length in op[3]:
+            assert 0 <= base.off and base.off+length <= g.sizes[base.vid]
+            row = slice(base.off, base.off+length)
+            first[base.vid, row] = np.minimum(first[base.vid, row], t+1)
+            end[base.vid, row] = np.maximum(end[base.vid, row], t+2)
+        for base, length in op[2]:
+            assert 0 <= base.off and base.off+length <= g.sizes[base.vid]
+            row = slice(base.off, base.off+length)
+            end[base.vid, row] = np.maximum(end[base.vid, row], t+1)
+    for i, op in enumerate(g.ops):
+        for base, length in op[2]:
+            assert np.all(first[base.vid, base.off:base.off+length] <= int(times[i])), g.names[i]
+    sizes = np.asarray(g.sizes, dtype=np.int64)
+    assert np.all((1 <= sizes) & (sizes <= 8))
+    live = first < end
+    events = np.zeros(horizon+1, dtype=np.int64)
+    np.add.at(events, first[live], 1)
+    np.add.at(events, end[live], -1)
+    peak = int(events.cumsum().max())
+    if peak > 1536:
+        return None, dict(allocation_policy="lanes", lane_live_peak=peak,
+                          reason="Per-lane live words exceed scratch capacity")
+    output = np.empty(n, dtype=np.int64)
+    failures = []
+    for policy in range(g.config.get("lane_allocation_trials", 8)):
+        failed = lib.allocate_lanes_native(n, horizon, 1536, sizes, first, end, policy, output)
+        if failed:
+            failures.append(int(failed)-1)
+            continue
+        bases = {v: int(output[v]) for v in range(n) if output[v] >= 0}
+        # Independently audit the native bitset result using sorted intervals.
+        cells = [[] for _ in range(1536)]
+        for v, base in bases.items():
+            for j in range(g.sizes[v]):
+                if first[v, j] < end[v, j]:
+                    cells[base+j].append((int(first[v, j]), int(end[v, j]), v, j))
+        for address, intervals in enumerate(cells):
+            intervals.sort()
+            for a, b in zip(intervals, intervals[1:]):
+                assert a[1] <= b[0], (address, a, b)
+        return bases, dict(scratch_words=max(bases[v]+g.sizes[v] for v in bases),
+                           allocation_policy=f"lanes-{policy}", lane_live_peak=peak)
+    return None, dict(allocation_policy="lanes", lane_live_peak=peak, failed_values=failures)
 
 
 def lower(g, times, bases):
