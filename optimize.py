@@ -71,17 +71,38 @@ def build(config=None):
                load_vectors=(), synth_scalars=False, synth_vectors=False,
                small_bias_alu=False, path2_valu_groups=(), load_children=False,
                scalar_labels=None, scalar_extra="h2.b", scalar_extra_fraction=0.25)
-    cfg.update(tail_gathers=0, load_child_budget=128, oldest_first=False, store_children=False, merge_regions=1, temp_buffers=0, pair_early_end=False, initial_ones=False, dispatch_widths=(), compact_main=False)
+    cfg.update(tail_gathers=0, load_child_budget=128, oldest_first=False,
+               store_children=False, merge_regions=1, temp_buffers=0,
+               pair_early_end=False, initial_ones=False, dispatch_widths=(),
+               compact_main=False, flow_constants=(), ahead_bits=(),
+               prefetch5_groups=(), prefetch_madd_groups=(), fold_path4_groups=())
     cfg.update(config or {})
     g = Graph()
     sc, vc = {}, {}
     scalar_tick = 0
     leaf_tick = 0
+    constant_zero = None
+    ahead_bits = set(tuple(x) for x in cfg["ahead_bits"])
+    prefetch_madd_groups = set(tuple(x) for x in cfg["prefetch_madd_groups"])
+
+    def prefetch_madd(r, k):
+        return cfg["prefetch_madd"] or (r, k) in prefetch_madd_groups
+
+    def fold_path4(k):
+        return cfg["fold_path4"] or k in cfg["fold_path4_groups"]
 
     def scalar(value):
+        nonlocal constant_zero
         value &= MASK
         if value not in sc:
             v = g.new(1)
+            if cfg["flow_constants"] == "all" or value in cfg["flow_constants"]:
+                if constant_zero is None:
+                    constant_zero = g.new(1)
+                    g.initial_zero.append(constant_zero)
+                g.emit(f"constant.{value}", "flow", ("add_imm", v, constant_zero, value), [(constant_zero, 1)], [(v, 1)])
+                sc[value] = v
+                return v
             expression = None
             if cfg["synth_scalars"] and value not in (2310, 7, 8, 32):
                 for a, source in sc.items():
@@ -202,6 +223,9 @@ def build(config=None):
             for k in range(32):
                 if modes[r][k] == "jump":
                     modes[r+1][k] = "prefetch"
+    for k in cfg["prefetch5_groups"]:
+        assert modes[3][k] == "jump" and modes[4][k] == "prefetch"
+        modes[5][k] = "grand"
 
     dispatch_groups = {}
     width_overrides = {(r, k): width for r, k, width in cfg["dispatch_widths"]}
@@ -239,7 +263,7 @@ def build(config=None):
     raw_nodes, adjusted_nodes = {}, {}
     needed = {0}
     for r in range(16):
-        if any(mode in ("blend", "jump", "prefetch") for mode in modes[r]):
+        if any(mode in ("blend", "jump", "prefetch", "grand") for mode in modes[r]):
             needed.add(r % 11)
     if cfg["prexor"]:
         needed.update(range(4, 8))
@@ -266,7 +290,7 @@ def build(config=None):
     root0 = bcast(raw_nodes[0][0], "root.raw")
     root1 = bcast(adjusted_nodes[0][0], "root.bias")
     child_diffs = {}
-    if cfg["prefetch_madd"]:
+    if cfg["prefetch_madd"] or prefetch_madd_groups:
         for d in (4, 5):
             if d not in needed:
                 continue
@@ -294,6 +318,8 @@ def build(config=None):
             result = []
             for pair in range(len(level) // 2):
                 fraction = cfg["leaf_madd"]
+                if isinstance(fraction, list):
+                    fraction = fraction[max(0, g.tag[0])]
                 leaf_tick += 1
                 use_madd = step == 0 and fraction and int(leaf_tick * fraction) != int((leaf_tick - 1) * fraction)
                 name = prefix + f"select{step}.{pair}"
@@ -318,6 +344,7 @@ def build(config=None):
     prev_offsets = {}
 
     prefetched = {}
+    grandchildren = {}
     previous_temp_loads = {}
     temp_reads = []
     temp_output_reads = {}
@@ -377,15 +404,21 @@ def build(config=None):
                 temp_ptrs = [scalar(temp_base+j) for j in range(16)]
             memory_children = None
             if r == 14 and cfg["load_children"]:
-                assert cfg["prexor"] and not cfg["prefetch_madd"]
+                assert cfg["prexor"] and not any(prefetch_madd(r+1, group+s) for s in range(width))
                 memory_children = [scalar(bases[d+1]+j) for j in reversed(range(1 << (d+1)))]
             for stream in range(width):
                 prefetched[r+1, group+stream] = [g.new(), g.new()]
+        grand_streams = [s for s in range(width) if r == 3 and group+s in cfg["prefetch5_groups"]]
+        if grand_streams:
+            assert width <= 2
+            grand_nodes = list(reversed(adjusted_nodes[5]))
+            for stream in grand_streams:
+                grandchildren[group+stream] = [g.new() for _ in range(4)]
         start_unit = len(g.units)
         start = g.emit(prefix + "jump0", "flow", ("jump_indirect", targets),
                        [(targets, 8), *[(values[group+s], 8) for s in range(width)], *[(x, 1) for x in adjusted_nodes[d]],
                         *([(x, 1) for x in children] if fetch else []),
-                        *([(x, 1) for x in child_diffs[d+1]] if fetch and cfg["prefetch_madd"] else [])], [])
+                        *([(x, 1) for x in child_diffs[d+1]] if fetch and any(prefetch_madd(r+1, group+s) for s in range(width)) else [])], [])
         if fetch and store_children:
             g.control.extend((op, start, -1) for op in previous_temp_loads.get(buffer, ()))
             for source_group in (2*buffer, 2*buffer+1):
@@ -404,9 +437,10 @@ def build(config=None):
                 xors.append((op, stream))
                 if fetch:
                     for child in range(2):
-                        cache = children[child::2] if child == 0 or not cfg["prefetch_madd"] else child_diffs[d+1]
+                        cache = children[child::2] if child == 0 or not prefetch_madd(r+1, group+stream) else child_diffs[d+1]
                         dst = lane(prefetched[r+1, group+stream][child], j)
-                        load_child = memory_children is not None and (2*stream+child+2*j) % (2*width) < (2 if width >= 3 else 1)
+                        store_child = store_children and stream == 0
+                        load_child = not store_child and memory_children is not None and (2*stream+child+2*j) % (2*width) < (2 if width >= 3 else 1)
                         if load_child:
                             fraction = min(1, cfg["load_child_budget"] / possible_child_loads)
                             load_child = int((child_load_counter+1)*fraction) != int(child_load_counter*fraction)
@@ -414,7 +448,6 @@ def build(config=None):
                         engine, code = ("load", "lookup_load") if load_child else ("alu", "lookup_copy")
                         if load_child:
                             cache = memory_children[child::2]
-                        store_child = store_children and stream == 0
                         if store_child:
                             dst = temp_ptrs[child*8+j]
                             engine, code = "store", "lookup_store"
@@ -428,6 +461,13 @@ def build(config=None):
                         if fused:
                             g.lookup_bits[op] = lane(bits[group+stream][-1], j)
                             g.ops[op][2].append((g.lookup_bits[op], 1))
+                        xors.append((op, stream))
+                if stream in grand_streams:
+                    for child in range(4):
+                        dst = lane(grandchildren[group+stream][child], j)
+                        cache = grand_nodes[child::4]
+                        op = g.emit(prefix + f"grand{j}.{stream}.{child}", "alu", ("lookup_copy", dst, q, *cache),
+                                    [(q, 1), *[(x, 1) for x in cache]], [(dst, 1)])
                         xors.append((op, stream))
             slot = ("jump_indirect", lane(targets, j+1)) if j < 7 else ("jump", 0)
             jump = g.emit(prefix + f"jump{j+1}", "flow", slot, [(slot[1], 1)] if j < 7 else [], [])
@@ -485,10 +525,16 @@ def build(config=None):
                 value = mixed_pairs[k]
             elif mode == "prefetch":
                 no, yes = prefetched[r, k]
-                if cfg["prefetch_madd"]:
+                if prefetch_madd(r, k):
                     node = madd(bits[k][-1], yes, no, prefix + "prefetched_node")
                 else:
                     node = select(bits[k][-1], yes, no, prefix + "prefetched_node")
+                value = binary("^", values[k], node, prefix + "mix")
+            elif mode == "grand":
+                nodes = grandchildren[k]
+                left = select(bits[k][-2], nodes[2], nodes[0], prefix + "grand_left")
+                right = select(bits[k][-2], nodes[3], nodes[1], prefix + "grand_right")
+                node = select(bits[k][-1], right, left, prefix + "grand_node")
                 value = binary("^", values[k], node, prefix + "mix")
             else:
                 address = ptrs[k]
@@ -510,7 +556,7 @@ def build(config=None):
                 if bias_gather:
                     node = binary("^", node, vector(c[5]), prefix + "load.bias")
                 value = binary("^", values[k], node, prefix + "mix")
-            defer = r != 15 and ((r+1) % 11 <= 3 or modes[r+1][k] in ("blend", "jump", "prefetch") or cfg["prexor"] and 4 <= (r+1)%11 <= 7)
+            defer = r != 15 and ((r+1) % 11 <= 3 or modes[r+1][k] in ("blend", "jump", "prefetch", "grand") or cfg["prexor"] and 4 <= (r+1)%11 <= 7)
 
             def checkpoint(value, stage, biased=False):
                 g.checks.append((value, r, k, stage, c[5] if biased else 0))
@@ -525,6 +571,7 @@ def build(config=None):
             b = madd(value, vector(33 << 9), vector(c[2] << 9), prefix + "h4.b")
             value = binary("^", a, b, prefix + "h4")
             checkpoint(value, 3)
+            before_h5 = value
             value = madd(value, vector(9), vector(c[4]), prefix + "h5")
             checkpoint(value, 4)
             shifted = binary(">>", value, vector(16), prefix + "h6.b")
@@ -534,18 +581,27 @@ def build(config=None):
             values[k] = value
             if r == 15 or depth == 10:
                 continue
-            bit = binary("&", value, vector(1), prefix + "bit")
-            bits[k].append(bit)
             next_state = "a" if modes[r+1][k] == "gather" else "q"
+            if (r, k) in ahead_bits:
+                assert next_state == "a" and 4 <= depth <= 9
+                # bit16(x * 65537) = bit16(x) XOR bit0(x). Fold the
+                # multiplication into h5 and use the unshifted bit as a
+                # vselect condition, two cycles before the normal parity.
+                bias = (c[5] & 1) * 65536 if not defer else 0
+                ahead = madd(before_h5, vector(9*65537), vector(c[4]*65537+bias), prefix + "bit.lookahead")
+                bit = binary("&", ahead, vector(65536), prefix + "bit")
+            else:
+                bit = binary("&", value, vector(1), prefix + "bit")
+            bits[k].append(bit)
             if depth == 0:
                 assert defer and next_state == "q"
                 ptrs[k], state[k] = bit, "q"
                 continue
             if r == 13 and modes[14][k] == "jump" and cfg["fuse_tail_pc"]:
                 pass  # q2 and b13 are consumed separately by the PC builder.
-            elif depth == 3 and modes[r+1][k] == "prefetch" and cfg["fold_path4"]:
+            elif depth == 3 and modes[r+1][k] == "prefetch" and fold_path4(k):
                 pass  # q3, b3 and b4 will directly form the depth-5 address.
-            elif depth == 4 and modes[r][k] == "prefetch" and cfg["fold_path4"]:
+            elif depth == 4 and modes[r][k] == "prefetch" and fold_path4(k):
                 assert defer
                 if next_state == "q":
                     hi = select(bit, vector(3), vector(2), prefix+"address.high")
@@ -1073,6 +1129,9 @@ def verify_semantics(g, seeds=(0, 1)):
             elif op == "vselect":
                 dst, bit, yes, no = args
                 for j in range(8): values[int(dst)+j] = values[int(yes if values[int(bit)+j] else no)+j]
+            elif op == "add_imm":
+                dst, src, immediate = args
+                values[int(dst)] = (values[int(src)] + immediate) & MASK
             elif engine == "store":
                 addr, src = args
                 for j in range(8): mem[values[int(addr)]+j] = values[int(src)+j]

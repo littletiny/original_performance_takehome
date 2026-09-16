@@ -51,10 +51,18 @@ def export(source, write=False):
     assert bases is not None, allocation
     program, origins, logical = lower(graph, times, bases)
     assert len(program) <= 10_000, f"Static bundle limit exceeded: {len(program)}"
-    # Pause shares the first bundle so the native two-yield harness sees its
-    # initial memory checkpoint without moving any absolute dispatch PC.
-    assert not program[0].get('flow') and not program[0].get('store')
-    program[0]['flow'] = [('pause',)]
+    # Share an early free FLOW slot before any stores or jumps. The native
+    # harness sees unchanged initial memory without shifting absolute PCs.
+    for index, bundle in enumerate(program):
+        assert not bundle.get('store'), 'No safe initial pause before memory writes'
+        if bundle.get('flow'):
+            assert all(slot[0] in ('add_imm', 'vselect', 'select') for slot in bundle['flow'])
+            continue
+        bundle['flow'] = [('pause',)]
+        pause_cycle = int(origins[index])
+        break
+    else:
+        raise AssertionError('No initial pause slot')
     verification = verify_frozen(graph, times, bases, program, origins, range(10))
     cycles = len(logical)
     main_size = len(program) - graph.total_table_words
@@ -78,7 +86,7 @@ def export(source, write=False):
     exec(DECODER, scope)
     expanded = scope['_build_tuned_standard']()
     assert expanded == program, 'Standalone expansion differs from verified program'
-    report = dict(**verification, **allocation, compressed_payload_bytes=len(blob), source=str(source))
+    report = dict(**verification, **allocation, compressed_payload_bytes=len(blob), source=str(source), pause_cycle=pause_cycle)
     (source/'verification.json').write_text(json.dumps(report, indent=2)+'\n')
     if write:
         block = BEGIN + f'# Verified checkpoint: {cycles} dynamic cycles; {len(program)} static bundles.\n'
