@@ -332,6 +332,57 @@ screens are allocation-checked search evidence, not additional execution
 proofs or global lower bounds. The best submitted program passed the nine
 submission tests, three native tests, and ten allocator/scheduler tests.
 
+
+## Cross-stage XOR audit and further path screens
+
+The fixed hash semantics are preserved. `xor_audit.py` reports that 384 of
+512 vector hash groups already defer H6's constant into biased cached nodes.
+The remaining 128 groups are in rounds 7, 8, 9, and 15. This is a count of
+eliminated hash operations, not net saved cycles; tree biasing and restoration
+also perform XORs.
+
+`results/xor_918/audit.json` contains Z3 proofs of the existing H1/H5 MADD
+identities, fused H3/H4, H6-to-node bias cancellation, and the 16-bit/19-bit
+XOR-shift involutions. It also rejects these specific further templates:
+
+- Absorb H2's constant into a single modified H1 MADD.
+- Absorb H6's constant into a single modified H5 MADD.
+- Perform either absorption while also allowing any fixed input XOR bias,
+  such as an additional bias in cached tree nodes.
+- Push H2's constant through the existing fused H4 MADD form.
+
+The rejection equations use necessary low-bit projections. UNSAT proves the
+named templates impossible, including arbitrary constant coefficients, but
+is not a global claim about all equivalent hash algorithms. The accompanying
+README gives the algebra, scope, and reproduction command.
+
+`search_path_choices.py` freezes every existing binary operation's engine
+choice before changing traversal modes, avoiding unrelated changes from the
+old scalar-fraction counter. It explores FLOW node selection, two-round path
+folds, and selected depth-5 dispatch groups. Folded mirrored addresses use
+`32 + 4*q3 + 2*b3 + b4`; ordinary-layout addresses use the opposite sign.
+`dispatch5_groups` selects individual groups instead of only a suffix.
+
+All 61 screen configurations passed sequential semantic verification before
+scheduling. Their best allocated schedule remained 918 cycles. Additional
+60-by-800 scheduling attempts on two lower-work graphs also ended at 918 and
+919 cycles (`results/path_refine_918/summary.json`). No new configuration was
+promoted to the submitted kernel. Ten-seed full frozen execution, with 20,480
+stage checks per seed and unchanged non-output memory, passed for:
+
+- `results/path_choices_918/candidate_011`: grandchild path folds, 919 cycles,
+  10,812 bundles, weighted arithmetic 54,642.
+- `results/path_choices_918/candidate_015`: four prefetch MADDs moved to FLOW,
+  918 cycles, 10,811 bundles, weighted arithmetic 54,691. This is retained as
+  an alternative search source without changing the submitted program.
+- `results/path_choices_918/candidate_024`: folds covering both gathered and
+  prefetched depth-5 nodes, 930 cycles, 10,823 bundles.
+- `results/path_choices_918/candidate_030`: selected depth-5 dispatch plus
+  path folds, 925 cycles, 11,066 bundles.
+
+The existing 918-cycle expanded program remains identical after these tool
+changes. The unchanged allocator/scheduler regression suite still passes.
+
 ## Remaining work
 
 - Reduce actual work or change dispatch structure: several superficially

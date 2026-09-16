@@ -1,0 +1,222 @@
+{
+  "source": "results/compact_918",
+  "config_sha256": "cdff35de62997376b7b4ed75cc3e24ef63d16e3a7a03eb064c71c0bba85ea32a",
+  "xor_lane_operations": {
+    "h2": 4096,
+    "h2.a": 4096,
+    "h4": 4096,
+    "h6": 4096,
+    "h6.a": 1024,
+    "mix": 4096,
+    "setup/restoration": 272
+  },
+  "xor_engine_slots": {
+    "h2": {
+      "valu": 369,
+      "alu": 1144
+    },
+    "h2.a": {
+      "valu": 362,
+      "alu": 1200
+    },
+    "h4": {
+      "alu": 1120,
+      "valu": 372
+    },
+    "h6": {
+      "valu": 371,
+      "alu": 1128
+    },
+    "h6.a": {
+      "alu": 344,
+      "valu": 85
+    },
+    "mix": {
+      "valu": 309,
+      "alu": 1624
+    },
+    "setup/restoration": {
+      "valu": 2,
+      "alu": 256
+    }
+  },
+  "h6_deferred_groups": {
+    "0": 32,
+    "1": 32,
+    "2": 32,
+    "3": 32,
+    "4": 32,
+    "5": 32,
+    "6": 32,
+    "10": 32,
+    "11": 32,
+    "12": 32,
+    "13": 32,
+    "14": 32
+  },
+  "h6_materialized_groups": {
+    "7": 32,
+    "8": 32,
+    "9": 32,
+    "15": 32
+  },
+  "eliminated_h6_vector_equivalents": 384,
+  "transformed_constants": {
+    "h1_bias": "0xc761dad0",
+    "h5_bias": "0xb55afa53"
+  },
+  "proved_identities": {
+    "h1_madd_preserves_hash": {
+      "status": "unsat",
+      "claim": "Identity holds for all 32-bit inputs"
+    },
+    "h5_madd_preserves_hash": {
+      "status": "unsat",
+      "claim": "Identity holds for all 32-bit inputs"
+    },
+    "fused_h3_h4_preserves_hash": {
+      "status": "unsat",
+      "claim": "Identity holds for all 32-bit inputs"
+    },
+    "defer_h6_to_next_tree_node": {
+      "status": "unsat",
+      "claim": "Identity holds for all 32-bit inputs"
+    },
+    "xor_shift_16_is_an_involution": {
+      "status": "unsat",
+      "claim": "Identity holds for all 32-bit inputs"
+    },
+    "xor_shift_19_is_an_involution": {
+      "status": "unsat",
+      "claim": "Identity holds for all 32-bit inputs"
+    },
+    "pull_constant_before_shift_16": {
+      "status": "unsat",
+      "claim": "Identity holds for all 32-bit inputs"
+    },
+    "pull_constant_before_shift_19": {
+      "status": "unsat",
+      "claim": "Identity holds for all 32-bit inputs"
+    }
+  },
+  "rejected_affine_templates": {
+    "absorb_h2_xor_in_h1_madd": {
+      "status": "unsat",
+      "projection_bits": 12,
+      "exhaustive_inputs": 4096,
+      "rejected_template": "a*x+b modulo 2**32, with any constant a and b",
+      "scope": "Only the stated affine replacement; not all possible rewrites"
+    },
+    "absorb_h6_xor_in_h5_madd": {
+      "status": "unsat",
+      "projection_bits": 9,
+      "exhaustive_inputs": 512,
+      "rejected_template": "a*x+b modulo 2**32, with any constant a and b",
+      "scope": "Only the stated affine replacement; not all possible rewrites"
+    },
+    "push_h2_xor_into_fused_h4_madds": {
+      "status": "unsat",
+      "projection_bits": 9,
+      "exhaustive_inputs": 512,
+      "rejected_template": "a*x+b modulo 2**32, with any constant a and b",
+      "scope": "Only the stated affine replacement; not all possible rewrites"
+    },
+    "absorb_h2_with_free_tree_xor_bias": {
+      "status": "unsat",
+      "projection_bits": 12,
+      "necessary_inputs": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        7,
+        8,
+        15,
+        16,
+        225,
+        288,
+        609,
+        667,
+        706,
+        820,
+        888,
+        998,
+        999,
+        1068,
+        1113,
+        1133,
+        1181,
+        1523,
+        1715,
+        1728,
+        1994,
+        2047,
+        2048,
+        2255,
+        2498,
+        2910,
+        3119,
+        3378,
+        3714,
+        3958,
+        4094,
+        4095
+      ],
+      "rejected_template": "a*(x XOR k)+b modulo 2**32, with any constant a, b, and k",
+      "scope": "Necessary equations are inconsistent, including a free input XOR bias; not all possible rewrites"
+    },
+    "absorb_h6_with_free_input_xor_bias": {
+      "status": "unsat",
+      "projection_bits": 9,
+      "necessary_inputs": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        7,
+        8,
+        15,
+        16,
+        28,
+        36,
+        76,
+        83,
+        88,
+        102,
+        111,
+        124,
+        133,
+        139,
+        141,
+        147,
+        190,
+        214,
+        216,
+        249,
+        255,
+        256,
+        281,
+        312,
+        363,
+        389,
+        422,
+        464,
+        494,
+        510,
+        511
+      ],
+      "rejected_template": "a*(x XOR k)+b modulo 2**32, with any constant a, b, and k",
+      "scope": "Necessary equations are inconsistent, including a free input XOR bias; not all possible rewrites"
+    }
+  },
+  "madd_xor_transport_counterexample": {
+    "status": "sat",
+    "input": "0xdad45cc6",
+    "left": "0xcfa060e5",
+    "right": "0x388378d5",
+    "output_mask_fixed_by_x_zero": "0xa7f56109"
+  },
+  "scope": "Current graph and named 32-bit algebraic templates. No global optimality or cycle-bound claim."
+}

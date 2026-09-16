@@ -86,7 +86,8 @@ def build(config=None):
                share_shallow_bias=False, lane_allocation_trials=8,
                scalar_overrides=None, dispatch_spans=(), load_temp_addresses=False,
                header_constants=False, initial_zero_vector=False, heap_io_backup=False,
-               early_gather_groups=(), temp_region_order=(), pc_address_pools=False)
+               early_gather_groups=(), temp_region_order=(), pc_address_pools=False,
+               dispatch5_groups=())
     cfg.update(config or {})
     g = Graph()
     sc, vc = {}, {}
@@ -106,7 +107,6 @@ def build(config=None):
     prefetch_madd_groups = set(tuple(x) for x in cfg["prefetch_madd_groups"])
     if cfg["compact_heap"]:
         assert cfg["prexor"]
-        assert not cfg["fold_path4"] and not cfg["fold_path4_groups"]
         assert not cfg["ahead_bits"]
     if cfg["share_shallow_bias"]:
         assert cfg["share_shallow_loads"]
@@ -281,6 +281,9 @@ def build(config=None):
     for k in cfg["prefetch5_groups"]:
         assert modes[3][k] == "jump" and modes[4][k] == "prefetch"
         modes[5][k] = "grand"
+    for k in cfg["dispatch5_groups"]:
+        assert 0 <= k < 32 and k not in cfg["prefetch5_groups"]
+        modes[5][k] = "jump"
 
     dispatch_groups = {}
     width_overrides = {(r, k): width for r, k, width in cfg["dispatch_widths"]}
@@ -794,11 +797,12 @@ def build(config=None):
                     aux = select(bits[k][-2], hi, bit, prefix+"address.aux")
                     ptrs[k] = madd(ptrs[k], vector(4), aux, prefix+"address")
                 else:
-                    base = bases[5] + 31
-                    hi = select(bit, vector(base-3), vector(base-2), prefix+"address.high")
-                    lo = select(bit, vector(base-1), vector(base), prefix+"address.low")
+                    base = bases[5] if cfg["compact_heap"] else bases[5] + 31
+                    step = 1 if cfg["compact_heap"] else -1
+                    hi = select(bit, vector(base+3*step), vector(base+2*step), prefix+"address.high")
+                    lo = select(bit, vector(base+step), vector(base), prefix+"address.low")
                     aux = select(bits[k][-2], hi, lo, prefix+"address.aux")
-                    ptrs[k] = madd(ptrs[k], vector(-4), aux, prefix+"address")
+                    ptrs[k] = madd(ptrs[k], vector(4*step), aux, prefix+"address")
             elif depth == 1 and cfg["path2_flow"] and (r, k) not in set(tuple(x) for x in cfg["path2_valu_groups"]) and state[k] == next_state == "q" and defer:
                 hi = select(bit, vector(3), vector(2), prefix+"path.high")
                 ptrs[k] = select(ptrs[k], hi, bit, prefix+"path")
