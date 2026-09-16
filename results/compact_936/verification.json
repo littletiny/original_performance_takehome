@@ -1,0 +1,23 @@
+{
+  "cycles": 936,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "checkpoints_per_seed": 20480,
+  "static_bundles": 9784,
+  "static_slots": 221604,
+  "scratch_words": 1536,
+  "allocation_policy": 0,
+  "compressed_payload_bytes": 151385,
+  "source": "results/compact_936",
+  "pause_cycle": 0
+}

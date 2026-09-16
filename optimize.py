@@ -75,7 +75,11 @@ def build(config=None):
                store_children=False, merge_regions=1, temp_buffers=0,
                pair_early_end=False, initial_ones=False, dispatch_widths=(),
                compact_main=False, flow_constants=(), ahead_bits=(),
-               prefetch5_groups=(), prefetch_madd_groups=(), fold_path4_groups=())
+               prefetch5_groups=(), prefetch_madd_groups=(), fold_path4_groups=(),
+               compact_heap=False, heap_keep_levels=(), heap_reuse_levels=(),
+               heap_backup=False, heap_restore_window=0,
+               output_address_block=0, output_address_window=32,
+               alias_constants=())
     cfg.update(config or {})
     g = Graph()
     sc, vc = {}, {}
@@ -84,6 +88,10 @@ def build(config=None):
     constant_zero = None
     ahead_bits = set(tuple(x) for x in cfg["ahead_bits"])
     prefetch_madd_groups = set(tuple(x) for x in cfg["prefetch_madd_groups"])
+    if cfg["compact_heap"]:
+        assert cfg["prexor"] and not cfg["load_children"]
+        assert not cfg["fold_path4"] and not cfg["fold_path4_groups"]
+        assert not cfg["ahead_bits"]
 
     def prefetch_madd(r, k):
         return cfg["prefetch_madd"] or (r, k) in prefetch_madd_groups
@@ -157,6 +165,8 @@ def build(config=None):
                     vc[value] = binary(code, a, b, f"derive.{value}", False)
                 else:
                     vc[value] = bcast(scalar(value), f"broadcast.{value}")
+        if cfg["alias_constants"] == "all" or value in cfg["alias_constants"]:
+            sc[value] = vc[value]
         return vc[value]
 
     def binary(op, a, b, name, flexible=True):
@@ -257,10 +267,14 @@ def build(config=None):
     bases = {d: 7 + (1 << d) - 1 for d in range(11)}
     if cfg["prexor"]:
         bases.update({d: 2054 + (1 << d) - 16 for d in range(4, 8)})
+        if cfg["compact_heap"]:
+            bases.update({d: 1 << d for d in range(4, 8)})
         if cfg["tail_gathers"]:
             bases[3] = 2294
     syncs = {}
     raw_nodes, adjusted_nodes = {}, {}
+    raw_blocks, pending_stores, tree_loads = {}, [], []
+    heap_backups = {}
     needed = {0}
     for r in range(16):
         if any(mode in ("blend", "jump", "prefetch", "grand") for mode in modes[r]):
@@ -272,9 +286,24 @@ def build(config=None):
             scalar(value)
     for d in sorted(needed):
         raw_nodes[d], adjusted_nodes[d] = [], []
+        raw_blocks[d] = []
         for off in range(0, 1 << d, 8):
             raw = vload(scalar(7 + (1 << d) - 1 + off), f"tree.d{d}.raw{off}")
-            if d <= 2 and cfg["small_bias_alu"]:
+            raw_blocks[d].append(raw)
+            tree_loads.append((len(g.ops)-1, 6+(1 << d)+off))
+            if (cfg["compact_heap"] and cfg["heap_backup"] and 4 <= d <= 7
+                    and d not in cfg["heap_keep_levels"] and d not in cfg["heap_reuse_levels"]):
+                backup = scalar(2054+(1 << d)-16+off)
+                op = g.emit(f"tree.d{d}.backup{off}", "store", ("vstore", backup, raw), [(backup, 1), (raw, 8)], [])
+                heap_backups[d, off] = backup, op
+            mirrored = cfg["compact_heap"] and 4 <= d <= 7
+            if mirrored:
+                bias = g.new()
+                src = scalar(c[5])
+                for j in range(8):
+                    dst, source = lane(bias, 7-j), lane(raw, j)
+                    g.emit(f"tree.d{d}.bias{off}.lane{j}", "alu", ("^", dst, source, src), [(source, 1), (src, 1)], [(dst, 1)])
+            elif d <= 2 and cfg["small_bias_alu"]:
                 bias = g.new()
                 src = scalar(c[5])
                 for j in range(1 << d):
@@ -282,11 +311,21 @@ def build(config=None):
             else:
                 bias = binary("^", raw, vector(c[5]), f"tree.d{d}.bias{off}", False)
             raw_nodes[d].extend(lane(raw, j) for j in range(min(8, (1 << d) - off)))
-            adjusted_nodes[d].extend(lane(bias, j) for j in range(min(8, (1 << d) - off)))
+            adjusted_nodes[d].extend(lane(bias, 7-j if mirrored else j) for j in range(min(8, (1 << d) - off)))
             if cfg["prexor"] and (4 <= d <= 7 or d == 3 and cfg["tail_gathers"]):
-                ptr = scalar(bases[d] + off)
-                store = g.emit(f"tree.d{d}.store{off}", "store", ("vstore", ptr, bias), [(ptr, 1), (bias, 8)], [])
-                syncs.setdefault(d, []).append(store)
+                ptr = scalar(bases[d] + ((1 << d)-8-off if mirrored else off))
+                pending_stores.append((d, off, ptr, bias))
+                if not cfg["compact_heap"]:
+                    store = g.emit(f"tree.d{d}.store{off}", "store", ("vstore", ptr, bias), [(ptr, 1), (bias, 8)], [])
+                    syncs.setdefault(d, []).append(store)
+    if cfg["compact_heap"]:
+        # The shifted table overlaps the original tree. Protect exactly the
+        # raw blocks each store can overwrite, including shallow cached nodes.
+        for d, off, ptr, bias in pending_stores:
+            store = g.emit(f"tree.d{d}.store{off}", "store", ("vstore", ptr, bias), [(ptr, 1), (bias, 8)], [])
+            address = bases[d]+((1 << d)-8-off if 4 <= d <= 7 else off)
+            g.control.extend((before, store, 1) for before, source in tree_loads if source < address+8 and address < source+8)
+            syncs.setdefault(d, []).append(store)
     root0 = bcast(raw_nodes[0][0], "root.raw")
     root1 = bcast(adjusted_nodes[0][0], "root.bias")
     child_diffs = {}
@@ -621,7 +660,19 @@ def build(config=None):
             else:
                 # Convert the current coordinate to the next level directly.
                 # All bias and base constants become the two select choices.
-                if next_state == "q":
+                if cfg["compact_heap"]:
+                    def coordinate(kind, d):
+                        if kind == "q":
+                            return -1, (1 << d)-1
+                        if 4 <= d <= 7:
+                            return -1, bases[d]+(1 << d)-1
+                        return 1, bases[d]
+                    sign, offset = coordinate(state[k], depth)
+                    next_sign, next_offset = coordinate(next_state, depth+1)
+                    scale = 2*sign*next_sign
+                    const = next_offset-scale*offset
+                    zero, one = ((const+next_sign, const) if defer else (const, const+next_sign))
+                elif next_state == "q":
                     scale = 2 if state[k] == "q" else -2
                     const = 0 if state[k] == "q" else 2*(bases[depth] + (1 << depth)-1)
                     zero, one = (const, const+1) if defer else (const+1, const)
@@ -629,16 +680,73 @@ def build(config=None):
                     scale = -2 if state[k] == "q" else 2
                     const = bases[depth+1] + 2*((1 << depth)-1) if state[k] == "q" else bases[depth+1]-2*bases[depth]
                     zero, one = (const+1, const) if defer else (const, const+1)
-                aux = select(bit, vector(one), vector(zero), prefix + "address.aux")
+                aux = bit if (zero, one) == (0, 1) else select(bit, vector(one), vector(zero), prefix + "address.aux")
                 ptrs[k] = madd(ptrs[k], vector(scale), aux, prefix + "address")
             state[k] = next_state
     g.tag = (16, 0)
+    output_io = io.copy()
+    if cfg["output_address_block"]:
+        writers = {int(base)+j: i for i, op in enumerate(g.ops) for base, size in op[3] for j in range(size)}
+        stride = scalar(8)
+        for k in range(32):
+            if k % cfg["output_address_block"] == 0:
+                continue
+            ptr = g.new(1)
+            previous = output_io[k-1]
+            op = g.emit(f"g{k}.output_ptr", "alu", ("+", ptr, previous, stride), [(previous, 1), (stride, 1)], [(ptr, 1)])
+            frontier = {writers[int(values[k])+j] for j in range(8)}
+            g.control.extend((before, op, -cfg["output_address_window"]) for before in frontier)
+            output_io[k] = ptr
     for k in range(32):
-        op = g.emit(f"g{k}.output", "store", ("vstore", io[k], values[k]), [(io[k], 1), (values[k], 8)], [])
+        op = g.emit(f"g{k}.output", "store", ("vstore", output_io[k], values[k]), [(output_io[k], 1), (values[k], 8)], [])
         g.control.extend((before, op, 0) for before in temp_output_reads.get(k, ()))
     # Restore all temporary index words, ordered after every reading gather.
+    if cfg["compact_heap"]:
+        later_reads = []
+        for d in range(7, 3, -1):
+            restored, reads = [], []
+            for block, off in enumerate(range(0, 1 << d, 8)):
+                if d in cfg["heap_keep_levels"]:
+                    raw = raw_blocks[d][block]
+                elif (d, off) in heap_backups:
+                    backup, writer = heap_backups[d, off]
+                    raw = vload(backup, f"restore.d{d}.read{off}")
+                    read = len(g.ops)-1
+                    g.control.append((writer, read, 1))
+                    if cfg["heap_restore_window"]:
+                        g.control.extend((before, read, -cfg["heap_restore_window"]) for before in last_gathers if gather_levels.get(before) in (d, d+1))
+                    zero = vector(0)
+                    clear = g.emit(f"restore.d{d}.clear{off}", "store", ("vstore", backup, zero), [(backup, 1), (zero, 8)], [])
+                    g.control.append((read, clear, 0))
+                else:
+                    if d in cfg["heap_reuse_levels"]:
+                        sources = adjusted_nodes[d][off:off+8]
+                    else:
+                        biased = vload(scalar(bases[d]+(1 << d)-8-off), f"restore.d{d}.read{off}")
+                        read = len(g.ops)-1
+                        reads.append(read)
+                        g.control.extend((before, read, 1) for before in syncs[d])
+                        sources = [lane(biased, 7-j) for j in range(8)]
+                    raw = g.new()
+                    bias = scalar(c[5])
+                    for j in range(8):
+                        dst, src = lane(raw, j), sources[j]
+                        g.emit(f"restore.d{d}.unbias{off}.{j}", "alu", ("^", dst, src, bias), [(src, 1), (bias, 1)], [(dst, 1)])
+                restored.append((scalar(6+(1 << d)+off), raw, off))
+            later_reads.extend(reads)
+            for addr, raw, off in restored:
+                op = g.emit(f"restore.d{d}.write{off}", "store", ("vstore", addr, raw), [(addr, 1), (raw, 8)], [])
+                g.control.extend((before, op, 1) for before in later_reads)
+                g.control.extend((before, op, 1) for level in (d, d+1) for before in syncs.get(level, ()))
+                g.control.extend((before, op, 1) for before in last_gathers if gather_levels.get(before) in (d, d+1))
+        # The six shifted words also overlap the end of depth 3.
+        addr, raw = scalar(14), raw_blocks[3][0]
+        op = g.emit("restore.d3.write", "store", ("vstore", addr, raw), [(addr, 1), (raw, 8)], [])
+        g.control.extend((before, op, 1) for before in later_reads)
+        g.control.extend((before, op, 1) for before in syncs[4])
+        g.control.extend((before, op, 1) for before in last_gathers if gather_levels.get(before) == 4)
     if cfg["prexor"]:
-        for off in range(0, 248 if cfg["tail_gathers"] else 240, 8):
+        for off in range(240 if cfg["compact_heap"] else 0, 248 if cfg["tail_gathers"] else 240, 8):
             addr = scalar(2054 + off)
             op = g.emit(f"restore.{off}", "store", ("vstore", addr, vector(0)), [(addr, 1), (vector(0), 8)], [])
             depth = 3 if off >= 240 else (off+16).bit_length()-1

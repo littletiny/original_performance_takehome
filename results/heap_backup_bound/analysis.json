@@ -1,0 +1,24 @@
+{
+  "engines": {
+    "load": 1757,
+    "alu": 10946,
+    "valu": 5474,
+    "store": 887,
+    "flow": 874
+  },
+  "weighted_alu_valu": 54738,
+  "bound": 913,
+  "arithmetic_bound": 913,
+  "table_bundles": 9216,
+  "regions": 46,
+  "values": 7939,
+  "ir_cycles": 993,
+  "allocation": {
+    "cycle": 303,
+    "live": 1508,
+    "requested": 8,
+    "largest_hole": 4
+  },
+  "physically_allocated": false,
+  "scope": "Fixed graph and tested allocation policies only; this is not a verified execution score."
+}
