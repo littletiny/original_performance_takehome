@@ -20,10 +20,18 @@ def configurations(source):
     for keep in ([4,5], [5,6], [4,5,6], [5,7]):
         if keep != base['heap_keep_levels']:
             yield dict(base, heap_keep_levels=keep)
+    graph=build(base)
+    by_position={(r['round'],r['groups'][0]):r for r in graph.regions}
+    chained={tuple(key) for chain in base['merge_chains'] for key in chain}
+    for (rnd,k),region in sorted(by_position.items()):
+        other=by_position.get((rnd,k+1))
+        if (region['width']==1 and other and other['width']==1 and
+                region.get('span',1)==other.get('span',1)==1 and (rnd,k+1) not in chained):
+            overrides=[row for row in base['dispatch_widths'] if row[:2]!=[rnd,k]]
+            yield dict(base,dispatch_widths=[*overrides,[rnd,k,2]])
     # A short gap and an already-ready target make the extra entry jump
     # a useful candidate for removal. Dependencies still decide feasibility.
     if not base['merge_chains']:
-        graph = build(base)
         times = np.load(source/'best.npz')['times']
         writer = {int(v)+j:i for i, op in enumerate(graph.ops)
                   for v, size in op[3] for j in range(size)}

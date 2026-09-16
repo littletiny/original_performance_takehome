@@ -135,7 +135,7 @@ def run(job):
             score=int((best+scheduler.durations).max())+1
         times=scheduler.op_times(best)
         bases,audit=allocate(graph,times)
-        if bases is not None and score<best_score and static_size(graph,score)<=10000:
+        if bases is not None and score<best_score and static_size(graph,score)<=12000:
             best_score=score
             incumbent=best
             np.savez_compressed(directory/'best.npz',unit_times=best,times=times)

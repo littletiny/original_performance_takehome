@@ -1,112 +1,217 @@
-"""Per-cycle engine utilization + round-activity profile of the 985-cycle kernel.
+"""Profile the submitted kernel's executed VLIW bundles on the frozen machine.
 
-Usage: python3 plot_utilization.py  ->  writes utilization_profile.png
+Usage: python3 plot_utilization.py [--seed 0] [--output utilization_profile.png]
 
-Panels:
-  1. per-engine slot-utilization lines (raw + 15-cycle moving average)
-  2. engine x cycle utilization heatmap, with a labeled colorbar
-  3. round x cycle activity strip (which rounds are being processed when),
-     regenerated from the shipped embedded schedule; data in
-     round_activity_985.npz (regenerate: rebuild ops from commit 60729b7's
-     DAG with EMBEDDED_SCHEDULES cleared, map tags through the winning
-     basin's opcycle; HEAD bundle index == schedule cycle).
+Writes a PNG, a JSON summary, and a per-cycle CSV. All utilization denominators
+use measured dynamic cycles, including setup and cleanup. Vector instructions
+occupy one port slot; debug instructions are excluded. No saved schedule or
+historical round-activity data is used.
 """
-import numpy as np
+
+import argparse
+from collections import Counter
+import csv
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import random
+import sys
+
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-plt.rcParams["font.family"] = ["Noto Sans CJK JP", "DejaVu Sans"]
-plt.rcParams["axes.unicode_minus"] = False
-from matplotlib.colors import LinearSegmentedColormap
+import numpy as np
 
-import perf_takehome as pt
-from problem import SLOT_LIMITS
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT / "tests"))
+from frozen_problem import (
+    Input, Machine, N_CORES, SLOT_LIMITS, Tree, build_mem_image, reference_kernel2,
+)
+from perf_takehome import KernelBuilder
 
-kb = pt.KernelBuilder()
-kb.build_kernel(10, 2047, 256, 16)
-T = len(kb.instrs)
-engines = ["valu", "alu", "load", "flow", "store"]
-colors = ["#d62728", "#1f77b4", "#2ca02c", "#9467bd", "#8c564b"]
-U = np.zeros((len(engines), T))
-for t, b in enumerate(kb.instrs):
-    for eng, slots in b.items():
-        if eng != "debug":
-            U[engines.index(eng), t] = len(slots) / SLOT_LIMITS[eng]
+ENGINES = ("alu", "valu", "load", "store", "flow")
+COLORS = ("#2878b5", "#df504b", "#23976b", "#ba8436", "#8554bc")
 
-d = np.load("round_activity_985.npz")
-RA = d["RA"]  # rows 0..15 = rounds, 16 = final stores; per-cycle op counts
 
-fig, (ax1, ax2, ax3) = plt.subplots(
-    3, 1, figsize=(15, 11), sharex=True,
-    gridspec_kw={"height_ratios": [2.2, 1.5, 1.8]})
-x = np.arange(T)
+class ProfileMachine(Machine):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.rows = []
+        self.opcodes = {engine: Counter() for engine in ENGINES}
 
-# ---- panel 1: utilization lines ----
-W = 15
-kernel = np.ones(W) / W
-for i, e in enumerate(engines):
-    sm = np.convolve(U[i], kernel, mode="same")
-    ax1.plot(x, U[i] * 100, color=colors[i], alpha=0.12, lw=0.5)
-    ax1.plot(x, sm * 100, color=colors[i], lw=1.8,
-             label=f"{e} (avg {U[i].mean()*100:.1f}%)")
-ax1.axhline(100, color="k", lw=0.6, ls="--", alpha=0.5)
-ax1.set_ylabel("slot utilization (%)")
-ax1.set_ylim(0, 112)
-ax1.legend(loc="center right", fontsize=9)
-ax1.set_title(f"perf_takehome {T}-cycle kernel: engines, colors and rounds")
-ax1.grid(alpha=0.25)
+    def step(self, instr, core):
+        # Match Machine.run's cycle accounting, including non-debug no-ops.
+        if any(engine != "debug" for engine in instr):
+            assert core.id == 0 and self.cycle == len(self.rows)
+            self.rows.append((self.cycle, core.pc - 1, *(
+                len(instr.get(engine, ())) for engine in ENGINES
+            )))
+            for engine in ENGINES:
+                self.opcodes[engine].update(slot[0] for slot in instr.get(engine, ()))
+        return super().step(instr, core)
 
-# round-entry markers on panel 1 (15-cycle moving sum of round ops >= 12)
-entries = {}
-for h in range(16):
-    ms = np.convolve(RA[h].astype(float), np.ones(W), mode="same")
-    idx = np.where(ms >= 12)[0]
-    if len(idx):
-        entries[h] = int(idx[0])
-for j, (h, c) in enumerate(entries.items()):
-    ax1.axvline(c, color="gray", lw=0.7, ls=":", alpha=0.7)
-    ax1.text(c, 103 + (j % 2) * 4, f"r{h}", rotation=90, fontsize=8,
-             va="bottom", ha="right", color="dimgray")
-ax1.text(500, 3, "gray dotted lines: cycle where each round enters the pipeline",
-         fontsize=8, color="dimgray", ha="center")
 
-# ---- panel 2: engine heatmap with labeled colorbar ----
-im = ax2.imshow(U * 100, aspect="auto", cmap="inferno", vmin=0, vmax=100,
-                origin="lower", extent=[0, T, -0.5, len(engines) - 0.5],
-                interpolation="nearest")
-ax2.set_yticks(range(len(engines)))
-ax2.set_yticklabels(engines)
-ax2.set_ylabel("engine")
-cb = fig.colorbar(im, ax=ax2, pad=0.01, ticks=[0, 25, 50, 75, 100])
-cb.ax.set_yticklabels(
-    ["0% 黑=空闲", "25% 紫", "50% 红", "75% 橙", "100% 黄=打满"], fontsize=8)
-ax2.set_title("engine x cycle heatmap (color = slot fill ratio)", fontsize=10)
+def profile(seed):
+    assert N_CORES == 1, "This report profiles the single-core workload."
+    random.seed(seed)
+    forest = Tree.generate(10)
+    inputs = Input.generate(forest, 256, 16)
+    memory = build_mem_image(forest, inputs)
+    builder = KernelBuilder()
+    builder.build_kernel(10, 2047, 256, 16)
+    machine = ProfileMachine(memory, builder.instrs, builder.debug_info(), n_cores=1)
+    machine.enable_pause = False
+    machine.enable_debug = False
+    machine.run()
 
-# ---- panel 3: round activity strip ----
-labels = [f"r{h}" for h in range(16)] + ["store"]
-im3 = ax3.imshow(RA, aspect="auto", cmap="viridis", vmin=0, vmax=16,
-                 origin="lower", extent=[0, T, -0.5, 16.5],
-                 interpolation="nearest")
-ax3.set_yticks(range(17))
-ax3.set_yticklabels(labels, fontsize=8)
-ax3.set_ylabel("round")
-ax3.set_xlabel("cycle")
-cb3 = fig.colorbar(im3, ax=ax3, pad=0.01, ticks=[0, 4, 8, 12, 16])
-cb3.ax.set_yticklabels(["0 黑=无活动", "4", "8", "12", "16+ 黄=高峰"],
-                       fontsize=8)
-ax3.set_title("round x cycle activity (op count per cycle; overlap = software "
-              "pipelining)", fontsize=10)
-# per-row active range annotations
-for h in range(16):
-    idx = np.where(RA[h] > 0)[0]
-    if len(idx):
-        ax3.text(T + 8, h, f"{int(idx[0])}-{int(idx[-1])}", fontsize=7,
-                 va="center", color="dimgray")
-idx = np.where(RA[16] > 0)[0]
-ax3.text(T + 8, 16, f"{int(idx[0])}-{int(idx[-1])}", fontsize=7, va="center",
-         color="dimgray")
-ax3.text(T + 8, 16.8, "active cycles:", fontsize=7, color="dimgray")
+    for expected in reference_kernel2(memory.copy()):
+        pass
+    output_start = memory[6]
+    output_end = output_start + len(inputs.values)
+    assert machine.mem[output_start:output_end] == expected[output_start:output_end]
+    assert machine.mem[:output_start] == memory[:output_start]
+    assert machine.mem[output_end:] == memory[output_end:]
+    assert machine.cycle == len(machine.rows)
 
-plt.tight_layout()
-plt.savefig("utilization_profile.png", dpi=130, bbox_inches="tight")
-print(f"saved utilization_profile.png ({T} cycles)")
+    rows = np.asarray(machine.rows, dtype=np.int64)
+    counts = rows[:, 2:]
+    capacities = np.asarray([SLOT_LIMITS[engine] for engine in ENGINES])
+    assert np.all((counts >= 0) & (counts <= capacities))
+    cycles = machine.cycle
+    ports = {}
+    for i, engine in enumerate(ENGINES):
+        used = int(counts[:, i].sum())
+        available = cycles * SLOT_LIMITS[engine]
+        ports[engine] = {
+            "slots_per_cycle": SLOT_LIMITS[engine],
+            "used_slots": used,
+            "available_slots": available,
+            "idle_slots": available - used,
+            "utilization_percent": 100 * used / available,
+            "full_cycles": int(np.count_nonzero(counts[:, i] == capacities[i])),
+            "active_cycles": int(np.count_nonzero(counts[:, i])),
+            "opcodes": dict(sorted(machine.opcodes[engine].items())),
+        }
+    summary = {
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "source": "perf_takehome.py",
+        "source_sha256": hashlib.sha256((ROOT / "perf_takehome.py").read_bytes()).hexdigest(),
+        "simulator": "tests/frozen_problem.py",
+        "workload": {"forest_height": 10, "n_nodes": 2047, "batch_size": 256, "rounds": 16},
+        "seed": seed,
+        "cycles": cycles,
+        "static_bundles": len(builder.instrs),
+        "static_slot_operations": sum(
+            len(slots) for bundle in builder.instrs for engine, slots in bundle.items()
+            if engine != "debug"
+        ),
+        "dynamic_slot_operations": int(counts.sum()),
+        "output_verified": True,
+        "non_output_memory_preserved": True,
+        "ports": ports,
+        "notes": [
+            "Counts are from the actual executed path, not the static dispatch tables.",
+            "Utilization = occupied slots / (dynamic cycles * engine slots per cycle).",
+            "Setup, cleanup, pause, and jumps are included; debug instructions are excluded.",
+            "Each vector instruction counts as one slot, not eight scalar lane operations.",
+        ],
+    }
+    return rows, summary
+
+
+def render(rows, summary, output):
+    cycles = summary["cycles"]
+    capacities = np.asarray([SLOT_LIMITS[engine] for engine in ENGINES])
+    utilization = rows[:, 2:] / capacities * 100
+    mean = utilization.mean(axis=0)
+    plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 10})
+    fig = plt.figure(figsize=(15, 10.5), facecolor="#fbfcfe")
+    grid = fig.add_gridspec(3, 2, width_ratios=[1, 0.018], height_ratios=[1.1, 1.6, 1.15])
+    bars = fig.add_subplot(grid[0, 0])
+    lines = fig.add_subplot(grid[1, 0])
+    heat = fig.add_subplot(grid[2, 0], sharex=lines)
+    color_axis = fig.add_subplot(grid[2, 1])
+    fig.suptitle(f"Port utilization | {cycles:,} dynamic cycles", x=0.06, ha="left",
+                 fontsize=21, fontweight="bold", color="#192d44")
+    fig.text(0.06, 0.929,
+             f"Current submitted kernel  |  {summary['static_bundles']:,} static VLIW bundles"
+             f"  |  seed {summary['seed']}  |  frozen-machine output verified",
+             color="#52647a", fontsize=11)
+
+    positions = np.arange(len(ENGINES))
+    bars.barh(positions, [100] * len(ENGINES), color="#e8edf4", height=0.62)
+    bars.barh(positions, mean, color=COLORS, height=0.62)
+    for i, engine in enumerate(ENGINES):
+        port = summary["ports"][engine]
+        bars.text(2, i, f"{mean[i]:.2f}%", va="center", color="white", fontweight="bold")
+        bars.text(102, i, f"{port['used_slots']:,} / {port['available_slots']:,} slots"
+                  f"    |    {port['idle_slots']:,} idle", va="center", fontsize=9,
+                  color="#34485f")
+    bars.set_yticks(positions, [f"{engine.upper()}  ({SLOT_LIMITS[engine]}/cycle)" for engine in ENGINES])
+    bars.invert_yaxis()
+    bars.set_xlim(0, 137)
+    bars.set_xticks([])
+    bars.tick_params(axis="y", length=0)
+    bars.set_title("Average occupied port slots over the complete run", loc="left", fontsize=12, pad=12)
+
+    window = min(15, cycles)
+    weights = np.ones(window)
+    edge_counts = np.convolve(np.ones(cycles), weights, mode="same")
+    for i, engine in enumerate(ENGINES):
+        smoothed = np.convolve(utilization[:, i], weights, mode="same") / edge_counts
+        lines.plot(rows[:, 0], smoothed, color=COLORS[i], lw=1.6, label=engine.upper(), alpha=0.92)
+    lines.axhline(100, color="#52647a", lw=0.7, ls="--", alpha=0.5)
+    lines.set_ylim(0, 105)
+    lines.set_xlim(-0.5, cycles - 0.5)
+    lines.set_ylabel("Slot utilization (%)")
+    lines.set_title(f"Utilization through time | {window}-cycle moving average", loc="left", fontsize=12, pad=36)
+    lines.legend(ncol=5, loc="lower left", bbox_to_anchor=(0, 1.005), frameon=False)
+    lines.grid(alpha=0.18)
+    lines.tick_params(labelbottom=False)
+
+    im = heat.imshow(utilization.T, aspect="auto", cmap="inferno", vmin=0, vmax=100,
+                     origin="upper", interpolation="nearest",
+                     extent=[-0.5, cycles - 0.5, len(ENGINES) - 0.5, -0.5])
+    heat.set_yticks(positions, [engine.upper() for engine in ENGINES])
+    heat.set_xlabel("Executed cycle (zero-based)")
+    heat.set_title("Every executed cycle | dark = idle, bright = full", loc="left", fontsize=12, pad=12)
+    colorbar = fig.colorbar(im, cax=color_axis, ticks=[0, 25, 50, 75, 100])
+    colorbar.ax.set_yticklabels(["0%", "25%", "50%", "75%", "100%"])
+    for axis in (bars, lines, heat):
+        axis.set_facecolor("#fbfcfe")
+        for spine in axis.spines.values():
+            spine.set_visible(False)
+    fig.text(0.06, 0.022,
+             "Actual runtime path; all setup, cleanup and FLOW instructions included. "
+             "One vector instruction occupies one slot.\n"
+             f"Shape: height 10 / 2,047 nodes / 256 inputs / 16 rounds. "
+             f"Source SHA-256: {summary['source_sha256'][:16]}",
+             fontsize=9, color="#52647a", linespacing=1.7)
+    fig.subplots_adjust(left=0.12, right=0.94, bottom=0.11, top=0.865, hspace=0.48, wspace=0.025)
+    fig.savefig(output, dpi=160, facecolor=fig.get_facecolor())
+    plt.close(fig)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--output", type=Path, default=ROOT / "utilization_profile.png")
+    args = parser.parse_args()
+    output = args.output.resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    rows, summary = profile(args.seed)
+    render(rows, summary, output)
+    output.with_suffix(".json").write_text(json.dumps(summary, indent=2) + "\n")
+    with output.with_suffix(".csv").open("w", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["cycle", "pc", *ENGINES])
+        writer.writerows(rows.tolist())
+    print(json.dumps({"image": str(output), "cycles": summary["cycles"],
+                      "static_bundles": summary["static_bundles"],
+                      "ports": summary["ports"]}, indent=2))
+
+
+if __name__ == "__main__":
+    main()

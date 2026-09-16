@@ -26,6 +26,7 @@ spec.loader.exec_module(frozen)
 MASK = (1 << 32) - 1
 ENGINES = ("alu", "valu", "load", "store", "flow")
 CAPACITY = np.array([12, 6, 2, 2, 1], dtype=np.int64)
+RESOURCE_CAPACITY = np.append(CAPACITY, 1)  # exclusive dispatch execution
 
 
 @dataclass
@@ -83,7 +84,9 @@ def build(config=None):
                merge_chains=(), precise_dispatch_inputs=False,
                heap_backup_before_bias=False, share_shallow_loads=False,
                share_shallow_bias=False, lane_allocation_trials=8,
-               scalar_overrides=None)
+               scalar_overrides=None, dispatch_spans=(), load_temp_addresses=False,
+               header_constants=False, initial_zero_vector=False, heap_io_backup=False,
+               early_gather_groups=(), temp_region_order=())
     cfg.update(config or {})
     g = Graph()
     sc, vc = {}, {}
@@ -107,7 +110,7 @@ def build(config=None):
     def fold_path4(k):
         return cfg["fold_path4"] or k in cfg["fold_path4_groups"]
 
-    def scalar(value):
+    def scalar(value, force_load=False):
         nonlocal constant_zero
         value &= MASK
         if value not in sc:
@@ -120,7 +123,7 @@ def build(config=None):
                 sc[value] = v
                 return v
             expression = None
-            if cfg["synth_scalars"] and value not in (2310, 7, 8, 32):
+            if cfg["synth_scalars"] and not force_load and value not in (2310, 7, 8, 32):
                 for a, source in sc.items():
                     delta = (value-a) & MASK
                     if delta in sc:
@@ -217,12 +220,32 @@ def build(config=None):
         g.emit(name, "load", ("vload", dst, addr), [(addr, 1), *sync], [(dst, 8)])
         return dst
 
-    if cfg["initial_ones"]:
-        zero, one = g.new(), g.new()
+    def load_inputs():
+        old_tag=g.tag
+        values,addresses,loads=[],[],[]
+        for k in range(32):
+            g.tag=(-1,k)
+            ptr=scalar(2310+8*k)
+            addresses.append(ptr)
+            values.append(vload(ptr,f"g{k}.input"))
+            loads.append(len(g.ops)-1)
+        g.tag=old_tag
+        return values,addresses,loads
+
+    if cfg["initial_ones"] or cfg["header_constants"] or cfg["initial_zero_vector"]:
+        zero = g.new(8 if cfg["initial_ones"] or cfg["initial_zero_vector"] else 1)
         g.initial_zero.append(zero)
-        g.emit("constant.ones", "valu", ("==", one, zero, zero), [(zero, 8)], [(one, 8)])
-        vc[1] = one
-        sc[1] = one
+        if cfg["initial_ones"]:
+            one = g.new()
+            g.emit("constant.ones", "valu", ("==", one, zero, zero), [(zero, 8)], [(one, 8)])
+            vc[1] = one
+            sc[1] = one
+        if cfg["initial_zero_vector"]:
+            vc[0] = sc[0] = zero
+        if cfg["header_constants"]:
+            header = vload(zero,"header.constants")
+            for j,value in enumerate((16,2047,256,10,7,2054,2310)):
+                sc[value] = lane(header,j)
 
     modes = [["root" if r % 11 == 0 else "blend" if r % 11 <= 3 else "gather" for _ in range(32)] for r in range(16)]
     for r in (3, 4, 5, 14, 15):
@@ -238,6 +261,9 @@ def build(config=None):
             modes[r][31 - k] = "blend"
     for k in range(32-cfg["tail_gathers"], 32):
         modes[14][k] = modes[15][k] = "gather"
+    for k in cfg["early_gather_groups"]:
+        assert 0 <= k < 32 and k not in cfg["prefetch5_groups"]
+        modes[3][k] = modes[4][k] = "gather"
     for r in (3, 4, 14):
         if cfg[f"prefetch{r % 11}"]:
             for k in range(32):
@@ -271,15 +297,46 @@ def build(config=None):
             dispatch_groups[r, k] = width
             k += width
 
-    # Each level's adjusted runtime data is prepared once.  Extra memory uses
-    # the specified all-zero input index area and is restored before exit.
+    spans = {(r,k):span for r,k,span in cfg["dispatch_spans"]}
+    assert set(spans) <= set(dispatch_groups)
+    assert all(1 <= span <= 4 for span in spans.values())
+    field_plans = {}
+    for (r,k), width in dispatch_groups.items():
+        fields = []
+        if cfg["store_children"] and r in (3,14) and cfg["prefetch3"]:
+            fields = [("child",s,c) for s in range(width) for c in range(2)]
+            fields += [("grand",s,c) for s in range(width) if r==3 and k+s in cfg["prefetch5_groups"] for c in range(4)]
+            fields = fields[:2*spans.get((r,k),1)]
+        field_plans[r,k] = fields
+    regular_buffers = cfg["temp_buffers"] or 2
+    extended_words = 8*max([0,*[len(fields) for key,fields in field_plans.items() if spans.get(key,1)>1]])
+    reserved_io_words = 16*regular_buffers+extended_words
+    assert reserved_io_words <= 256
+    temp_rank=None
+    if cfg["temp_region_order"]:
+        order=[tuple(key) for key in cfg["temp_region_order"] if tuple(key) in dispatch_groups]
+        assert len(order)==len(set(order)) and set(order)==set(dispatch_groups)
+        temp_rank={key:i for i,key in enumerate(order)}
+    values=io=input_loads=None
+    io_backup_groups={}
+    next_io_backup=reserved_io_words//8
+    if cfg["heap_io_backup"]:
+        assert cfg["compact_heap"] and cfg["heap_backup"]
+        backup_words=sum(1<<d for d in range(4,8)
+                         if d not in cfg["heap_keep_levels"] and d not in cfg["heap_reuse_levels"])
+        assert reserved_io_words+backup_words<=256, "Backups overlap the lookup buffers"
+        values,io,input_loads=load_inputs()
+
+    # Prepare runtime tree tables once. Tree/index contents are restored;
+    # overwritten input words receive their final output values.
     c = [stage[1] for stage in frozen.HASH_STAGES]
+    cache_gather3 = bool(cfg["tail_gathers"] or cfg["early_gather_groups"])
     bases = {d: 7 + (1 << d) - 1 for d in range(11)}
     if cfg["prexor"]:
         bases.update({d: 2054 + (1 << d) - 16 for d in range(4, 8)})
         if cfg["compact_heap"]:
             bases.update({d: 1 << d for d in range(4, 8)})
-        if cfg["tail_gathers"]:
+        if cache_gather3:
             bases[3] = 2294
     syncs = {}
     raw_nodes, adjusted_nodes = {}, {}
@@ -292,6 +349,8 @@ def build(config=None):
             needed.add(r % 11)
     if cfg["prexor"]:
         needed.update(range(4, 8))
+        if cache_gather3:
+            needed.add(3)
     if cfg["synth_scalars"]:
         for value in (1, 2, 4, 8, 32):
             scalar(value)
@@ -310,8 +369,15 @@ def build(config=None):
             raw_blocks[d].append(raw)
             if (cfg["compact_heap"] and cfg["heap_backup"] and 4 <= d <= 7
                     and d not in cfg["heap_keep_levels"] and d not in cfg["heap_reuse_levels"]):
-                backup = scalar(2054+(1 << d)-16+off)
+                if cfg["heap_io_backup"]:
+                    io_backup_groups[d,off]=next_io_backup
+                    backup=io[next_io_backup]
+                    next_io_backup+=1
+                else:
+                    backup = scalar(2054+(1 << d)-16+off)
                 op = g.emit(f"tree.d{d}.backup{off}", "store", ("vstore", backup, raw), [(backup, 1), (raw, 8)], [])
+                if cfg["heap_io_backup"]:
+                    g.control.append((input_loads[io_backup_groups[d,off]],op,0))
                 heap_backups[d, off] = backup, op
             mirrored = cfg["compact_heap"] and 4 <= d <= 7
             if cfg["share_shallow_bias"] and d <= 2:
@@ -335,7 +401,7 @@ def build(config=None):
                 bias = binary("^", raw, vector(c[5]), f"tree.d{d}.bias{off}", False)
             raw_nodes[d].extend(lane(raw, j) for j in range(min(8, (1 << d) - off)))
             adjusted_nodes[d].extend(lane(bias, 7-j if mirrored else j) for j in range(min(8, (1 << d) - off)))
-            if cfg["prexor"] and (4 <= d <= 7 or d == 3 and cfg["tail_gathers"]):
+            if cfg["prexor"] and (4 <= d <= 7 or d == 3 and cache_gather3):
                 ptr = scalar(bases[d] + ((1 << d)-8-off if mirrored else off))
                 pending_stores.append((d, off, ptr, bias))
                 if not cfg["compact_heap"]:
@@ -394,14 +460,13 @@ def build(config=None):
         assert len(level) == 1
         return level[0]
 
-    # Each table has dense one-bundle cases.  Offsets for all eight lanes are
-    # useful because each case processes the same lane in two vector groups.
-    region_counts = Counter((r % 11, width) for (r, k), width in dispatch_groups.items())
+    # Each choice occupies a contiguous sequence of one to four bundles.
+    region_counts = Counter((r % 11, width, spans.get((r,k),1)) for (r, k), width in dispatch_groups.items())
     table_positions, total_words = {}, 0
     for key in sorted(region_counts):
-        d, width = key
+        d, width, span = key
         table_positions[key] = total_words
-        total_words += region_counts[key] * 8 * (1 << (width*d))
+        total_words += region_counts[key] * 8 * span * (1 << (width*d))
     next_region = Counter()
     prev_offsets = {}
 
@@ -412,7 +477,8 @@ def build(config=None):
     temp_output_reads = {}
     if cfg["compact_heap"]:
         possible_child_loads = sum(
-            8 * min(2, 2 * (width-int(cfg["store_children"])))
+            8 * sum(("child",int(cfg["store_children"]),c) not in field_plans[r,group]
+                    for c in range(2) if int(cfg["store_children"]) < width)
             for (r, group), width in dispatch_groups.items() if r == 14)
     else:
         possible_child_loads = sum(8*(2 if width >= 3 else 1) for (r, group), width in dispatch_groups.items() if r == 14)
@@ -423,25 +489,28 @@ def build(config=None):
         d = r % 11
         n = 1 << d
         width = dispatch_groups[r, group]
-        key = (d, width)
+        span = spans.get((r,group),1)
+        fields = field_plans[r,group]
+        field_index = {field:i for i,field in enumerate(fields)}
+        key = (d, width, span)
         cases = n ** width
         prefix = f"r{r}.g{group}.dispatch."
         region_number = next_region[key]
         next_region[key] += 1
-        table = table_positions[key] + region_number * 8 * cases
+        table = table_positions[key] + region_number * 8 * cases * span
         if region_number == 0:
             offsets = g.new()
             for j in range(8):
-                op = g.emit(prefix + f"offset{j}", "load", ("const", lane(offsets, j), table + j*cases), [], [(lane(offsets, j), 1)])
+                op = g.emit(prefix + f"offset{j}", "load", ("const", lane(offsets, j), table + j*cases*span), [], [(lane(offsets, j), 1)])
                 g.pc_constants.append(op)
         else:
-            offsets = binary("+", prev_offsets[key], vector(8*cases), prefix + "offsets", cfg["offset_scalar"])
+            offsets = binary("+", prev_offsets[key], vector(8*cases*span), prefix + "offsets", cfg["offset_scalar"])
         prev_offsets[key] = offsets
         fused = r == 14 and cfg["fuse_tail_pc"]
         if fused:
             targets = offsets
             for stream in range(width):
-                targets = madd(pointers[group+stream], vector(2*n**(width-1-stream)), targets, prefix+f"prefix{stream}")
+                targets = madd(pointers[group+stream], vector(2*span*n**(width-1-stream)), targets, prefix+f"prefix{stream}")
             pairs = []
             for stream in range(0, width, 2):
                 a = bits[group+stream][-1]
@@ -454,21 +523,27 @@ def build(config=None):
             packed_bits = pairs[0][0]
             for stream, (pair, size) in enumerate(pairs[1:], 1):
                 packed_bits = madd(packed_bits, vector(n**size), pair, prefix+f"bits_pack{stream}")
-            targets = binary("+", targets, packed_bits, prefix+"targets", False)
+            targets = (binary("+", targets, packed_bits, prefix+"targets", False) if span==1 else
+                       madd(packed_bits,vector(span),targets,prefix+"targets"))
         else:
             packed = pointers[group]
             for stream in range(1, width):
                 packed = madd(packed, vector(n), pointers[group+stream], prefix + f"pack{stream}")
-            targets = binary("+", packed, offsets, prefix + "targets", False)
+            targets = (binary("+", packed, offsets, prefix + "targets", False) if span==1 else
+                       madd(packed,vector(span),offsets,prefix+"targets"))
         mixed = [g.new() for _ in range(width)]
         fetch = d in (3, 4) and cfg[f"prefetch{d}"]
         if fetch:
             children = list(reversed(adjusted_nodes[d+1]))
             store_children = cfg["store_children"] and r in (3, 14)
             if store_children:
-                buffer = len(g.regions) % cfg["temp_buffers"] if cfg["temp_buffers"] else int(r == 14)
+                ordinal=temp_rank[r,group] if temp_rank is not None else len(g.regions)
+                buffer = ordinal % cfg["temp_buffers"] if cfg["temp_buffers"] else int(r == 14)
+                if span > 1:
+                    buffer = regular_buffers
                 temp_base = 2310 + 16*buffer
-                temp_ptrs = [scalar(temp_base+j) for j in range(16)]
+                temp_ptrs = [scalar(temp_base+j,force_load=span>1 and cfg["load_temp_addresses"])
+                             for j in range(8*len(fields))]
             memory_children = None
             if r == 14 and cfg["load_children"]:
                 assert cfg["prexor"] and not any(prefetch_madd(r+1, group+s) for s in range(width))
@@ -494,11 +569,14 @@ def build(config=None):
             # data dependencies at the cycle where each word is consumed.
             g.ops[start][2] = [(targets, 1)]
         if fetch and store_children:
-            g.control.extend((op, start, -1) for op in previous_temp_loads.get(buffer, ()))
-            for source_group in (2*buffer, 2*buffer+1):
+            if temp_rank is None:
+                g.control.extend((op, start, -1-i//2)
+                                 for i,op in enumerate(previous_temp_loads.get(buffer, ())) if i<len(fields))
+            for source_group in range((temp_base-2310)//8,(temp_base-2310)//8+len(fields)):
                 g.control.append((input_loads[source_group], start, 1))
         parts = []
-        temp_stores = [[], []]
+        temp_stores = [[] for _ in fields]
+        relative_times = {start:0}
         for j in range(8):
             xors = []
             for stream in range(width):
@@ -509,11 +587,13 @@ def build(config=None):
                     g.lookup_bits[op] = lane(bits[group+stream][-1], j)
                     g.ops[op][2].append((g.lookup_bits[op], 1))
                 xors.append((op, stream))
+                relative_times[op] = 1+j*span
                 if fetch:
                     for child in range(2):
                         cache = children[child::2] if child == 0 or not prefetch_madd(r+1, group+stream) else child_diffs[d+1]
                         dst = lane(prefetched[r+1, group+stream][child], j)
-                        store_child = store_children and stream == 0
+                        field = ("child",stream,child)
+                        store_child = field in field_index
                         eligible_child = (stream == int(store_children) if cfg["compact_heap"] else
                                           (2*stream+child+2*j) % (2*width) < (2 if width >= 3 else 1))
                         load_child = not store_child and memory_children is not None and eligible_child
@@ -525,12 +605,12 @@ def build(config=None):
                         if load_child:
                             cache = memory_children[child::2]
                         if store_child:
-                            dst = temp_ptrs[child*8+j]
+                            dst = temp_ptrs[field_index[field]*8+j]
                             engine, code = "store", "lookup_store"
                         op = g.emit(prefix + f"child{j}.{stream}.{child}", engine, (code, dst, q, *cache),
                                     [(q, 1), *[(x, 1) for x in cache], *([(dst, 1)] if store_child else [])], [] if store_child else [(dst, 1)])
                         if store_child:
-                            temp_stores[child].append(op)
+                            temp_stores[field_index[field]].append(op)
                         if load_child:
                             last_gathers.append(op)
                             gather_levels[op] = d+1
@@ -539,42 +619,49 @@ def build(config=None):
                             g.lookup_bits[op] = lane(bits[group+stream][-1], j)
                             g.ops[op][2].append((g.lookup_bits[op], 1))
                         xors.append((op, stream))
+                        relative_times[op] = 1+j*span+(field_index[field]//2 if store_child else 0)
                 if stream in grand_streams:
                     for child in range(4):
                         dst = lane(grandchildren[group+stream][child], j)
                         cache = grand_nodes[child::4]
-                        op = g.emit(prefix + f"grand{j}.{stream}.{child}", "alu", ("lookup_copy", dst, q, *cache),
-                                    [(q, 1), *[(x, 1) for x in cache]], [(dst, 1)])
+                        field = ("grand",stream,child)
+                        stored = field in field_index
+                        if stored:
+                            dst = temp_ptrs[field_index[field]*8+j]
+                        op = g.emit(prefix + f"grand{j}.{stream}.{child}", "store" if stored else "alu",
+                                    ("lookup_store" if stored else "lookup_copy", dst, q, *cache),
+                                    [(q, 1), *[(x, 1) for x in cache], *([(dst,1)] if stored else [])],
+                                    [] if stored else [(dst, 1)])
+                        if stored:
+                            temp_stores[field_index[field]].append(op)
                         xors.append((op, stream))
+                        relative_times[op] = 1+j*span+(field_index[field]//2 if stored else 0)
             slot = ("jump_indirect", lane(targets, j+1)) if j < 7 else ("jump", 0)
             jump = g.emit(prefix + f"jump{j+1}", "flow", slot, [(slot[1], 1)] if j < 7 else [], [])
+            relative_times[jump] = (j+1)*span
             parts.append((xors, jump))
-        g.units[start_unit:] = [[(start, 0), *[(op, j+1) for j, (xors, jump) in enumerate(parts) for op in [*(op for op, stream in xors), jump]]]]
-        g.regions.append(dict(start=start, parts=parts, n=n, width=width, cases=cases, table=table, groups=list(range(group, group+width)), round=r))
+        g.units[start_unit:] = [[(op,relative_times[op]) for op in relative_times]]
+        g.regions.append(dict(start=start, parts=parts, n=n, width=width, span=span, cases=cases, table=table, groups=list(range(group, group+width)), round=r))
         if fetch and store_children:
             loads = []
-            for child in range(2):
-                dst = prefetched[r+1, group][child]
-                addr = temp_ptrs[child*8]
-                op = g.emit(prefix+f"child_vector{child}", "load", ("vload", dst, addr), [(addr, 1)], [(dst, 8)])
-                g.control.extend((before, op, 1) for before in temp_stores[child])
+            for i,(kind,stream,child) in enumerate(fields):
+                dst = prefetched[r+1,group+stream][child] if kind=="child" else grandchildren[group+stream][child]
+                addr = temp_ptrs[i*8]
+                name = f"child_vector{child}" if kind=="child" and stream==0 else f"{kind}_vector{stream}.{child}"
+                op = g.emit(prefix+name, "load", ("vload", dst, addr), [(addr, 1)], [(dst, 8)])
+                g.control.extend((before, op, 1) for before in temp_stores[i])
                 loads.append(op)
             previous_temp_loads[buffer] = loads
             temp_reads.extend(loads)
-            for output_group in (2*buffer, 2*buffer+1):
+            for output_group in range((temp_base-2310)//8,(temp_base-2310)//8+len(fields)):
                 temp_output_reads.setdefault(output_group, []).extend(loads)
             g.regions[-1]["temp_loads"] = loads
+            g.regions[-1]["temp_buffer"] = buffer
+            g.regions[-1]["temp_fields"] = len(fields)
         return mixed
 
-    values = []
-    io = []
-    input_loads = []
-    for k in range(32):
-        g.tag = (-1, k)
-        ptr = scalar(2310 + 8*k)
-        io.append(ptr)
-        values.append(vload(ptr, f"g{k}.input"))
-        input_loads.append(len(g.ops)-1)
+    if values is None:
+        values,io,input_loads=load_inputs()
     ptrs = [None] * 32
     state = [None] * 32
     bits = [[] for _ in range(32)]
@@ -735,10 +822,13 @@ def build(config=None):
             frontier = {writers[int(values[k])+j] for j in range(8)}
             g.control.extend((before, op, -cfg["output_address_window"]) for before in frontier)
             output_io[k] = ptr
-    for k in range(32):
-        op = g.emit(f"g{k}.output", "store", ("vstore", output_io[k], values[k]), [(output_io[k], 1), (values[k], 8)], [])
-        g.control.extend((before, op, 0) for before in temp_output_reads.get(k, ()))
-    # Restore all temporary index words, ordered after every reading gather.
+    def emit_outputs():
+        for k in range(32):
+            op = g.emit(f"g{k}.output", "store", ("vstore", output_io[k], values[k]), [(output_io[k], 1), (values[k], 8)], [])
+            g.control.extend((before, op, 0) for before in temp_output_reads.get(k, ()))
+    if not cfg["heap_io_backup"]:
+        emit_outputs()
+    # Restore original tree blocks and temporary index words.
     if cfg["compact_heap"]:
         later_reads = []
         for d in range(7, 3, -1):
@@ -753,9 +843,12 @@ def build(config=None):
                     g.control.append((writer, read, 1))
                     if cfg["heap_restore_window"]:
                         g.control.extend((before, read, -cfg["heap_restore_window"]) for before in last_gathers if gather_levels.get(before) in (d, d+1))
-                    zero = vector(0)
-                    clear = g.emit(f"restore.d{d}.clear{off}", "store", ("vstore", backup, zero), [(backup, 1), (zero, 8)], [])
-                    g.control.append((read, clear, 0))
+                    if cfg["heap_io_backup"]:
+                        temp_output_reads.setdefault(io_backup_groups[d,off],[]).append(read)
+                    else:
+                        zero = vector(0)
+                        clear = g.emit(f"restore.d{d}.clear{off}", "store", ("vstore", backup, zero), [(backup, 1), (zero, 8)], [])
+                        g.control.append((read, clear, 0))
                 else:
                     if d in cfg["heap_reuse_levels"]:
                         sources = adjusted_nodes[d][off:off+8]
@@ -784,12 +877,23 @@ def build(config=None):
         g.control.extend((before, op, 1) for before in syncs[4])
         g.control.extend((before, op, 1) for before in last_gathers if gather_levels.get(before) == 4)
     if cfg["prexor"]:
-        for off in range(240 if cfg["compact_heap"] else 0, 248 if cfg["tail_gathers"] else 240, 8):
+        for off in range(240 if cfg["compact_heap"] else 0, 248 if cache_gather3 else 240, 8):
             addr = scalar(2054 + off)
             op = g.emit(f"restore.{off}", "store", ("vstore", addr, vector(0)), [(addr, 1), (vector(0), 8)], [])
             depth = 3 if off >= 240 else (off+16).bit_length()-1
             g.control.extend((before, op, 1) for before in syncs.get(depth, ()))
             g.control.extend((before, op, 1) for before in last_gathers if gather_levels.get(before, 4) == depth)
+    if cfg["heap_io_backup"]:
+        emit_outputs()
+    if temp_rank is not None:
+        previous={}
+        for region in sorted(g.regions,key=lambda r:temp_rank[r['round'],r['groups'][0]]):
+            if not region.get('temp_loads'):
+                continue
+            buffer=region['temp_buffer']
+            g.control.extend((op,region['start'],-1-i//2)
+                             for i,op in enumerate(previous.get(buffer,())) if i<region['temp_fields'])
+            previous[buffer]=region['temp_loads']
     g.config = cfg
     g.total_table_words = total_words
     if cfg["dce"]:
@@ -854,24 +958,27 @@ def merge_dispatch_regions(g, number):
     for batch in batches:
         if len(batch) == 1:
             continue
+        assert sum(r.get("span",1) for r in batch) <= 4, "Merged dispatch exceeds the 33-cycle unit limit"
         combined = []
         first_unit = unit_of[batch[0]["start"]]
+        relative_start = 0
         for j, region in enumerate(batch):
             unit = unit_of[region["start"]]
             removed_units.add(unit)
             for i, off in g.units[unit]:
                 if j and i == region["start"]:
                     continue
-                combined.append((i, off+j*8))
+                combined.append((i, off+relative_start))
             if j+1 < len(batch):
                 region["chain_exit"] = True
                 next_start = batch[j+1]["start"]
                 previous_exit = region["parts"][-1][1]
                 aliases[next_start] = previous_exit
                 g.ops[previous_exit] = [*g.ops[next_start][:4], g.ops[previous_exit][4]]
-                for i in region.get("temp_loads", ()):
+                for load_index,i in enumerate(region.get("temp_loads", ())):
                     removed_units.add(unit_of[i])
-                    combined.append((i, j*8+9))
+                    combined.append((i, relative_start+8*region.get("span",1)+1+load_index//2))
+            relative_start += 8*region.get("span",1)
         replacement_units[first_unit] = combined
     units = []
     for u, rows in enumerate(g.units):
@@ -927,16 +1034,20 @@ class Scheduler:
         self.g = g
         n = len(g.units)
         units = [None] * len(g.ops)
-        self.usage = np.zeros((n, 33, 5), dtype=np.int64)
+        self.usage = np.zeros((n, 33, 6), dtype=np.int64)
         self.durations = np.zeros(n, dtype=np.int64)
         self.tags = np.zeros((n, 2), dtype=np.int64)
         for u, ops in enumerate(g.units):
             self.tags[u] = g.ops[ops[0][0]][4]
             for i, off in ops:
+                assert 0 <= off <= 32, "Compound unit exceeds 33 cycles"
                 units[i] = (u, off)
                 self.usage[u, off, ENGINES.index(g.ops[i][0])] += 1
                 self.durations[u] = max(self.durations[u], off)
-        assert np.all(self.usage <= CAPACITY)
+        for region in g.regions:
+            u,off = units[region["start"]]
+            self.usage[u,off:off+8*region.get("span",1)+1,5] = 1
+        assert np.all(self.usage <= RESOURCE_CAPACITY)
         self.op_units = np.array([row[0] for row in units])
         self.op_offsets = np.array([row[1] for row in units])
         edges = {}
@@ -1160,6 +1271,11 @@ def lower(g, times, bases):
     logical = [{} for _ in range(total)]
     for i, op in enumerate(g.ops):
         logical[int(times[i])].setdefault(op[0], []).append(slots[i])
+    for bundle in logical:
+        if not bundle:
+            # An explicit self-copy preserves a scheduled empty cycle on the
+            # frozen machine, whose empty dictionaries do not advance time.
+            bundle["alu"] = [("|",0,0,0)]
     # Falling off main code must skip the out-of-line case bodies.
     # A final jump is packed with a last store if its FLOW slot is free.
     assert not logical[-1].get("flow")
@@ -1170,37 +1286,39 @@ def lower(g, times, bases):
     for region in g.regions:
         entry = int(times[region["start"]])
         n, width, cases = region["n"], region["width"], region["cases"]
+        span = region.get("span",1)
         for part, (lookups, jump) in enumerate(region["parts"]):
-            cycle = int(times[jump])
-            assert cycle == entry+part+1
-            pos = total + region["table"] + part*cases
-            replacements = {slots[i]: (i, stream) for i, stream in lookups}
-            for choice in range(cases):
-                indices = [(choice//(n**(width-1-stream))) % n for stream in range(width)]
-                bundle = {}
-                for engine, instructions in logical[cycle].items():
-                    out = []
-                    for slot in instructions:
-                        if slot in replacements:
-                            i, stream = replacements[slot]
-                            q = indices[stream]
-                            if slot[0] == "lookup_xor":
-                                slot = ("^", slot[1], slot[2], slot[4+q])
-                            elif slot[0] == "lookup_load":
-                                slot = ("load", slot[1], slot[3+q])
-                            elif slot[0] == "lookup_store":
-                                slot = ("store", slot[1], slot[3+q])
-                            else:
-                                assert slot[0] == "lookup_copy"
-                                slot = ("|", slot[1], slot[3+q], slot[3+q])
-                        elif engine == "flow" and slot == slots[jump] and part == 7 and not region.get("chain_exit"):
-                            slot = ("jump", cycle+1)
-                        out.append(slot)
-                    bundle[engine] = out
-                program[pos+choice] = bundle
-                origins[pos+choice] = cycle
-            program[cycle] = {}
-            origins[cycle] = -1
+            assert int(times[jump]) == entry+(part+1)*span
+            for phase in range(span):
+                cycle = entry+part*span+phase+1
+                pos = total + region["table"] + part*cases*span + phase
+                replacements = {slots[i]: (i, stream) for i, stream in lookups if int(times[i])==cycle}
+                for choice in range(cases):
+                    indices = [(choice//(n**(width-1-stream))) % n for stream in range(width)]
+                    bundle = {}
+                    for engine, instructions in logical[cycle].items():
+                        out = []
+                        for slot in instructions:
+                            if slot in replacements:
+                                i, stream = replacements[slot]
+                                q = indices[stream]
+                                if slot[0] == "lookup_xor":
+                                    slot = ("^", slot[1], slot[2], slot[4+q])
+                                elif slot[0] == "lookup_load":
+                                    slot = ("load", slot[1], slot[3+q])
+                                elif slot[0] == "lookup_store":
+                                    slot = ("store", slot[1], slot[3+q])
+                                else:
+                                    assert slot[0] == "lookup_copy"
+                                    slot = ("|", slot[1], slot[3+q], slot[3+q])
+                            elif engine == "flow" and slot == slots[jump] and part == 7 and not region.get("chain_exit"):
+                                slot = ("jump", cycle+1)
+                            out.append(slot)
+                        bundle[engine] = out
+                    program[pos+choice*span] = bundle
+                    origins[pos+choice*span] = cycle
+                program[cycle] = {}
+                origins[cycle] = -1
     if g.config["compact_main"]:
         # Each out-of-line handler replaces a main-program position that is
         # never executed. Remove those holes and relocate absolute addresses.

@@ -1,4 +1,4 @@
-"""Offline search for schedules with at most 10,000 static VLIW bundles."""
+"""Offline search for schedules with at most 12,000 static VLIW bundles."""
 import argparse
 from concurrent.futures import ProcessPoolExecutor
 import json
@@ -33,18 +33,28 @@ def warm_keys(source, graph, scheduler=None):
 
 
 def static_size(graph, cycles):
-    holes = 8 * len(graph.regions) if graph.config['compact_main'] else 0
+    holes = 8 * sum(r.get('span',1) for r in graph.regions) if graph.config['compact_main'] else 0
     return cycles + graph.total_table_words - holes
 
 
 def search(job):
     index, config, source, output, trials, iterations = job
     graph = build(config)
-    scheduler = Scheduler(graph)
+    directory = output / f'candidate_{index:03}'
+    try:
+        scheduler = Scheduler(graph)
+    except AssertionError as error:
+        if str(error) != 'Cyclic compound schedule':
+            raise
+        directory.mkdir(parents=True,exist_ok=True)
+        rejection=dict(candidate=index,config=config,
+                       reason='Cyclic compound graph is unsupported by this scheduler')
+        (directory/'rejection.json').write_text(json.dumps(rejection,indent=2)+'\n')
+        print(json.dumps(dict(candidate=index,rejected=rejection['reason'])),flush=True)
+        return index,100000
     rng = random.Random(733 + index)
     incumbent = warm_keys(source, graph, scheduler)
     best_score = 100000
-    directory = output / f'candidate_{index:03}'
     for trial in range(trials):
         if trial and trial % 5 == 0:
             keys = scheduler.consumer_setup(scheduler.tags[:, 0] * rng.choice((1, 2, 4)) + scheduler.tags[:, 1])
@@ -55,7 +65,7 @@ def search(job):
             incumbent = best
         elif rng.random() < .2:
             incumbent = last
-        if score >= best_score or static_size(graph, score) > 10000:
+        if score >= best_score or static_size(graph, score) > 12000:
             continue
         times = scheduler.op_times(best)
         bases, audit = allocate(graph, times)

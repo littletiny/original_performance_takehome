@@ -7,7 +7,7 @@ import time
 import numpy as np
 from ortools.sat.python import cp_model
 
-from optimize import build, Scheduler, allocate, counts
+from optimize import build, Scheduler, allocate, counts, RESOURCE_CAPACITY
 
 
 def warm(source, config):
@@ -50,7 +50,7 @@ def solve(source, output, config, seconds, workers, cutoff=None):
         model.AddHint(end, score)
     for a, b, lag in zip(scheduler.sources, scheduler.dests, scheduler.lags):
         model.Add(starts[int(b)] >= starts[int(a)] + int(lag))
-    for engine, capacity in enumerate((12, 6, 2, 2, 1)):
+    for engine, capacity in enumerate(map(int,RESOURCE_CAPACITY)):
         intervals, demands = [], []
         for u in range(n):
             row = scheduler.usage[u, :, engine]

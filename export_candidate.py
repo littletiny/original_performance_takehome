@@ -20,7 +20,7 @@ def _build_tuned_standard():
     main, table_words, cases = pickle.loads(zlib.decompress(
         base64.b85decode(_TUNED_STANDARD)))
     program = main + [{} for _ in range(table_words)]
-    for base, count, template, patches in cases:
+    for base, count, stride, template, patches in cases:
         for choice in range(count):
             bundle = {engine: list(slots) for engine, slots in template.items()}
             for engine, position, operation, power, radix in patches:
@@ -37,8 +37,8 @@ def _build_tuned_standard():
                     assert code == "lookup_load"
                     slot = ("load", operation[1], operation[3+index])
                 bundle[engine][position] = slot
-            program[base+choice] = bundle
-    assert len(program) <= 10_000
+            program[base+choice*stride] = bundle
+    assert len(program) <= 12_000
     return program
 
 '''
@@ -50,7 +50,7 @@ def export(source, write=False):
     bases, allocation = allocate(graph, times)
     assert bases is not None, allocation
     program, origins, logical = lower(graph, times, bases)
-    assert len(program) <= 10_000, f"Static bundle limit exceeded: {len(program)}"
+    assert len(program) <= 12_000, f"Static bundle limit exceeded: {len(program)}"
     # Share an early free FLOW slot before any stores or jumps. The native
     # harness sees unchanged initial memory without shifting absolute PCs.
     for index, bundle in enumerate(program):
@@ -69,17 +69,21 @@ def export(source, write=False):
     cases = []
     for region in graph.regions:
         n, width = region['n'], region['width']
+        stride = region.get('span',1)
         count = n ** width
         for part, (lookups, jump) in enumerate(region['parts']):
-            cycle = int(times[jump])
-            base = main_size + region['table'] + part*count
-            patches = []
-            for op_id, stream in lookups:
-                engine = graph.ops[op_id][0]
-                operation = tuple(bases[x.vid]+x.off if isinstance(x, pt.V) else x for x in graph.ops[op_id][1])
-                position = logical[cycle][engine].index(operation)
-                patches.append((engine, position, operation, n**(width-1-stream), n))
-            cases.append((base, count, program[base], patches))
+            for phase in range(stride):
+                cycle = int(times[jump])-stride+1+phase
+                base = main_size + region['table'] + part*count*stride + phase
+                patches = []
+                for op_id, stream in lookups:
+                    if int(times[op_id]) != cycle:
+                        continue
+                    engine = graph.ops[op_id][0]
+                    operation = tuple(bases[x.vid]+x.off if isinstance(x, pt.V) else x for x in graph.ops[op_id][1])
+                    position = logical[cycle][engine].index(operation)
+                    patches.append((engine, position, operation, n**(width-1-stream), n))
+                cases.append((base, count, stride, program[base], patches))
     payload = (program[:main_size], graph.total_table_words, cases)
     blob = base64.b85encode(zlib.compress(pickle.dumps(payload, protocol=4), 9)).decode()
     scope = dict(_TUNED_STANDARD=blob)

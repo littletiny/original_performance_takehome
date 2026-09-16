@@ -14,14 +14,14 @@ extern "C" int schedule_search(
     const double* initial_keys, int iterations, uint64_t seed,
     double noise, int64_t* best_out, int64_t* current_out) {
   constexpr int horizon = 16000;
-  constexpr int caps[5] = {12, 6, 2, 2, 1};
+  constexpr int caps[6] = {12, 6, 2, 2, 1, 1};
   std::vector<std::vector<std::pair<int,int>>> successors[2];
   std::vector<int> indegrees[2];
   std::vector<std::array<int,3>> resources[2];
   for (int dir = 0; dir < 2; ++dir) {
     successors[dir].resize(n);
     indegrees[dir].assign(n, 0);
-    resources[dir].resize(n * 33 * 5);
+    resources[dir].resize(n * 33 * 6);
   }
   for (int e = 0; e < ne; ++e) {
     int a = sources[e], b = dests[e], lag = lags[e];
@@ -35,8 +35,8 @@ extern "C" int schedule_search(
     demands[dir].resize(n);
     for (int i = 0; i < n; ++i)
       for (int off = 0; off <= durations[i]; ++off)
-        for (int e = 0; e < 5; ++e) {
-          int amount = usage[(i*33 + off)*5 + e];
+        for (int e = 0; e < 6; ++e) {
+          int amount = usage[(i*33 + off)*6 + e];
           if (amount) demands[dir][i].push_back({dir ? int(durations[i])-off : off, e, amount});
         }
   }
@@ -52,7 +52,7 @@ extern "C" int schedule_search(
   {
     bool valid = true;
     int end = 0;
-    std::vector<std::array<int,5>> occupied(horizon);
+    std::vector<std::array<int,6>> occupied(horizon);
     for (int i = 0; i < n && valid; ++i) {
       double key = initial_keys[i];
       if (!std::isfinite(key) || key < 0 || key != std::floor(key) ||
@@ -84,7 +84,7 @@ extern "C" int schedule_search(
     }
     pending = indegrees[dir];
     std::fill(releases.begin(), releases.end(), 0);
-    std::vector<std::array<int,5>> occupied(horizon);
+    std::vector<std::array<int,6>> occupied(horizon);
     using Item = std::pair<double,int>;
     std::priority_queue<Item, std::vector<Item>, std::greater<Item>> heap;
     for (int i = 0; i < n; ++i) if (!pending[i]) heap.emplace(keys[i], i);
