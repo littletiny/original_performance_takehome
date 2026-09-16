@@ -205,7 +205,7 @@ def main():
     render(rows, summary, output)
     output.with_suffix(".json").write_text(json.dumps(summary, indent=2) + "\n")
     with output.with_suffix(".csv").open("w", newline="") as handle:
-        writer = csv.writer(handle)
+        writer = csv.writer(handle, lineterminator="\n")
         writer.writerow(["cycle", "pc", *ENGINES])
         writer.writerows(rows.tolist())
     print(json.dumps({"image": str(output), "cycles": summary["cycles"],

@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 
-from optimize import RESOURCE_CAPACITY, Graph, Scheduler, allocate, lower, frozen
+from optimize import RESOURCE_CAPACITY, Graph, Scheduler, allocate, lower, frozen, lane
 
 
 def negative_lag_graph():
@@ -87,6 +87,51 @@ class ScheduleTests(unittest.TestCase):
         self.assertEqual(machine.cycle,3)
         self.assertEqual(machine.mem,[456])
         self.assertEqual(list(origins),[0,1,2])
+
+    def test_fixed_table_bootstrap_and_case_returns(self):
+        # Exercise both alternatives of all eight handlers. The table's
+        # absolute addresses stay fixed while main code moves behind it.
+        for parity in (0,1):
+            graph=Graph()
+            graph.config=dict(lane_allocation=True,compact_main=True,pc_address_pools=True)
+            graph.total_table_words=16
+            zero,targets,result=graph.new(),graph.new(),graph.new()
+            one,two=graph.new(1),graph.new(1)
+            graph.initial_zero.append(zero)
+            times=[]
+            choices=[(j+parity)%2 for j in range(8)]
+            for j in range(8):
+                op=graph.emit(f'pc{j}','load',('const',lane(targets,j),2*j+choices[j]),
+                              [],[(lane(targets,j),1)])
+                graph.pc_constants.append(op)
+                times.append(j//2)
+            for value,immediate in ((one,1),(two,2)):
+                graph.emit(f'value{immediate}','load',('const',value,immediate),[],[(value,1)])
+                times.append(4)
+            start=graph.emit('entry','flow',('jump_indirect',targets),[(targets,8)],[])
+            times.append(5)
+            parts=[]
+            for j in range(8):
+                choice=one if choices[j] else zero
+                op=graph.emit(f'choose{j}','alu',('lookup_xor',lane(result,j),lane(zero,j),choice,one,two),
+                              [(lane(zero,j),1),(choice,1),(one,1),(two,1)],[(lane(result,j),1)])
+                times.append(6+j)
+                slot=('jump_indirect',lane(targets,j+1)) if j<7 else ('jump',0)
+                jump=graph.emit(f'next{j}','flow',slot,[(slot[1],1)] if j<7 else [],[])
+                times.append(6+j)
+                parts.append(([(op,0)],jump))
+            graph.regions=[dict(start=start,parts=parts,n=2,width=1,cases=2,span=1,table=0)]
+            graph.emit('output','store',('vstore',zero,result),[(zero,1),(result,8)],[])
+            times.append(14)
+            bases,audit=allocate(graph,np.asarray(times,dtype=np.int64))
+            self.assertIsNotNone(bases,audit)
+            program,origins,_=lower(graph,times,bases)
+            machine=frozen.Machine([99]*8,program,frozen.DebugInfo({}))
+            machine.run()
+            self.assertEqual(machine.mem,[1+choice for choice in choices])
+            self.assertEqual(machine.cycle,15)
+            self.assertEqual(len(program),36)
+            self.assertEqual(int(origins[0]),0)
 
 
 if __name__ == '__main__':

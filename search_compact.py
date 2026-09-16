@@ -34,7 +34,8 @@ def warm_keys(source, graph, scheduler=None):
 
 def static_size(graph, cycles):
     holes = 8 * sum(r.get('span',1) for r in graph.regions) if graph.config['compact_main'] else 0
-    return cycles + graph.total_table_words - holes
+    bootstrap_padding = 13 if graph.config.get('pc_address_pools') else 0
+    return cycles + graph.total_table_words - holes + bootstrap_padding
 
 
 def search(job):

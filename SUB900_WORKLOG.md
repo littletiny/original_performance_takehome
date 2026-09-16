@@ -1,18 +1,18 @@
 # Sub-900 optimization checkpoint
 
-The current verified entry point is **919 cycles with 10,159 static bundles**,
+The current verified entry point is **918 cycles with 10,811 static bundles**,
 down from the initial 980 cycles.
 The requested **<900-cycle target has not been reached**.
 
 On 2026-09-17 the user relaxed the static VLIW instruction-bundle limit from
 10,000 to **12,000**
 (`len(KernelBuilder.instrs)`). Both the exporter and the standalone decoder
-enforce this limit. The current program contains **229,332 individual
+enforce this limit. The current program contains **230,118 individual
 engine-slot operations**, including the initial pause; those are a different
 quantity from bundles.
 
 The preceding 932-cycle checkpoint used 477,092 static bundles. The current
-version reduces that count by **97.87%** and uses 13 fewer dynamic cycles. Its
+version reduces that count by **97.73%** and uses 14 fewer dynamic cycles. Its
 verified artifacts remain at `results/portfolio_1/`, and its submitted source
 is preserved in commit `e2c302f`; it is no longer the default implementation.
 The first compressed checkpoint, 971 cycles and 9,819 bundles, remains in
@@ -25,19 +25,21 @@ The first lane-allocation checkpoint remains in `results/compact_934/` and
 commit `188b459` (934 cycles, 9,782 bundles).
 The best checkpoint retained under the previous 10,000-bundle cap is
 `results/compact_928/`, commit `5b10cbe` (928 cycles, 9,776 bundles).
+The preceding 919-cycle / 10,159-bundle checkpoint remains in
+`results/compact_919/` and commit `9c32b1e`.
 
 ## Verified checkpoint
 
-Source configuration and schedule: `results/compact_919/config.json` and
-`results/compact_919/best.npz`. Frozen verification and export metadata:
-`results/compact_919/verification.json`. Fixed-graph resource counts and
-100-cycle utilization windows are in `results/compact_919/analysis.json`.
+Source configuration and schedule: `results/compact_918/config.json` and
+`results/compact_918/best.npz`. Frozen verification and export metadata:
+`results/compact_918/verification.json`. Fixed-graph resource counts and
+100-cycle utilization windows are in `results/compact_918/analysis.json`.
 
 `python3 plot_utilization.py` regenerates `utilization_profile.png`, its JSON
 summary, and a per-cycle CSV directly from the submitted program on the frozen
-machine. The latest measured port occupancy is ALU 98.95%, VALU 99.44%, LOAD
-93.58%, STORE 45.65%, and FLOW 95.21%. FLOW includes the initial pause and final
-jump (875 executed slots, compared with 873 graph operations). Seeds 0 and 1
+machine. The latest measured port occupancy is ALU 99.37%, VALU 99.35%, LOAD
+93.25%, STORE 45.70%, and FLOW 95.32%. FLOW includes the initial pause and
+bootstrap jump (875 executed slots, compared with 873 graph operations). Seeds 0 and 1
 take different dispatch paths but have identical per-cycle port occupancy;
 both final outputs and all non-output memory pass verification. The plot no
 longer treats static bundle addresses as cycles or uses the old 985-cycle
@@ -51,21 +53,22 @@ saved artifacts. Other shapes retain the previous implementation.
 Validation completed:
 
 - The unchanged `python3 tests/submission_tests.py` passes all nine tests at
-  919 cycles.
+  918 cycles.
 - The three native tests in `python3 perf_takehome.py` also pass.
 - Five machine-level allocator tests in `test_lane_allocate.py` pass, covering
   progressive in-place vector updates, later reads, simultaneous writes,
   initial-zero reuse, and rejection of same-cycle RAW dependencies.
-- Four scheduler regression tests in `test_schedule.py` pass. They cover
+- Five scheduler regression tests in `test_schedule.py` pass. They cover
   preserving a feasible warm schedule with negative inter-unit lags and
   rejecting infeasible hints as incumbents, exclusive dispatch execution
-  through otherwise free FLOW slots, and real no-ops for empty scheduled cycles.
+  through otherwise free FLOW slots, real no-ops for empty scheduled cycles,
+  and fixed-address tables with a bootstrap jump and relocated handler returns.
 - Seeds 0–9 each pass 20,480 retained hash-stage checkpoints and final output
   comparisons in `tests/frozen_problem.py`.
 - The verifier checks every executed PC against its logical cycle, and checks
   that the tree, header, and initial index memory are preserved.
 - The exported expansion is compared against the complete verified program.
-- The initial pause shares the first instruction bundle. It does not shift
+- The initial pause shares logical cycle 1, after the bootstrap jump. It does not shift
   absolute dispatch PCs or add a cycle, and preserves the native two-yield
   harness's initial-memory checkpoint.
 - Neither `tests/` nor `problem.py` was changed.
@@ -83,7 +86,8 @@ Validation completed:
 3. Main-program positions replaced by out-of-line handlers are removed. The
    lowerer relocates absolute jumps and table-address constants; the frozen
    verifier checks the resulting PC-to-logical-cycle mapping on every step.
-   Removing these 360 unreachable positions leaves 559 main-program bundles.
+   Removing these 360 unreachable positions leaves 558 main-program bundles.
+   The fixed-address layout also includes 653 unreachable padding bundles.
 4. The last four groups use late gathers. The compressed variant uses MADD
    path updates and FLOW shallow selections. Mirrored memory addresses remove
    several later address selections. There is no separate depth-5 dispatch.
@@ -106,12 +110,12 @@ Validation completed:
    precede backup writes, and backup reads precede final output stores. This
    removes separate backup pointers and 24 index-clearing stores. Backups still
    precede bias computation, so raw loaded values can be released promptly.
-10. One hundred named binary operations explicitly select ALU or VALU instead
+10. Named binary operations explicitly select ALU or VALU instead
     of relying only on a global fraction. Moves are first placed in measured
     resource holes with all dependencies checked, then rescheduled. Two rounds
     of these changes reduced 931 cycles to 928 without increasing weighted
     arithmetic work. Two more contractions helped reach 919 cycles. The current
-    payload is 147,790 bytes before source quoting.
+    payload is 151,558 bytes before source quoting.
 11. The first two dispatches in execution order, rounds/groups (3,0) and (3,4),
     share their exit/entry jump. The extra paired lookup at (14,24) and this
     chain remove ten FLOW instructions from the 928-cycle graph.
@@ -128,7 +132,7 @@ resource-constrained scheduling. `lane_allocate.cpp` packs per-lane live ranges
 into scratch. NumPy and a C++17 compiler are development dependencies only.
 
 ```sh
-python3 export_candidate.py results/compact_919 --write
+python3 export_candidate.py results/compact_918 --write
 python3 test_lane_allocate.py
 python3 test_schedule.py
 python3 perf_takehome.py
@@ -158,15 +162,16 @@ Additional verified experimental choices remain available in `optimize.py`:
 - `flow_constants` uses `add_imm` with initial zero scratch for selected
   constants. A 941-cycle variant passed frozen verification with its initial
   pause at logical cycle 1. The exporter selects a free FLOW slot before any
-  memory write or jump, preserving the initial checkpoint and all PCs.
+  memory write, following any bootstrap jump in logical execution order and
+  preserving the initial checkpoint and all PCs.
 - `fold_path4_groups` permits partial path folds. `load_children` now keeps
   temporary stores using runtime child values when conditional loads are also
   enabled; it must not store the child-address constants instead.
 
-The present graph contains 10,912 ALU and 5,483 VALU operations, with weighted
-work `10912 + 8*5483 = 54,776`. The machine can issue at most 60 such weighted
+The present graph contains 10,947 ALU and 5,472 VALU operations, with weighted
+work `10947 + 8*5472 = 54,723`. The machine can issue at most 60 such weighted
 operations per cycle. Thus this particular graph needs at least 913 cycles
-from arithmetic counts alone, and 914 from its fixed VALU count. Reordering
+from arithmetic counts alone and also from its fixed ALU count. Reordering
 or exchanging scalar/vector forms alone cannot reach <900. This is not a
 lower bound for alternative algorithms or
 instruction choices; further progress toward the goal requires reducing work.
@@ -293,16 +298,39 @@ migrations. It checks the resulting operation counts instead of relying on
 small changes to a global fraction, which can alter many downstream choices.
 The named overrides and frozen verification remain the source of truth.
 
-One unimplemented avenue is to reuse existing scalar address constants as
-contiguous PC-offset vectors. For a 15-pair layout, putting tables before the
-main continuation could align four vectors with tree pointers 14..262,
-three with backup pointers 2102..2286, and four with I/O pointers 2318..2566.
-This would require scalar-pool allocation, checked physical table padding,
-startup jump/pause relocation, and a more general export layout. The current
-I/O-backup configuration no longer has the index-backup pointers, so that
-proposal must be re-evaluated rather than applying its old savings estimate.
-No code sharing, new layout, or resulting cycle improvement is implemented or
-claimed for this proposal.
+## Fixed-address tables and shared pointer vectors
+
+`pc_address_pools` places the first table at physical PC 14. Four offset
+vectors share tree pointer words 14..262 and four share I/O pointer words
+2318..2566. Scalar constants occupy lanes of these vectors instead of separate
+scratch allocations. Tree and input values remain runtime data.
+
+Compared with the 919-cycle graph, sharing removes seven VALU offset updates
+and eight LOAD constants while adding three scalar additions, reducing weighted
+arithmetic by 53. Four hash packs then move from VALU to ALU to balance counts.
+The resulting graph executes in **918 cycles**, verified on seeds 0–9 plus
+additional seeds 901 and 12345, with all hash checkpoints, outputs, PC mappings,
+and non-output memory checked.
+
+Cycle zero uses a free FLOW slot to jump past the fixed tables. Logical cycle
+one contains the existing initial pause. The remaining main program follows
+the tables and ends by falling off the program. No extra dynamic cycle is
+introduced. The complete static program has 558 main bundles, 9,600 case
+bundles, and 653 padding bundles: **10,811 total**, all counted against 12,000.
+
+The exporter now records main-bundle positions explicitly, so both original
+trailing tables and fixed leading tables use the same standalone decoder.
+Full expanded programs are compared before export. A frozen-machine regression
+executes both choices of all eight small test handlers to check the bootstrap,
+fixed table addresses, and relocated return to main code.
+
+`results/pc_address_pools/run.py` reproduces the eight initial scheduling
+variants from the preserved 919 checkpoint. Its best result is candidate 001,
+now saved as `results/compact_918`. A subsequent 47-configuration neighborhood
+screen and six measured-hole rebalance variants did not improve 918. These
+screens are allocation-checked search evidence, not additional execution
+proofs or global lower bounds. The best submitted program passed the nine
+submission tests, three native tests, and ten allocator/scheduler tests.
 
 ## Remaining work
 

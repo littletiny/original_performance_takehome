@@ -1,7 +1,7 @@
 {
-  "generated_at_utc": "2026-09-16T18:11:33.229361+00:00",
+  "generated_at_utc": "2026-09-16T18:22:40.891799+00:00",
   "source": "perf_takehome.py",
-  "source_sha256": "c7b324a7d106d87bba81161a153848d116461bb6a70e279950eb4ac7ec343d6f",
+  "source_sha256": "ecad0b785980baa2aa9be048bc7786cdcbfb74d109358ddf71ecc670617565f3",
   "simulator": "tests/frozen_problem.py",
   "workload": {
     "forest_height": 10,
@@ -10,60 +10,60 @@
     "rounds": 16
   },
   "seed": 0,
-  "cycles": 919,
-  "static_bundles": 10159,
-  "static_slot_operations": 229332,
-  "dynamic_slot_operations": 19829,
+  "cycles": 918,
+  "static_bundles": 10811,
+  "static_slot_operations": 230118,
+  "dynamic_slot_operations": 19845,
   "output_verified": true,
   "non_output_memory_preserved": true,
   "ports": {
     "alu": {
       "slots_per_cycle": 12,
-      "used_slots": 10912,
-      "available_slots": 11028,
-      "idle_slots": 116,
-      "utilization_percent": 98.94813202756619,
-      "full_cycles": 894,
-      "active_cycles": 916,
+      "used_slots": 10947,
+      "available_slots": 11016,
+      "idle_slots": 69,
+      "utilization_percent": 99.37363834422658,
+      "full_cycles": 909,
+      "active_cycles": 915,
       "opcodes": {
         "&": 992,
-        "+": 131,
+        "+": 134,
         "-": 29,
-        ">>": 2376,
-        "^": 6792,
+        ">>": 2384,
+        "^": 6816,
         "|": 592
       }
     },
     "valu": {
       "slots_per_cycle": 6,
-      "used_slots": 5483,
-      "available_slots": 5514,
-      "idle_slots": 31,
-      "utilization_percent": 99.43779470438884,
-      "full_cycles": 911,
-      "active_cycles": 918,
+      "used_slots": 5472,
+      "available_slots": 5508,
+      "idle_slots": 36,
+      "utilization_percent": 99.34640522875817,
+      "full_cycles": 910,
+      "active_cycles": 915,
       "opcodes": {
         "&": 324,
-        "*": 2,
-        "+": 91,
+        "*": 1,
+        "+": 84,
         "-": 6,
         "==": 1,
-        ">>": 727,
-        "^": 1873,
+        ">>": 726,
+        "^": 1870,
         "multiply_add": 2435,
-        "vbroadcast": 24
+        "vbroadcast": 25
       }
     },
     "load": {
       "slots_per_cycle": 2,
-      "used_slots": 1720,
-      "available_slots": 1838,
-      "idle_slots": 118,
-      "utilization_percent": 93.57997823721436,
-      "full_cycles": 860,
+      "used_slots": 1712,
+      "available_slots": 1836,
+      "idle_slots": 124,
+      "utilization_percent": 93.24618736383442,
+      "full_cycles": 852,
       "active_cycles": 860,
       "opcodes": {
-        "const": 29,
+        "const": 21,
         "load": 1512,
         "vload": 179
       }
@@ -71,11 +71,11 @@
     "store": {
       "slots_per_cycle": 2,
       "used_slots": 839,
-      "available_slots": 1838,
-      "idle_slots": 999,
-      "utilization_percent": 45.647442872687705,
-      "full_cycles": 408,
-      "active_cycles": 431,
+      "available_slots": 1836,
+      "idle_slots": 997,
+      "utilization_percent": 45.69716775599129,
+      "full_cycles": 417,
+      "active_cycles": 422,
       "opcodes": {
         "store": 720,
         "vstore": 119
@@ -84,9 +84,9 @@
     "flow": {
       "slots_per_cycle": 1,
       "used_slots": 875,
-      "available_slots": 919,
-      "idle_slots": 44,
-      "utilization_percent": 95.21218715995647,
+      "available_slots": 918,
+      "idle_slots": 43,
+      "utilization_percent": 95.31590413943356,
       "full_cycles": 875,
       "active_cycles": 875,
       "opcodes": {

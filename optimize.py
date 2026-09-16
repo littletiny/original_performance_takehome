@@ -86,10 +86,19 @@ def build(config=None):
                share_shallow_bias=False, lane_allocation_trials=8,
                scalar_overrides=None, dispatch_spans=(), load_temp_addresses=False,
                header_constants=False, initial_zero_vector=False, heap_io_backup=False,
-               early_gather_groups=(), temp_region_order=())
+               early_gather_groups=(), temp_region_order=(), pc_address_pools=False)
     cfg.update(config or {})
     g = Graph()
     sc, vc = {}, {}
+    # Fixed table addresses can share the scalar pointers already required by
+    # tree loads and I/O. Allocate those words together before emitting them.
+    address_vectors = {}
+    address_lanes = {}
+    if cfg["pc_address_pools"]:
+        for base in (14, 78, 142, 206, 2318, 2382, 2446, 2510):
+            value = g.new()
+            address_vectors[base] = value
+            address_lanes.update((base+8*j, lane(value,j)) for j in range(8))
     scalar_tick = 0
     leaf_tick = 0
     constant_zero = None
@@ -114,7 +123,7 @@ def build(config=None):
         nonlocal constant_zero
         value &= MASK
         if value not in sc:
-            v = g.new(1)
+            v = address_lanes[value] if value in address_lanes else g.new(1)
             if cfg["flow_constants"] == "all" or value in cfg["flow_constants"]:
                 if constant_zero is None:
                     constant_zero = g.new(1)
@@ -462,11 +471,19 @@ def build(config=None):
 
     # Each choice occupies a contiguous sequence of one to four bundles.
     region_counts = Counter((r % 11, width, spans.get((r,k),1)) for (r, k), width in dispatch_groups.items())
-    table_positions, total_words = {}, 0
+    table_offsets, total_words = {}, 0
+    if cfg["pc_address_pools"]:
+        assert not spans, "Address pools currently require single-bundle cases"
+        assert 8 <= region_counts[3,1,1] <= 40
     for key in sorted(region_counts):
         d, width, span = key
-        table_positions[key] = total_words
-        total_words += region_counts[key] * 8 * span * (1 << (width*d))
+        table_offsets[key] = []
+        for number in range(region_counts[key]):
+            if cfg["pc_address_pools"] and key == (3,1,1) and number == region_counts[key]-4:
+                assert total_words <= 2318-14
+                total_words = 2318-14
+            table_offsets[key].append(total_words)
+            total_words += 8 * span * (1 << (width*d))
     next_region = Counter()
     prev_offsets = {}
 
@@ -497,15 +514,20 @@ def build(config=None):
         prefix = f"r{r}.g{group}.dispatch."
         region_number = next_region[key]
         next_region[key] += 1
-        table = table_positions[key] + region_number * 8 * cases * span
-        if region_number == 0:
+        table = table_offsets[key][region_number]
+        if cfg["pc_address_pools"] and key == (3,1,1) and table+14 in address_vectors:
+            offsets = address_vectors[table+14]
+            for j in range(8):
+                assert scalar(table+14+8*j) == lane(offsets,j)
+        elif region_number == 0:
             offsets = g.new()
             for j in range(8):
                 op = g.emit(prefix + f"offset{j}", "load", ("const", lane(offsets, j), table + j*cases*span), [], [(lane(offsets, j), 1)])
                 g.pc_constants.append(op)
         else:
-            offsets = binary("+", prev_offsets[key], vector(8*cases*span), prefix + "offsets", cfg["offset_scalar"])
-        prev_offsets[key] = offsets
+            previous, previous_table = prev_offsets[key]
+            offsets = binary("+", previous, vector(table-previous_table), prefix + "offsets", cfg["offset_scalar"])
+        prev_offsets[key] = offsets, table
         fused = r == 14 and cfg["fuse_tail_pc"]
         if fused:
             targets = offsets
@@ -1003,10 +1025,13 @@ def merge_dispatch_regions(g, number):
 
 def counts(g):
     c = Counter(op[0] for op in g.ops)
+    case_bundles = sum(8*r["cases"]*r.get("span",1) for r in g.regions)
+    padding = g.total_table_words-case_bundles+(13 if g.config.get("pc_address_pools") else 0)
     return dict(engines=dict(c), weighted_alu_valu=c["alu"]+8*c["valu"],
                 bound=max((c[e]+int(cap)-1)//int(cap) for e, cap in zip(ENGINES, CAPACITY)),
                 arithmetic_bound=(c["alu"]+8*c["valu"]+59)//60,
-                table_bundles=g.total_table_words, regions=len(g.regions), values=len(g.sizes))
+                table_bundles=g.total_table_words, table_case_bundles=case_bundles,
+                static_padding_bundles=padding, regions=len(g.regions), values=len(g.sizes))
 
 
 class Scheduler:
@@ -1260,6 +1285,7 @@ def allocate_lanes(g, times):
 def lower(g, times, bases):
     """Expand dense cases only after all scratch and schedule checks pass."""
     total = int(max(times)) + 1
+    tables_first = g.config.get("pc_address_pools", False)
 
     def word(v):
         return bases[v.vid] + v.off if isinstance(v, pt.V) else v
@@ -1267,7 +1293,7 @@ def lower(g, times, bases):
     slots = [tuple(word(v) for v in op[1]) for op in g.ops]
     for i in g.pc_constants:
         code, dst, immediate = slots[i]
-        slots[i] = (code, dst, immediate+total)
+        slots[i] = (code, dst, immediate+(14 if tables_first else total))
     logical = [{} for _ in range(total)]
     for i, op in enumerate(g.ops):
         logical[int(times[i])].setdefault(op[0], []).append(slots[i])
@@ -1278,8 +1304,9 @@ def lower(g, times, bases):
             bundle["alu"] = [("|",0,0,0)]
     # Falling off main code must skip the out-of-line case bodies.
     # A final jump is packed with a last store if its FLOW slot is free.
-    assert not logical[-1].get("flow")
-    logical[-1]["flow"] = [("jump", total + g.total_table_words)]
+    if not tables_first:
+        assert not logical[-1].get("flow")
+        logical[-1]["flow"] = [("jump", total + g.total_table_words)]
     program = list(logical) + [{} for _ in range(g.total_table_words)]
     origins = np.full(len(program), -1, dtype=np.int64)
     origins[:total] = np.arange(total)
@@ -1319,7 +1346,33 @@ def lower(g, times, bases):
                     origins[pos+choice*span] = cycle
                 program[cycle] = {}
                 origins[cycle] = -1
-    if g.config["compact_main"]:
+    if tables_first:
+        # Cycle zero jumps over the fixed-address tables; the remaining main
+        # bundles follow them. No extra dynamic cycle is introduced.
+        assert g.config["compact_main"] and origins[0] == 0
+        assert not logical[0].get("flow"), "Bootstrap needs the first FLOW slot"
+        main = [p for p in range(total) if origins[p] >= 0]
+        start = 14+g.total_table_words
+        addresses = {old:start+i for i,old in enumerate(main[1:])}
+        addresses[0] = 0
+        addresses.update((p,14+p-total) for p in range(total,len(program)))
+        size = start+len(main)-1
+        addresses[len(program)] = size
+        order = [0] + [None]*13 + list(range(total,len(program))) + main[1:]
+        assert len(order) == size
+        placed, mapping = [], []
+        for old in order:
+            if old is None:
+                placed.append({})
+                mapping.append(-1)
+                continue
+            bundle = {engine:[("jump",addresses[slot[1]]) if slot[0]=="jump" else slot
+                              for slot in slots] for engine,slots in program[old].items()}
+            placed.append(bundle)
+            mapping.append(int(origins[old]))
+        placed[0]["flow"] = [("jump",addresses[main[1]])]
+        program, origins = placed, np.asarray(mapping,dtype=np.int64)
+    elif g.config["compact_main"]:
         # Each out-of-line handler replaces a main-program position that is
         # never executed. Remove those holes and relocate absolute addresses.
         keep = np.flatnonzero(origins >= 0)

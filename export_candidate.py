@@ -17,9 +17,11 @@ DECODER = '''
 def _build_tuned_standard():
     """Expand offline schedules; tree and input values remain runtime data."""
     import base64, pickle, zlib
-    main, table_words, cases = pickle.loads(zlib.decompress(
+    length, main, cases = pickle.loads(zlib.decompress(
         base64.b85decode(_TUNED_STANDARD)))
-    program = main + [{} for _ in range(table_words)]
+    program = [{} for _ in range(length)]
+    for position, bundle in main:
+        program[position] = bundle
     for base, count, stride, template, patches in cases:
         for choice in range(count):
             bundle = {engine: list(slots) for engine, slots in template.items()}
@@ -51,11 +53,17 @@ def export(source, write=False):
     assert bases is not None, allocation
     program, origins, logical = lower(graph, times, bases)
     assert len(program) <= 12_000, f"Static bundle limit exceeded: {len(program)}"
-    # Share an early free FLOW slot before any stores or jumps. The native
-    # harness sees unchanged initial memory without shifting absolute PCs.
-    for index, bundle in enumerate(program):
+    # Share an early free FLOW slot before any stores. Follow logical cycles
+    # across the optional bootstrap jump without shifting absolute PCs.
+    for index in sorted(range(len(program)), key=lambda i:int(origins[i])):
+        if origins[index] < 0:
+            continue
+        bundle = program[index]
         assert not bundle.get('store'), 'No safe initial pause before memory writes'
         if bundle.get('flow'):
+            if graph.config.get('pc_address_pools') and index == 0:
+                assert bundle['flow'][0][0] == 'jump'
+                continue
             assert all(slot[0] in ('add_imm', 'vselect', 'select') for slot in bundle['flow'])
             continue
         bundle['flow'] = [('pause',)]
@@ -67,6 +75,7 @@ def export(source, write=False):
     cycles = len(logical)
     main_size = len(program) - graph.total_table_words
     cases = []
+    case_positions = set()
     for region in graph.regions:
         n, width = region['n'], region['width']
         stride = region.get('span',1)
@@ -74,7 +83,8 @@ def export(source, write=False):
         for part, (lookups, jump) in enumerate(region['parts']):
             for phase in range(stride):
                 cycle = int(times[jump])-stride+1+phase
-                base = main_size + region['table'] + part*count*stride + phase
+                table_start = 14 if graph.config.get('pc_address_pools') else main_size
+                base = table_start + region['table'] + part*count*stride + phase
                 patches = []
                 for op_id, stream in lookups:
                     if int(times[op_id]) != cycle:
@@ -84,7 +94,9 @@ def export(source, write=False):
                     position = logical[cycle][engine].index(operation)
                     patches.append((engine, position, operation, n**(width-1-stream), n))
                 cases.append((base, count, stride, program[base], patches))
-    payload = (program[:main_size], graph.total_table_words, cases)
+                case_positions.update(base+choice*stride for choice in range(count))
+    main = [(i,bundle) for i,bundle in enumerate(program) if bundle and i not in case_positions]
+    payload = (len(program), main, cases)
     blob = base64.b85encode(zlib.compress(pickle.dumps(payload, protocol=4), 9)).decode()
     scope = dict(_TUNED_STANDARD=blob)
     exec(DECODER, scope)
