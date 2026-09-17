@@ -1,5 +1,11 @@
 # Sub-900 optimization checkpoint
 
+For the consolidated Chinese review of successful and unsuccessful attempts,
+the complete local experiment index, and the macro-design/handwritten route,
+see [OPTIMIZATION_REVIEW.md](OPTIMIZATION_REVIEW.md) (2026-09-18).
+It includes historical corrections and separates verified scores, allocated
+screens, graph bounds, template exclusions and unverified prototypes.
+
 The current verified entry point is **913 cycles with 10,537 static bundles**,
 down from the initial 980 cycles.
 The requested **<900-cycle target has not been reached**.
@@ -23,8 +29,11 @@ The address-chain checkpoint remains in `results/compact_936/` and commit
 `1d667e6` (936 cycles, 9,784 bundles).
 The first lane-allocation checkpoint remains in `results/compact_934/` and
 commit `188b459` (934 cycles, 9,782 bundles).
-The best checkpoint retained under the previous 10,000-bundle cap is
+The submitted checkpoint retained from the previous 10,000-bundle cap is
 `results/compact_928/`, commit `5b10cbe` (928 cycles, 9,776 bundles).
+The consolidated review also records an unpromoted local frozen artifact at
+`results/exact_balance/candidate_032/` (926 cycles, 9,774 bundles); the 928
+checkpoint is not the minimum over every archived candidate fitting that cap.
 The preceding 919-cycle / 10,159-bundle checkpoint remains in
 `results/compact_919/` and commit `9c32b1e`.
 The 918-cycle / 10,811-bundle checkpoint remains in `results/compact_918/`
