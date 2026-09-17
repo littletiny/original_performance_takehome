@@ -12,11 +12,13 @@ from optimize import (
 )
 
 
-def fixture(merged):
+def fixture(merged,permuted=False):
     g=Graph(ref_type=WideV)
     g.config=dict(lane_allocation=True,compact_main=True,pc_address_pools=True,
                   store_children=True,merge_chains=[],lane_allocation_trials=16)
     g.total_table_words=1024
+    order=(0,2,4,6,1,3,5,7) if permuted else tuple(range(8))
+    position={j:p for p,j in enumerate(order)}
     scalars={}
     def scalar(value):
         if value not in scalars:
@@ -35,7 +37,7 @@ def fixture(merged):
             value=data[8*block+j] if j<8 else 0xdead0000+16*block+j
             constant(f'data{block}.{j}',lane(source[block],j),value)
     cache=[lane(source[q//4],2*(q%4)) for q in range(8)]
-    pointers=[[scalar(16+24*s+2*j) for j in range(8)] for s in range(2)]
+    pointers=[[scalar(16+24*s+2*position[j]) for j in range(8)] for s in range(2)]
     zero=g.new()
     z=scalar(0)
     g.emit('zero','valu',('vbroadcast',zero,z),[(z,1)],[(zero,8)])
@@ -43,16 +45,22 @@ def fixture(merged):
     expected=[]
     for region in range(2):
         targets=g.new()
-        conds=[[g.new(),g.new()] for _ in range(2)]
+        if permuted:
+            bits=[g.new(9) for _ in range(2)]
+            conds=[[v,lane(v,1)] for v in bits]
+        else:
+            conds=[[g.new(),g.new()] for _ in range(2)]
         for j in range(8):
-            constant(f'pc{region}.{j}',lane(targets,j),512*region+64*j+j*8+(7-j),True)
+            constant(f'pc{region}.{j}',lane(targets,j),512*region+64*position[j]+j*8+(7-j),True)
         for s in range(2):
             values=[]
             for j in range(8):
                 q=j if s==0 else 7-j
                 bit=(j+s+region)&1
-                constant(f'bit{region}.{s}.{j}',lane(conds[s][j//4],2*(j%4)),bit)
-                constant(f'poison{region}.{s}.{j}',lane(conds[s][j//4],2*(j%4)+1),0xff000000+j)
+                dst=lane(conds[s][0],j) if permuted else lane(conds[s][j//4],2*(j%4))
+                constant(f'bit{region}.{s}.{j}',dst,bit)
+                if not permuted:
+                    constant(f'poison{region}.{s}.{j}',lane(dst,1),0xff000000+j)
                 values.append(data[2*q+bit])
             expected.extend(values)
         setups.append((targets,conds))
@@ -67,17 +75,17 @@ def fixture(merged):
         relative={start:0}
         stores=[[],[]]
         parts=[]
-        for j in range(8):
+        for p,j in enumerate(order):
             rows=[]
             for s in range(2):
                 q=scalar(j if s==0 else 7-j)
                 addr=pointers[s][j]
                 op=g.emit(f'r{region}.row{j}.{s}','store',('lookup_pair_store',addr,q,*cache),
                           [(addr,1),(q,1),*[(v,2) for v in cache]],[])
-                stores[s].append(op);rows.append((op,s));relative[op]=j+1
-            slot=('jump_indirect',lane(targets,j+1)) if j<7 else ('jump',0)
-            jump=g.emit(f'r{region}.jump{j}','flow',slot,[(slot[1],1)] if j<7 else [],[])
-            relative[jump]=j+1;parts.append((rows,jump))
+                stores[s].append(op);rows.append((op,s));relative[op]=p+1
+            slot=('jump_indirect',lane(targets,order[p+1])) if p<7 else ('jump',0)
+            jump=g.emit(f'r{region}.jump{p}','flow',slot,[(slot[1],1)] if p<7 else [],[])
+            relative[jump]=p+1;parts.append((rows,jump))
         # Some scalar choice constants were first requested while building the
         # cases. They are independent units, not part of the lookup body.
         body=set(relative)
@@ -87,7 +95,7 @@ def fixture(merged):
         loaded=[[g.new(9),g.new(9)] for _ in range(2)]
         for block in range(2):
             for s in range(2):
-                dst=loaded[s][block];addr=pointers[s][4*block]
+                dst=loaded[s][block];addr=scalar(16+24*s+8*block)
                 op=g.emit(f'r{region}.load{block}.{s}','load',('vload',dst,addr),[(addr,1)],[(dst,8)])
                 g.control.extend((before,op,1) for j,before in enumerate(stores[s])
                                  if 2*j<8*block+8 and 8*block<2*j+8)
@@ -98,13 +106,14 @@ def fixture(merged):
         previous=loads
         load_rows.extend(loads)
         for s in range(2):
-            chosen=[]
+            chosen=[None]*8
             for block in range(2):
                 no=loaded[s][block];yes=lane(no,1);cond=conds[s][block];dest=g.new()
                 g.emit(f'r{region}.choose{s}.{block}','flow',('vselect_even',dest,cond,yes,no),
                        [(lane(v,j),1) for v in (cond,yes,no) for j in (0,2,4,6)],[(dest,8)])
                 selected_outputs.append(dest)
-                chosen.extend(lane(dest,j) for j in (0,2,4,6))
+                for j in range(4):
+                    chosen[2*j+block if permuted else 4*block+j]=lane(dest,2*j)
             result=g.new()
             for j,src in enumerate(chosen):
                 dst=lane(result,j)
@@ -133,8 +142,8 @@ class LatePairTests(unittest.TestCase):
         verify_semantics(g,(0,1))
 
     def test_overlapping_pairs_preserve_both_choices_and_clear_padding(self):
-        for merged in (False,True):
-            g,expected,_=fixture(merged)
+        for merged,permuted in ((m,p) for m in (False,True) for p in (False,True)):
+            g,expected,_=fixture(merged,permuted)
             scheduler=Scheduler(g)
             _,units,_=scheduler.search(iterations=5,seed=917,noise=.1)
             times=scheduler.op_times(units)
@@ -163,6 +172,41 @@ class LatePairTests(unittest.TestCase):
         bad=g.new(1);src=lane(outputs[0],1)
         g.emit('observe_odd','alu',('|',bad,src,src),[(src,1)],[(bad,1)])
         with self.assertRaises(AssertionError):audit_pair_padding(g)
+
+    def test_early_permuted_row_requires_old_odd_block_read(self):
+        cfg=json.loads((Path(__file__).parent/'results/compact_914/config.json').read_text())
+        cfg.update(early_pair_groups=[20,24],pair_even_odd_order=True,
+                   constant_expressions=None,memory_vectors=[],memory_vector_order=[])
+        g=build(cfg);named={name:i for i,name in enumerate(g.names)}
+        start=named['r3.g20.dispatch.jump0']
+        read=named['r3.g20.dispatch.pair_load1.0']
+        next_start=named['r3.g24.dispatch.jump0']
+        edge=(read,next_start,-2)
+        self.assertIn(edge,g.control)
+        g.control.append((start,read,100))
+        verify_semantics(g,(0,1))
+        bad=copy.deepcopy(g);bad.control.remove(edge)
+        with self.assertRaises(AssertionError) as error:verify_semantics(bad,(0,))
+        self.assertIsInstance(error.exception.args[0],tuple)
+        self.assertEqual(error.exception.args[0][1:4],(4,20,0))
+
+    def test_custom_late_order_waits_for_the_last_early_row(self):
+        cfg=json.loads((Path(__file__).parent/'results/compact_914/config.json').read_text())
+        cfg.update(early_pair_groups=[20,24],late_pair_groups=[20,24],late_pair_order=[20,24],
+                   pair_even_odd_order=True,constant_expressions=None,
+                   memory_vectors=[],memory_vector_order=[])
+        g=build(cfg);named={name:i for i,name in enumerate(g.names)}
+        start=named['r3.g24.dispatch.jump0']
+        read=named['r3.g24.dispatch.pair_load1.0']
+        next_start=named['r14.g20.dispatch.jump0']
+        edge=(read,next_start,-2)
+        self.assertIn(edge,g.control)
+        g.control.append((start,read,500))
+        verify_semantics(g,(0,1))
+        bad=copy.deepcopy(g);bad.control.remove(edge)
+        with self.assertRaises(AssertionError) as error:verify_semantics(bad,(0,))
+        self.assertIsInstance(error.exception.args[0],tuple)
+        self.assertEqual(error.exception.args[0][1:4],(4,24,0))
 
     def test_delayed_old_second_block_requires_reuse_dependency(self):
         cfg=json.loads((Path(__file__).parent/'results/compact_917/config.json').read_text())

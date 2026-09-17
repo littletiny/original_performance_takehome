@@ -1,0 +1,28 @@
+{
+  "candidate": 11,
+  "source": "results/overfetch_levels_914/candidate_011",
+  "early": [
+    24,
+    28
+  ],
+  "late": [
+    20,
+    24
+  ],
+  "resource_bound": 907,
+  "engines": {
+    "valu": 5426,
+    "load": 1774,
+    "alu": 10856,
+    "store": 902,
+    "flow": 882
+  },
+  "weighted_alu_valu": 54264,
+  "bound": 905,
+  "arithmetic_bound": 905,
+  "table_bundles": 10240,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 653,
+  "regions": 45,
+  "values": 8484
+}

@@ -1,0 +1,24 @@
+{
+  "candidate": 11,
+  "trial": 0,
+  "cycles": 917,
+  "static_bundles": 10810,
+  "scratch_words": 1536,
+  "allocation_policy": "lanes-3",
+  "lane_live_peak": 1378,
+  "engines": {
+    "valu": 5426,
+    "load": 1774,
+    "alu": 10856,
+    "store": 902,
+    "flow": 882
+  },
+  "weighted_alu_valu": 54264,
+  "bound": 905,
+  "arithmetic_bound": 905,
+  "table_bundles": 10240,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 653,
+  "regions": 45,
+  "values": 8484
+}

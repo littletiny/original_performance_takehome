@@ -1,0 +1,21 @@
+{
+  "candidate": 0,
+  "position": 0,
+  "policy": 0,
+  "resource_bound": 911,
+  "engines": {
+    "valu": 5448,
+    "load": 1771,
+    "alu": 10900,
+    "store": 984,
+    "flow": 862
+  },
+  "weighted_alu_valu": 54484,
+  "bound": 909,
+  "arithmetic_bound": 909,
+  "table_bundles": 10240,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 653,
+  "regions": 45,
+  "values": 8149
+}

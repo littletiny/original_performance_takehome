@@ -1,0 +1,24 @@
+{
+  "cycles": 959,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "checkpoints_per_seed": 20480,
+  "static_bundles": 11444,
+  "static_slots": 251504,
+  "scratch_words": 1533,
+  "allocation_policy": "lanes-15",
+  "lane_live_peak": 1484,
+  "compressed_payload_bytes": 153495,
+  "source": "results/dense_tables_914/candidate_024",
+  "pause_cycle": 1
+}

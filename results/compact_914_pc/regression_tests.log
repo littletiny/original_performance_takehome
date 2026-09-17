@@ -1,0 +1,34 @@
+test_initial_zero_can_be_reused_after_read (test_lane_allocate.LaneAllocationTests.test_initial_zero_can_be_reused_after_read) ... ok
+test_later_read_prevents_overwrite (test_lane_allocate.LaneAllocationTests.test_later_read_prevents_overwrite) ... ok
+test_progressive_in_place_vector (test_lane_allocate.LaneAllocationTests.test_progressive_in_place_vector) ... ok
+test_same_cycle_raw_dependency_is_rejected (test_lane_allocate.LaneAllocationTests.test_same_cycle_raw_dependency_is_rejected) ... ok
+test_unused_simultaneous_writes_stay_distinct (test_lane_allocate.LaneAllocationTests.test_unused_simultaneous_writes_stay_distinct) ... ok
+test_dense_tables_release_tail_padding_and_scalar_io_spans (test_schedule.ScheduleTests.test_dense_tables_release_tail_padding_and_scalar_io_spans) ... ok
+test_dispatches_do_not_overlap_through_free_flow_slots (test_schedule.ScheduleTests.test_dispatches_do_not_overlap_through_free_flow_slots) ... ok
+test_empty_scheduled_cycle_has_a_real_noop (test_schedule.ScheduleTests.test_empty_scheduled_cycle_has_a_real_noop) ... ok
+test_fixed_table_bootstrap_and_case_returns (test_schedule.ScheduleTests.test_fixed_table_bootstrap_and_case_returns) ... ok
+test_invalid_hint_is_not_an_incumbent (test_schedule.ScheduleTests.test_invalid_hint_is_not_an_incumbent) ... ok
+test_permuted_absolute_pc_offsets_from_madd (test_schedule.ScheduleTests.test_permuted_absolute_pc_offsets_from_madd) ... ok
+test_valid_hint_is_preserved_if_serial_placement_is_worse (test_schedule.ScheduleTests.test_valid_hint_is_preserved_if_serial_placement_is_worse) ... ok
+test_vector_store_lookup_aligns_both_halves_without_corrupting_rows (test_schedule.ScheduleTests.test_vector_store_lookup_aligns_both_halves_without_corrupting_rows) ... ok
+test_unwritten_second_field_survives_partial_buffer_reuse (test_memory_order.MemoryOrderTests.test_unwritten_second_field_survives_partial_buffer_reuse) ... ok
+test_custom_late_order_waits_for_the_last_early_row (test_late_pair_rows.LatePairTests.test_custom_late_order_waits_for_the_last_early_row) ... ok
+test_delayed_old_second_block_requires_reuse_dependency (test_late_pair_rows.LatePairTests.test_delayed_old_second_block_requires_reuse_dependency) ... ok
+test_early_permuted_row_requires_old_odd_block_read (test_late_pair_rows.LatePairTests.test_early_permuted_row_requires_old_odd_block_read) ... ok
+test_odd_selection_output_cannot_be_observed (test_late_pair_rows.LatePairTests.test_odd_selection_output_cannot_be_observed) ... ok
+test_overlapping_pairs_preserve_both_choices_and_clear_padding (test_late_pair_rows.LatePairTests.test_overlapping_pairs_preserve_both_choices_and_clear_padding) ... ok
+test_pair_rows_are_independent_of_extended_dispatch_buffers (test_late_pair_rows.LatePairTests.test_pair_rows_are_independent_of_extended_dispatch_buffers) ... ok
+test_broadcast_rows_are_disjoint_from_late_child_rows (test_memory_vectors.MemoryVectorTests.test_broadcast_rows_are_disjoint_from_late_child_rows) ... ok
+test_delayed_runtime_root_read_survives_buffer_reuse (test_memory_vectors.MemoryVectorTests.test_delayed_runtime_root_read_survives_buffer_reuse) ... ok
+test_per_level_coordinates_preserve_mixed_transitions (test_overfetch.OverfetchTests.test_per_level_coordinates_preserve_mixed_transitions) ... ok
+test_shifted_address_recurrence_and_padding_use (test_overfetch.OverfetchTests.test_shifted_address_recurrence_and_padding_use) ... ok
+test_h2_constant_broadcast_is_eliminated_and_stays_scalar (test_uniform_operands.UniformOperandTests.test_h2_constant_broadcast_is_eliminated_and_stays_scalar) ... ok
+test_missing_load_order_clobbers_an_observed_child (test_prefetch_pairs.PrefetchPairTests.test_missing_load_order_clobbers_an_observed_child) ... ok
+test_overlapping_vloads_keep_both_children_with_allocated_scratch (test_prefetch_pairs.PrefetchPairTests.test_overlapping_vloads_keep_both_children_with_allocated_scratch) ... ok
+test_forward_sources_and_wrapping_values_on_real_machine (test_constant_graph.ConstantGraphTests.test_forward_sources_and_wrapping_values_on_real_machine) ... ok
+test_runtime_header_anchors_preserve_full_hash_and_memory (test_constant_graph.ConstantGraphTests.test_runtime_header_anchors_preserve_full_hash_and_memory) ... ok
+
+----------------------------------------------------------------------
+Ran 29 tests in 12.357s
+
+OK

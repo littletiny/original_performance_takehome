@@ -7,7 +7,7 @@ The requested **<900-cycle target has not been reached**.
 On 2026-09-17 the user relaxed the static VLIW instruction-bundle limit from
 10,000 to **12,000**
 (`len(KernelBuilder.instrs)`). Both the exporter and the standalone decoder
-enforce this limit. The current program contains **231,289 individual
+enforce this limit. The current program contains **231,948 individual
 engine-slot operations**, including the initial pause; those are a different
 quantity from bundles.
 
@@ -32,10 +32,10 @@ and commit `e9da622`.
 
 ## Latest verified checkpoint and lower-bound margin
 
-The current source and schedule are recorded in `results/compact_914/`.
-Its fixed-graph resource-window lower bound is 911, and its weighted arithmetic
-work is 54,536. It is verified on twelve seeds, including the actual submitted
-builder; nine submission tests, three native tests and 24 research regressions
+The current source and schedule are recorded in `results/compact_914_pc/`.
+Its fixed-graph resource-window lower bound is 910, and its weighted arithmetic
+work is 54,484. It is verified on twelve seeds, including the actual submitted
+builder; nine submission tests, three native tests and 29 research regressions
 pass. The current source changes only the generated block.
 
 `results/sub900_margin_915/` records the preceding checkpoint's margin analysis.
@@ -655,3 +655,53 @@ take different PCs with identical per-cycle port counts.
 The fixed-graph bound is now 911. Strict sub-900 still requires at least 596
 fewer W by arithmetic capacity alone, before other ports, timing and scratch.
 The full <900 objective remains active and unmet.
+
+## PC-offset arithmetic and the reduced-work 914 checkpoint
+
+The first paired PC-offset vector now uses `8*address_vector_14 + 2462`,
+replacing eight literal loads. Its addend and eight additional uniform setup
+vectors use ordered STORE/VLOAD replication. A hash shift pack then moves into
+a measured VALU hole. The promoted source is `results/compact_914_pc/`, from
+`results/pc_delta_holes_914/candidate_000`.
+
+Dynamic cycles and static bundles remain 914 and 10,807. W drops by 52 to
+54,484, and the resource-window bound drops to 910. LOAD rises by two to 1,771,
+STORE by 72 to 984, and graph FLOW remains 862 (864 at runtime). Scratch span
+stays 1,536 and live peak falls from 1,410 to 1,388. Static slot operations are
+231,948, and the compressed standalone payload is 162,972 bytes.
+
+All nine submission tests, three native tests and 29 research regressions pass.
+Twelve seeds pass all retained checkpoints, PC mapping, output and non-output
+memory checks, with actual-builder and standalone expansion equality. The
+generated block is the only production-code change. The new port plot is
+visually checked and bound to the source digest; two seeds have identical
+per-cycle port counts on different PC paths.
+
+Other completed experiments establish the limits of these trades:
+
+- Twenty-four per-level overfetch configurations do not beat 914; a 915-cycle
+  control with W=54,310 is fully frozen-verified.
+- Dense tables remove the tail PC padding. A 914-cycle / 10,167-bundle control
+  is fully verified but has more arithmetic than the promoted version.
+- An even/odd lane order allows round-3 child pairs to keep contiguous branch
+  bits without repacking. Machine and delayed-read negative tests validate the
+  layout. Sixteen screens retain verified 914/917 controls but no cycle gain.
+- The 128-case joint inventory reaches W=53,698 (arithmetic capacity 895), but
+  that graph's full window bound is 923. The best window bound remains 901.
+  Earlier depth-5 prefetch reduces 923 to 921, not below 900. A combined
+  1,049-cycle / 11,998-bundle graph is fully frozen-verified as a control.
+- Seventeen PC-offset screens, fourteen addend-memory screens, eight hole
+  transfers and four longer fixed-graph searches lead to the promoted result.
+  The longer searches do not beat 914; they do not prove optimality.
+
+The PC-offset machine test also caught a lowerer edge case when the last
+handler is the last logical cycle. It now jumps to program end instead of the
+first table. This does not affect the preceding production program or change
+machine cycle accounting.
+
+At least 544 additional W must disappear under the optimistic 899-cycle
+capacity test; other ports and timing still constrain it. Long STORE handlers
+and merged chains have repeatedly traded arithmetic for poor LOAD readiness.
+A future mixed-radix selector fusion is not implemented; it would need an
+explicit producer-lifetime and table-placement design. Shared tables cannot
+simply discard their distinct background instructions. The <900 goal is unmet.

@@ -1,9 +1,10 @@
 """Regression checks for valid schedule hints with negative compound lags."""
+import json
 import unittest
 
 import numpy as np
 
-from optimize import RESOURCE_CAPACITY, Graph, Scheduler, allocate, lower, frozen, lane
+from optimize import ROOT,RESOURCE_CAPACITY,Graph,Scheduler,allocate,build,lower,frozen,lane,verify_semantics
 
 
 def negative_lag_graph():
@@ -31,6 +32,67 @@ def negative_lag_graph():
 
 
 class ScheduleTests(unittest.TestCase):
+    def test_permuted_absolute_pc_offsets_from_madd(self):
+        for order in (tuple(range(8)),(0,2,4,6,1,3,5,7)):
+            graph=Graph();graph.config=dict(lane_allocation=True,compact_main=True,pc_address_pools=True)
+            graph.total_table_words=192
+            zero=graph.new();graph.initial_zero.append(zero)
+            def scalar(name,value):
+                ref=graph.new(1)
+                graph.emit(name,'load',('const',ref,value),[],[(ref,1)])
+                return ref
+            choices,cache,anchor,scale,bias,offsets,targets,result=[graph.new() for _ in range(8)]
+            addr=scalar('cache_address',8);out=scalar('output_address',16)
+            graph.emit('choices','load',('vload',choices,zero),[(zero,1)],[(choices,8)])
+            graph.emit('cache','load',('vload',cache,addr),[(addr,1)],[(cache,8)])
+            position={j:p for p,j in enumerate(order)}
+            for j in range(8):
+                graph.emit(f'anchor{j}','load',('const',lane(anchor,j),14+8*position[j]),[],[(lane(anchor,j),1)])
+            for name,dest,value in (('scale',scale,3),('bias',bias,((1<<32)-28))):
+                src=scalar(name+'_scalar',value)
+                graph.emit(name,'valu',('vbroadcast',dest,src),[(src,1)],[(dest,8)])
+            graph.emit('offsets','valu',('multiply_add',offsets,anchor,scale,bias),
+                       [(anchor,8),(scale,8),(bias,8)],[(offsets,8)])
+            graph.emit('targets','valu',('multiply_add',targets,choices,scale,offsets),
+                       [(choices,8),(scale,8),(offsets,8)],[(targets,8)])
+            first_unit=len(graph.units)
+            start=graph.emit('entry','flow',('jump_indirect',targets),[(targets,8)],[])
+            relative=[(start,0)];parts=[]
+            for p,j in enumerate(order):
+                dst,q=lane(result,j),lane(choices,j)
+                sources=[lane(cache,k) for k in range(8)]
+                op=graph.emit(f'copy{j}','alu',('lookup_copy',dst,q,*sources),
+                              [(q,1),*[(v,1) for v in sources]],[(dst,1)])
+                relative.append((op,1+3*p))
+                slot=('jump_indirect',lane(targets,order[p+1])) if p<7 else ('jump',0)
+                jump=graph.emit(f'jump{p}','flow',slot,[(slot[1],1)] if p<7 else [],[])
+                relative.append((jump,3*(p+1)));parts.append(([(op,0)],jump))
+            graph.units[first_unit:]=[relative]
+            graph.regions=[dict(start=start,parts=parts,n=8,width=1,cases=8,span=3,table=0)]
+            graph.emit('output','store',('vstore',out,result),[(out,1),(result,8)],[])
+            scheduler=Scheduler(graph)
+            _,units,_=scheduler.search(iterations=5,seed=914,noise=.1)
+            times=scheduler.op_times(units);bases,audit=allocate(graph,times)
+            self.assertIsNotNone(bases,audit)
+            program,_,_=lower(graph,times,bases)
+            for shift in (0,1):
+                choice=[(3*j+shift)%8 for j in range(8)]
+                data=[0x12345678+51*j for j in range(8)]
+                memory=choice+data+[0]*8+[0xdeadbeef]
+                machine=frozen.Machine(memory,program,frozen.DebugInfo({}));machine.run()
+                self.assertEqual(machine.mem,choice+data+[data[q] for q in choice]+[0xdeadbeef])
+                self.assertEqual(machine.cycle,int(times.max())+1)
+
+    def test_dense_tables_release_tail_padding_and_scalar_io_spans(self):
+        cfg=json.loads((ROOT/'results/compact_914/config.json').read_text())
+        cfg.update(dense_pc_tables=True,pc_bit_pools=[],constant_expressions=None,
+                   memory_vectors=[],memory_vector_order=[])
+        graph=build(cfg)
+        self.assertEqual(graph.total_table_words,
+                         sum(8*r['cases']*r.get('span',1) for r in graph.regions))
+        self.assertNotEqual(graph.scalar_constants[2318].vid,graph.scalar_constants[2326].vid)
+        verify_semantics(graph,(0,1))
+
     def assert_valid(self, scheduler, times, cycles):
         self.assertTrue(np.all(times[scheduler.dests] >= times[scheduler.sources]+scheduler.lags))
         use = np.zeros((cycles, len(RESOURCE_CAPACITY)), dtype=np.int64)

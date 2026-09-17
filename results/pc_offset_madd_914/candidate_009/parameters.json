@@ -1,0 +1,32 @@
+{
+  "candidate": 9,
+  "all_order": true,
+  "early": [
+    24,
+    28
+  ],
+  "madd": true,
+  "extra": 4,
+  "additions": [
+    "derive.3",
+    "derive.4294967291",
+    "derive.766",
+    "derive.34"
+  ],
+  "resource_bound": 911,
+  "engines": {
+    "valu": 5451,
+    "load": 1770,
+    "alu": 10901,
+    "store": 950,
+    "flow": 866
+  },
+  "weighted_alu_valu": 54509,
+  "bound": 909,
+  "arithmetic_bound": 909,
+  "table_bundles": 10240,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 653,
+  "regions": 45,
+  "values": 8170
+}

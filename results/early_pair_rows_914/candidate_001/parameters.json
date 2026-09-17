@@ -1,0 +1,25 @@
+{
+  "candidate": 1,
+  "source": "results/compact_914",
+  "early": [],
+  "late": [
+    20,
+    24
+  ],
+  "resource_bound": 911,
+  "engines": {
+    "valu": 5452,
+    "load": 1773,
+    "alu": 10906,
+    "store": 918,
+    "flow": 866
+  },
+  "weighted_alu_valu": 54522,
+  "bound": 909,
+  "arithmetic_bound": 909,
+  "table_bundles": 10240,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 653,
+  "regions": 45,
+  "values": 8165
+}

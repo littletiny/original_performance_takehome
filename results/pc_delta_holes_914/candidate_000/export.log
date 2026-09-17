@@ -1,0 +1,1 @@
+{"cycles": 914, "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], "checkpoints_per_seed": 20480, "static_bundles": 10807, "static_slots": 231948, "scratch_words": 1536, "allocation_policy": "lanes-3", "lane_live_peak": 1388, "compressed_payload_bytes": 162972, "source": "results/pc_delta_holes_914/candidate_000", "pause_cycle": 1}

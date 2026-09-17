@@ -1,0 +1,33 @@
+{
+  "candidate": 2,
+  "all_order": false,
+  "early": [],
+  "madd": true,
+  "extra": 8,
+  "additions": [
+    "derive.3",
+    "derive.4294967291",
+    "derive.766",
+    "derive.34",
+    "broadcast.767",
+    "derive.512",
+    "derive.64",
+    "derive.8"
+  ],
+  "resource_bound": 911,
+  "engines": {
+    "valu": 5449,
+    "load": 1770,
+    "alu": 10900,
+    "store": 976,
+    "flow": 862
+  },
+  "weighted_alu_valu": 54492,
+  "bound": 909,
+  "arithmetic_bound": 909,
+  "table_bundles": 10240,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 653,
+  "regions": 45,
+  "values": 8149
+}
