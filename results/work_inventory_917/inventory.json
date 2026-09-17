@@ -1,0 +1,113 @@
+{
+  "source": "results/compact_917",
+  "graph_sha256": "c6a8752fc31ec2d860890a96243a7c955224938df851c0802a8aabf31e77cf84",
+  "production_source_sha256": "8f9919eff4f5a039a1cb6bee7718191111a505a4433ba76759e87875000d196a",
+  "cycles": 917,
+  "static_bundles": 10810,
+  "static_bundle_cap": 12000,
+  "definition": "W = ALU slots + 8 * VALU slots; arithmetic-port work, not FLOPs or static bundles",
+  "arithmetic_capacity_per_cycle": 60,
+  "fixed_graph_lower_bound": 913,
+  "counts_only_minimum_reduction": {
+    "900": 652,
+    "899": 712
+  },
+  "total": {
+    "valu": 5465,
+    "W": 54652,
+    "alu": 10932
+  },
+  "categories": {
+    "setup_restoration": {
+      "valu": 38,
+      "W": 660,
+      "alu": 356,
+      "details_W": {
+        "constant": 116,
+        "broadcast": 136,
+        "tree_bias": 256,
+        "root_broadcasts": 16,
+        "child_differences": 8,
+        "table_broadcasts": 48,
+        "derive": 80
+      }
+    },
+    "tree_node_mix": {
+      "valu": 309,
+      "W": 4096,
+      "alu": 1624,
+      "details_W": {
+        "xor": 4096
+      }
+    },
+    "hash_internal": {
+      "valu": 4327,
+      "W": 41984,
+      "alu": 7368,
+      "details_W": {
+        "h1": 4096,
+        "h2.a": 4096,
+        "h2.b": 4096,
+        "h2": 4096,
+        "h4.a": 4096,
+        "h4.b": 4096,
+        "h4": 4096,
+        "h5": 4096,
+        "h6.b": 4096,
+        "h6": 4096,
+        "h6.a": 1024
+      }
+    },
+    "path_bits": {
+      "valu": 324,
+      "W": 3584,
+      "alu": 992,
+      "details_W": {
+        "mask": 3584
+      }
+    },
+    "path_updates": {
+      "valu": 355,
+      "W": 2840,
+      "details_W": {
+        "path": 1328,
+        "address": 1512
+      }
+    },
+    "dispatch_addressing": {
+      "valu": 96,
+      "W": 768,
+      "details_W": {
+        "pack": 120,
+        "targets": 360,
+        "offsets": 288
+      }
+    },
+    "conditional_node_copies": {
+      "alu": 592,
+      "W": 592,
+      "details_W": {
+        "children": 240,
+        "grandchildren": 352
+      }
+    },
+    "node_selection_madd": {
+      "valu": 16,
+      "W": 128,
+      "details_W": {
+        "select": 128
+      }
+    }
+  },
+  "hash_groups": {
+    "total": 512,
+    "deferred_h6_constant": 384,
+    "explicit_h6_constant_by_round": {
+      "7": 32,
+      "8": 32,
+      "9": 32,
+      "15": 32
+    }
+  },
+  "scope": "Current category costs are not removable-work claims. Overlapping rewrites cannot be added; startup, tails and other ports still matter."
+}

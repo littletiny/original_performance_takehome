@@ -506,3 +506,19 @@ optimality claim is made. See `results/product_fusion_918/README.md`.
   schedule in these experiments.
 - Preserve the verified checkpoint while investigating further candidates;
   neither an unallocated schedule nor an unverified cycle estimate is a result.
+
+## Updated work-reduction inventory at 917
+
+The user's requested enumeration is updated in `results/work_inventory_917/`.
+Rebuilding the production graph gives the same saved digest and a fresh
+resource-window bound of 913. Arithmetic work is 54,652: a strict sub-900
+schedule requires at least 712 fewer weighted arithmetic slots, even before
+startup, tails and other ports. The current source still matches the verified
+917-cycle / 10,810-bundle checkpoint.
+
+The inventory distinguishes actual category costs from speculative savings,
+accounts for the already-used XOR cancellations and PC/root improvements,
+and lists eight rewrite directions. It also records the narrow LOAD/FLOW
+headroom and the latest local late-pair-layout results, which reduce arithmetic
+but do not improve the production cycle count. No new optimization search or
+production change is part of this enumeration.
