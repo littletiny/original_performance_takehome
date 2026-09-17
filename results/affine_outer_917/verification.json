@@ -1,0 +1,59 @@
+{
+  "projections": [
+    {
+      "target": "absorb_h2",
+      "bits": 9,
+      "low_inputs": 512,
+      "high_prefixes": 3
+    },
+    {
+      "target": "absorb_h2",
+      "bits": 12,
+      "low_inputs": 4096,
+      "high_prefixes": 3
+    },
+    {
+      "target": "absorb_h6",
+      "bits": 9,
+      "low_inputs": 512,
+      "high_prefixes": 3
+    },
+    {
+      "target": "absorb_h6",
+      "bits": 12,
+      "low_inputs": 4096,
+      "high_prefixes": 3
+    },
+    {
+      "target": "absorb_both",
+      "bits": 9,
+      "low_inputs": 512,
+      "high_prefixes": 3
+    },
+    {
+      "target": "absorb_both",
+      "bits": 12,
+      "low_inputs": 4096,
+      "high_prefixes": 3
+    }
+  ],
+  "projection_models": [
+    {
+      "target": "absorb_h2",
+      "bits": 9,
+      "inputs": 512
+    },
+    {
+      "target": "absorb_h6",
+      "bits": 9,
+      "inputs": 512
+    }
+  ],
+  "source_sha256": {
+    "synthesize_affine_outer.py": "52413c5708508dfd21da09d10dfae5f6e68c72f58751a585e382ae0a7993aa0e",
+    "synthesize_affine_feedback.py": "7b5efc16ab18bef625576689b9325be073653f2418bee17a2c3bb487a746b32f",
+    "synthesize_xor_pairs.py": "dbdb54a3aca2a3ebadad018ec05036a51dd979b0c08132353014d02cdd44d96d",
+    "tests/frozen_problem.py": "fadb0f0858e2259f5759077a5544b9906dad3ceee80d37b4f0aa77da730c93c9"
+  },
+  "scope": "Checks target projection and low-width models. No 32-bit hash rewrite was found."
+}
