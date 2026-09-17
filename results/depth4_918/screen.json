@@ -1,0 +1,1602 @@
+[
+  {
+    "candidate": 0,
+    "engines": {
+      "valu": 5463,
+      "load": 1761,
+      "alu": 10928,
+      "store": 839,
+      "flow": 873
+    },
+    "weighted_alu_valu": 54632,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 9856,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7873,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 1,
+    "engines": {
+      "valu": 5453,
+      "load": 1761,
+      "alu": 10904,
+      "store": 839,
+      "flow": 885
+    },
+    "weighted_alu_valu": 54528,
+    "bound": 909,
+    "arithmetic_bound": 909,
+    "table_bundles": 9856,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7849,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 2,
+    "engines": {
+      "valu": 5463,
+      "load": 1753,
+      "alu": 10928,
+      "store": 831,
+      "flow": 873
+    },
+    "weighted_alu_valu": 54632,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 9856,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7865,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 3,
+    "engines": {
+      "valu": 5453,
+      "load": 1753,
+      "alu": 10904,
+      "store": 831,
+      "flow": 885
+    },
+    "weighted_alu_valu": 54528,
+    "bound": 909,
+    "arithmetic_bound": 909,
+    "table_bundles": 9856,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7841,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 4,
+    "engines": {
+      "valu": 5463,
+      "load": 1745,
+      "alu": 10928,
+      "store": 823,
+      "flow": 873
+    },
+    "weighted_alu_valu": 54632,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 9856,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7857,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 5,
+    "engines": {
+      "valu": 5453,
+      "load": 1745,
+      "alu": 10904,
+      "store": 823,
+      "flow": 885
+    },
+    "weighted_alu_valu": 54528,
+    "bound": 909,
+    "arithmetic_bound": 909,
+    "table_bundles": 9856,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7833,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 6,
+    "engines": {
+      "valu": 5462,
+      "load": 1737,
+      "alu": 10920,
+      "store": 815,
+      "flow": 873
+    },
+    "weighted_alu_valu": 54616,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 9856,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7847,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 7,
+    "engines": {
+      "valu": 5451,
+      "load": 1737,
+      "alu": 10904,
+      "store": 815,
+      "flow": 885
+    },
+    "weighted_alu_valu": 54512,
+    "bound": 909,
+    "arithmetic_bound": 909,
+    "table_bundles": 9856,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7823,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 8,
+    "engines": {
+      "valu": 5458,
+      "load": 1753,
+      "alu": 10914,
+      "store": 839,
+      "flow": 873
+    },
+    "weighted_alu_valu": 54578,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10752,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 909,
+    "regions": 45,
+    "values": 7811,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 9,
+    "engines": {
+      "valu": 5448,
+      "load": 1753,
+      "alu": 10890,
+      "store": 839,
+      "flow": 885
+    },
+    "weighted_alu_valu": 54474,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10752,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 909,
+    "regions": 45,
+    "values": 7787,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 10,
+    "engines": {
+      "valu": 5458,
+      "load": 1745,
+      "alu": 10914,
+      "store": 831,
+      "flow": 873
+    },
+    "weighted_alu_valu": 54578,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10752,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 909,
+    "regions": 45,
+    "values": 7803,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 11,
+    "engines": {
+      "valu": 5448,
+      "load": 1745,
+      "alu": 10890,
+      "store": 831,
+      "flow": 885
+    },
+    "weighted_alu_valu": 54474,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10752,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 909,
+    "regions": 45,
+    "values": 7779,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 12,
+    "engines": {
+      "valu": 5458,
+      "load": 1737,
+      "alu": 10914,
+      "store": 823,
+      "flow": 873
+    },
+    "weighted_alu_valu": 54578,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10752,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 909,
+    "regions": 45,
+    "values": 7795,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 13,
+    "engines": {
+      "valu": 5448,
+      "load": 1737,
+      "alu": 10890,
+      "store": 823,
+      "flow": 885
+    },
+    "weighted_alu_valu": 54474,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10752,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 909,
+    "regions": 45,
+    "values": 7771,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 14,
+    "engines": {
+      "valu": 5456,
+      "load": 1729,
+      "alu": 10914,
+      "store": 815,
+      "flow": 873
+    },
+    "weighted_alu_valu": 54562,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10752,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 909,
+    "regions": 45,
+    "values": 7785,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 15,
+    "engines": {
+      "valu": 5446,
+      "load": 1729,
+      "alu": 10890,
+      "store": 815,
+      "flow": 885
+    },
+    "weighted_alu_valu": 54458,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10752,
+    "table_case_bundles": 9856,
+    "static_padding_bundles": 909,
+    "regions": 45,
+    "values": 7761,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 16,
+    "engines": {
+      "valu": 5448,
+      "load": 1793,
+      "alu": 10896,
+      "store": 839,
+      "flow": 872
+    },
+    "weighted_alu_valu": 54480,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10112,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7857,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 17,
+    "engines": {
+      "valu": 5440,
+      "load": 1793,
+      "alu": 10880,
+      "store": 839,
+      "flow": 881
+    },
+    "weighted_alu_valu": 54400,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10112,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7833,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 18,
+    "engines": {
+      "valu": 5448,
+      "load": 1785,
+      "alu": 10896,
+      "store": 831,
+      "flow": 872
+    },
+    "weighted_alu_valu": 54480,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10112,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7849,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 19,
+    "engines": {
+      "valu": 5440,
+      "load": 1785,
+      "alu": 10880,
+      "store": 831,
+      "flow": 881
+    },
+    "weighted_alu_valu": 54400,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10112,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7825,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 20,
+    "engines": {
+      "valu": 5448,
+      "load": 1777,
+      "alu": 10896,
+      "store": 823,
+      "flow": 872
+    },
+    "weighted_alu_valu": 54480,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10112,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7841,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 21,
+    "engines": {
+      "valu": 5440,
+      "load": 1777,
+      "alu": 10880,
+      "store": 823,
+      "flow": 881
+    },
+    "weighted_alu_valu": 54400,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10112,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7817,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 22,
+    "engines": {
+      "valu": 5446,
+      "load": 1769,
+      "alu": 10896,
+      "store": 815,
+      "flow": 872
+    },
+    "weighted_alu_valu": 54464,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10112,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7831,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 23,
+    "engines": {
+      "valu": 5438,
+      "load": 1769,
+      "alu": 10880,
+      "store": 815,
+      "flow": 881
+    },
+    "weighted_alu_valu": 54384,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10112,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7807,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 24,
+    "engines": {
+      "valu": 5443,
+      "load": 1785,
+      "alu": 10882,
+      "store": 839,
+      "flow": 872
+    },
+    "weighted_alu_valu": 54426,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 11264,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 1165,
+    "regions": 45,
+    "values": 7795,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 25,
+    "engines": {
+      "valu": 5435,
+      "load": 1785,
+      "alu": 10866,
+      "store": 839,
+      "flow": 881
+    },
+    "weighted_alu_valu": 54346,
+    "bound": 906,
+    "arithmetic_bound": 906,
+    "table_bundles": 11264,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 1165,
+    "regions": 45,
+    "values": 7771,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 26,
+    "engines": {
+      "valu": 5443,
+      "load": 1777,
+      "alu": 10882,
+      "store": 831,
+      "flow": 872
+    },
+    "weighted_alu_valu": 54426,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 11264,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 1165,
+    "regions": 45,
+    "values": 7787,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 27,
+    "engines": {
+      "valu": 5435,
+      "load": 1777,
+      "alu": 10866,
+      "store": 831,
+      "flow": 881
+    },
+    "weighted_alu_valu": 54346,
+    "bound": 906,
+    "arithmetic_bound": 906,
+    "table_bundles": 11264,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 1165,
+    "regions": 45,
+    "values": 7763,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 28,
+    "engines": {
+      "valu": 5443,
+      "load": 1769,
+      "alu": 10882,
+      "store": 823,
+      "flow": 872
+    },
+    "weighted_alu_valu": 54426,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 11264,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 1165,
+    "regions": 45,
+    "values": 7779,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 29,
+    "engines": {
+      "valu": 5435,
+      "load": 1769,
+      "alu": 10866,
+      "store": 823,
+      "flow": 881
+    },
+    "weighted_alu_valu": 54346,
+    "bound": 906,
+    "arithmetic_bound": 906,
+    "table_bundles": 11264,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 1165,
+    "regions": 45,
+    "values": 7755,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 30,
+    "engines": {
+      "valu": 5441,
+      "load": 1761,
+      "alu": 10882,
+      "store": 815,
+      "flow": 872
+    },
+    "weighted_alu_valu": 54410,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 11264,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 1165,
+    "regions": 45,
+    "values": 7769,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 31,
+    "engines": {
+      "valu": 5433,
+      "load": 1761,
+      "alu": 10866,
+      "store": 815,
+      "flow": 881
+    },
+    "weighted_alu_valu": 54330,
+    "bound": 906,
+    "arithmetic_bound": 906,
+    "table_bundles": 11264,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 1165,
+    "regions": 45,
+    "values": 7745,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 32,
+    "engines": {
+      "valu": 5438,
+      "load": 1817,
+      "alu": 10880,
+      "store": 839,
+      "flow": 869
+    },
+    "weighted_alu_valu": 54384,
+    "bound": 909,
+    "arithmetic_bound": 907,
+    "table_bundles": 10304,
+    "table_case_bundles": 10304,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7845,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 33,
+    "engines": {
+      "valu": 5430,
+      "load": 1817,
+      "alu": 10864,
+      "store": 839,
+      "flow": 878
+    },
+    "weighted_alu_valu": 54304,
+    "bound": 909,
+    "arithmetic_bound": 906,
+    "table_bundles": 10304,
+    "table_case_bundles": 10304,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7821,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 34,
+    "engines": {
+      "valu": 5438,
+      "load": 1809,
+      "alu": 10880,
+      "store": 831,
+      "flow": 869
+    },
+    "weighted_alu_valu": 54384,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10304,
+    "table_case_bundles": 10304,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7837,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 35,
+    "engines": {
+      "valu": 5430,
+      "load": 1809,
+      "alu": 10864,
+      "store": 831,
+      "flow": 878
+    },
+    "weighted_alu_valu": 54304,
+    "bound": 906,
+    "arithmetic_bound": 906,
+    "table_bundles": 10304,
+    "table_case_bundles": 10304,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7813,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 36,
+    "engines": {
+      "valu": 5438,
+      "load": 1801,
+      "alu": 10880,
+      "store": 823,
+      "flow": 869
+    },
+    "weighted_alu_valu": 54384,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10304,
+    "table_case_bundles": 10304,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7829,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 37,
+    "engines": {
+      "valu": 5430,
+      "load": 1801,
+      "alu": 10864,
+      "store": 823,
+      "flow": 878
+    },
+    "weighted_alu_valu": 54304,
+    "bound": 906,
+    "arithmetic_bound": 906,
+    "table_bundles": 10304,
+    "table_case_bundles": 10304,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7805,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 38,
+    "engines": {
+      "valu": 5437,
+      "load": 1793,
+      "alu": 10872,
+      "store": 815,
+      "flow": 869
+    },
+    "weighted_alu_valu": 54368,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10304,
+    "table_case_bundles": 10304,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7819,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 39,
+    "engines": {
+      "valu": 5429,
+      "load": 1793,
+      "alu": 10856,
+      "store": 815,
+      "flow": 878
+    },
+    "weighted_alu_valu": 54288,
+    "bound": 905,
+    "arithmetic_bound": 905,
+    "table_bundles": 10304,
+    "table_case_bundles": 10304,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7795,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 40,
+    "engines": {
+      "valu": 5438,
+      "load": 1817,
+      "alu": 10872,
+      "store": 839,
+      "flow": 880
+    },
+    "weighted_alu_valu": 54376,
+    "bound": 909,
+    "arithmetic_bound": 907,
+    "table_bundles": 10624,
+    "table_case_bundles": 10624,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7855,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 41,
+    "engines": {
+      "valu": 5430,
+      "load": 1817,
+      "alu": 10864,
+      "store": 839,
+      "flow": 888
+    },
+    "weighted_alu_valu": 54304,
+    "bound": 909,
+    "arithmetic_bound": 906,
+    "table_bundles": 10624,
+    "table_case_bundles": 10624,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7831,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 42,
+    "engines": {
+      "valu": 5438,
+      "load": 1809,
+      "alu": 10872,
+      "store": 831,
+      "flow": 880
+    },
+    "weighted_alu_valu": 54376,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10624,
+    "table_case_bundles": 10624,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7847,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 43,
+    "engines": {
+      "valu": 5430,
+      "load": 1809,
+      "alu": 10864,
+      "store": 831,
+      "flow": 888
+    },
+    "weighted_alu_valu": 54304,
+    "bound": 906,
+    "arithmetic_bound": 906,
+    "table_bundles": 10624,
+    "table_case_bundles": 10624,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7823,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 44,
+    "engines": {
+      "valu": 5438,
+      "load": 1801,
+      "alu": 10872,
+      "store": 823,
+      "flow": 880
+    },
+    "weighted_alu_valu": 54376,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10624,
+    "table_case_bundles": 10624,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7839,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 45,
+    "engines": {
+      "valu": 5430,
+      "load": 1801,
+      "alu": 10864,
+      "store": 823,
+      "flow": 888
+    },
+    "weighted_alu_valu": 54304,
+    "bound": 906,
+    "arithmetic_bound": 906,
+    "table_bundles": 10624,
+    "table_case_bundles": 10624,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7815,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 46,
+    "engines": {
+      "valu": 5436,
+      "load": 1793,
+      "alu": 10872,
+      "store": 815,
+      "flow": 880
+    },
+    "weighted_alu_valu": 54360,
+    "bound": 906,
+    "arithmetic_bound": 906,
+    "table_bundles": 10624,
+    "table_case_bundles": 10624,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7829,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 47,
+    "engines": {
+      "valu": 5429,
+      "load": 1793,
+      "alu": 10856,
+      "store": 815,
+      "flow": 888
+    },
+    "weighted_alu_valu": 54288,
+    "bound": 905,
+    "arithmetic_bound": 905,
+    "table_bundles": 10624,
+    "table_case_bundles": 10624,
+    "static_padding_bundles": 0,
+    "regions": 45,
+    "values": 7805,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 48,
+    "engines": {
+      "valu": 5440,
+      "load": 1793,
+      "alu": 10879,
+      "store": 903,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54399,
+    "bound": 937,
+    "arithmetic_bound": 907,
+    "table_bundles": 9088,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 0,
+    "regions": 49,
+    "values": 7882,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 49,
+    "engines": {
+      "valu": 5440,
+      "load": 1793,
+      "alu": 10879,
+      "store": 903,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54399,
+    "bound": 937,
+    "arithmetic_bound": 907,
+    "table_bundles": 9088,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 0,
+    "regions": 49,
+    "values": 7858,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 50,
+    "engines": {
+      "valu": 5440,
+      "load": 1785,
+      "alu": 10879,
+      "store": 895,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54399,
+    "bound": 937,
+    "arithmetic_bound": 907,
+    "table_bundles": 9088,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 0,
+    "regions": 49,
+    "values": 7874,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 51,
+    "engines": {
+      "valu": 5440,
+      "load": 1785,
+      "alu": 10879,
+      "store": 895,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54399,
+    "bound": 937,
+    "arithmetic_bound": 907,
+    "table_bundles": 9088,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 0,
+    "regions": 49,
+    "values": 7850,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 52,
+    "engines": {
+      "valu": 5440,
+      "load": 1777,
+      "alu": 10879,
+      "store": 887,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54399,
+    "bound": 937,
+    "arithmetic_bound": 907,
+    "table_bundles": 9088,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 0,
+    "regions": 49,
+    "values": 7866,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 53,
+    "engines": {
+      "valu": 5440,
+      "load": 1777,
+      "alu": 10879,
+      "store": 887,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54399,
+    "bound": 937,
+    "arithmetic_bound": 907,
+    "table_bundles": 9088,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 0,
+    "regions": 49,
+    "values": 7842,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 54,
+    "engines": {
+      "valu": 5438,
+      "load": 1769,
+      "alu": 10879,
+      "store": 879,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54383,
+    "bound": 937,
+    "arithmetic_bound": 907,
+    "table_bundles": 9088,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 0,
+    "regions": 49,
+    "values": 7856,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 55,
+    "engines": {
+      "valu": 5438,
+      "load": 1769,
+      "alu": 10879,
+      "store": 879,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54383,
+    "bound": 937,
+    "arithmetic_bound": 907,
+    "table_bundles": 9088,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 0,
+    "regions": 49,
+    "values": 7832,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 56,
+    "engines": {
+      "valu": 5435,
+      "load": 1785,
+      "alu": 10866,
+      "store": 903,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54346,
+    "bound": 937,
+    "arithmetic_bound": 906,
+    "table_bundles": 10240,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 1165,
+    "regions": 49,
+    "values": 7821,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 57,
+    "engines": {
+      "valu": 5435,
+      "load": 1785,
+      "alu": 10866,
+      "store": 903,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54346,
+    "bound": 937,
+    "arithmetic_bound": 906,
+    "table_bundles": 10240,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 1165,
+    "regions": 49,
+    "values": 7797,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 58,
+    "engines": {
+      "valu": 5435,
+      "load": 1777,
+      "alu": 10866,
+      "store": 895,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54346,
+    "bound": 937,
+    "arithmetic_bound": 906,
+    "table_bundles": 10240,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 1165,
+    "regions": 49,
+    "values": 7813,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 59,
+    "engines": {
+      "valu": 5435,
+      "load": 1777,
+      "alu": 10866,
+      "store": 895,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54346,
+    "bound": 937,
+    "arithmetic_bound": 906,
+    "table_bundles": 10240,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 1165,
+    "regions": 49,
+    "values": 7789,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 60,
+    "engines": {
+      "valu": 5435,
+      "load": 1769,
+      "alu": 10866,
+      "store": 887,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54346,
+    "bound": 937,
+    "arithmetic_bound": 906,
+    "table_bundles": 10240,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 1165,
+    "regions": 49,
+    "values": 7805,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 61,
+    "engines": {
+      "valu": 5435,
+      "load": 1769,
+      "alu": 10866,
+      "store": 887,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54346,
+    "bound": 937,
+    "arithmetic_bound": 906,
+    "table_bundles": 10240,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 1165,
+    "regions": 49,
+    "values": 7781,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 62,
+    "engines": {
+      "valu": 5433,
+      "load": 1761,
+      "alu": 10866,
+      "store": 879,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54330,
+    "bound": 937,
+    "arithmetic_bound": 906,
+    "table_bundles": 10240,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 1165,
+    "regions": 49,
+    "values": 7795,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "candidate": 63,
+    "engines": {
+      "valu": 5433,
+      "load": 1761,
+      "alu": 10866,
+      "store": 879,
+      "flow": 937
+    },
+    "weighted_alu_valu": 54330,
+    "bound": 937,
+    "arithmetic_bound": 906,
+    "table_bundles": 10240,
+    "table_case_bundles": 9088,
+    "static_padding_bundles": 1165,
+    "regions": 49,
+    "values": 7771,
+    "semantic": {
+      "seeds": [
+        0
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  }
+]

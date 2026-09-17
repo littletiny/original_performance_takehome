@@ -8,7 +8,7 @@ import re
 
 import numpy as np
 
-from optimize import build, counts, Scheduler, allocate, CAPACITY, ENGINES
+from optimize import build, counts, Scheduler, allocate, CAPACITY, ENGINES, scalar_root_group
 from search_compact import static_size
 
 
@@ -33,6 +33,9 @@ def prepare(source, contractions, expansions):
     for i, name in enumerate(graph.names):
         stem = name.rsplit('.lane',1)[0]
         if pattern.fullmatch(stem) and graph.ops[i][0] in ('alu','valu'):
+            parts=stem.split('.')
+            if parts[-1]=='mix' and scalar_root_group(cfg,int(parts[0][1:]),int(parts[1][1:])):
+                continue
             packs[stem].append(i)
 
     def bounds(op_id, lane=None):

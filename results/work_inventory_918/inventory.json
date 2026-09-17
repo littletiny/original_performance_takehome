@@ -1,0 +1,103 @@
+{
+  "source": "results/compact_918",
+  "graph_sha256": "19b0435c83493891745123f4b6590c1512f1bd80566eac1479e3707615b2b7ff",
+  "cycles": 918,
+  "static_bundles": 10811,
+  "static_bundle_cap": 12000,
+  "definition": "W = ALU slots + 8 * VALU slots; throughput weight, not a FLOP count",
+  "arithmetic_capacity_per_cycle": 60,
+  "fixed_graph_lower_bound": 915,
+  "counts_only_minimum_reduction": {
+    "900": 723,
+    "899": 783
+  },
+  "scope": "Category sizes are current costs, not proven removable work. Savings from overlapping rewrites cannot be added.",
+  "total": {
+    "valu": 5472,
+    "W": 54723,
+    "alu": 10947
+  },
+  "categories": {
+    "setup_restoration": {
+      "valu": 38,
+      "W": 723,
+      "alu": 419,
+      "details_W": {
+        "constant": 163,
+        "broadcast": 136,
+        "tree_bias": 256,
+        "root_broadcasts": 16,
+        "child_differences": 8,
+        "table_broadcasts": 48,
+        "derive": 80,
+        "restore_unbias": 16
+      }
+    },
+    "tree_node_mix": {
+      "valu": 309,
+      "W": 4096,
+      "alu": 1624,
+      "details_W": {
+        "xor": 4096
+      }
+    },
+    "hash_internal": {
+      "valu": 4333,
+      "W": 41984,
+      "alu": 7320,
+      "details_W": {
+        "h1": 4096,
+        "h2.a": 4096,
+        "h2.b": 4096,
+        "h2": 4096,
+        "h4.a": 4096,
+        "h4.b": 4096,
+        "h4": 4096,
+        "h5": 4096,
+        "h6.b": 4096,
+        "h6": 4096,
+        "h6.a": 1024
+      }
+    },
+    "path_bits": {
+      "valu": 324,
+      "W": 3584,
+      "alu": 992,
+      "details_W": {
+        "mask": 3584
+      }
+    },
+    "path_updates": {
+      "valu": 356,
+      "W": 2848,
+      "details_W": {
+        "path": 1336,
+        "address": 1512
+      }
+    },
+    "dispatch_addressing": {
+      "valu": 96,
+      "W": 768,
+      "details_W": {
+        "pack": 120,
+        "targets": 360,
+        "offsets": 288
+      }
+    },
+    "conditional_node_copies": {
+      "alu": 592,
+      "W": 592,
+      "details_W": {
+        "children": 240,
+        "grandchildren": 352
+      }
+    },
+    "node_selection_madd": {
+      "valu": 16,
+      "W": 128,
+      "details_W": {
+        "select": 128
+      }
+    }
+  }
+}

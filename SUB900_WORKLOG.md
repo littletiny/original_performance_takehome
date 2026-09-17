@@ -58,11 +58,14 @@ Validation completed:
 - Five machine-level allocator tests in `test_lane_allocate.py` pass, covering
   progressive in-place vector updates, later reads, simultaneous writes,
   initial-zero reuse, and rejection of same-cycle RAW dependencies.
-- Five scheduler regression tests in `test_schedule.py` pass. They cover
+- Six scheduler regression tests in `test_schedule.py` pass. They cover
   preserving a feasible warm schedule with negative inter-unit lags and
   rejecting infeasible hints as incumbents, exclusive dispatch execution
   through otherwise free FLOW slots, real no-ops for empty scheduled cycles,
-  and fixed-address tables with a bootstrap jump and relocated handler returns.
+  fixed-address tables with a bootstrap jump and relocated handler returns,
+  and aligned vector-store lookups that preserve neighboring rows.
+- The memory-order regression in `test_memory_order.py` passes, including a
+  negative test that removes a required dependency during partial buffer reuse.
 - Seeds 0–9 each pass 20,480 retained hash-stage checkpoints and final output
   comparisons in `tests/frozen_problem.py`.
 - The verifier checks every executed PC against its logical cycle, and checks
@@ -382,6 +385,44 @@ stage checks per seed and unchanged non-output memory, passed for:
 
 The existing 918-cycle expanded program remains identical after these tool
 changes. The unchanged allocator/scheduler regression suite still passes.
+
+
+## Cache layouts, restore dependencies, and broader fusion templates
+
+The follow-up in `results/cache_followup_918/README.md` records wide stores of
+four-node rows, later depth-4 lookups, exact restore ranges, header-root reuse,
+and scalar root mixes. The submitted program remains 918 cycles / 10,811
+bundles and is identical after rebuilding the default graph. None of the new
+screens improved the score.
+
+Wide stores reduce scalar copying but require later node loads. The complete
+48-configuration row screen reached 930 cycles; the 64-configuration depth-4
+screen reached 948. Six selected probes, including a paired wide-store case,
+passed full ten-seed frozen execution and standalone expansion checks. The
+new partial-field dependency regression detects an actual hash mismatch when
+a pending old field is overwritten too soon.
+
+`resource_bounds.py` strengthens the current fixed-graph lower bound to 915
+cycles by combining resource capacity with earliest releases and required
+tails. Its report in `results/resource_windows_918/bounds.json` explains why
+lower arithmetic counts alone were insufficient in the row-cache probes.
+This bound does not constrain rewritten graphs or alternative algorithms.
+
+`synthesize_xor_pairs.py` extends the XOR audit to two arbitrary affine terms
+and to two MADDs separated by XOR. Necessary nine-bit/twelve-bit systems rule
+out the named constant-absorption and H3/H4/H5 fusion templates. Nine-bit models
+of the latter fail the next projection; no complete 32-bit rewrite is claimed.
+See `results/xor_pair_synthesis/README.md` for the exact families and proofs.
+
+## Work-reduction inventory
+
+`results/work_inventory_918/` records the requested enumeration before further
+optimization. A per-operation accounting gives 54,723 weighted ALU/VALU slots;
+strictly fewer than 900 cycles requires removing at least 783 of those slots
+even before startup and tail constraints. The inventory separates existing
+component costs from potential savings and covers hash fusion, deferred XOR
+bias, path/PC fusion, conditional copies, port transfers, setup/restoration,
+and joint dispatch changes. The submitted kernel remains unchanged.
 
 ## Remaining work
 

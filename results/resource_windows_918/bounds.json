@@ -1,0 +1,282 @@
+[
+  {
+    "source": "results/compact_918",
+    "counts": {
+      "engines": {
+        "valu": 5472,
+        "load": 1712,
+        "alu": 10947,
+        "store": 839,
+        "flow": 873
+      },
+      "weighted_alu_valu": 54723,
+      "bound": 913,
+      "arithmetic_bound": 913,
+      "table_bundles": 10240,
+      "table_case_bundles": 9600,
+      "static_padding_bundles": 653,
+      "regions": 45,
+      "values": 7824
+    },
+    "bound": 915,
+    "critical_path_bound": 248,
+    "resource_windows": {
+      "alu": {
+        "bound": 915,
+        "release": 1,
+        "tail": 1,
+        "work": 10947,
+        "capacity": 12
+      },
+      "valu": {
+        "bound": 914,
+        "release": 1,
+        "tail": 1,
+        "work": 5471,
+        "capacity": 6
+      },
+      "load": {
+        "bound": 873,
+        "release": 69,
+        "tail": 67,
+        "work": 1474,
+        "capacity": 2
+      },
+      "store": {
+        "bound": 430,
+        "release": 38,
+        "tail": 0,
+        "work": 784,
+        "capacity": 2
+      },
+      "flow": {
+        "bound": 896,
+        "release": 13,
+        "tail": 10,
+        "work": 873,
+        "capacity": 1
+      },
+      "arithmetic": {
+        "bound": 914,
+        "release": 0,
+        "tail": 1,
+        "work": 54723,
+        "capacity": 60
+      }
+    },
+    "formula": "C >= release + tail + ceil(work / capacity)",
+    "scope": "Fixed SSA graph and compound units; scratch ignored. Bootstrap and pause are not included. Not a global task lower bound.",
+    "saved_schedule_cycles": 918,
+    "graph_sha256": "19b0435c83493891745123f4b6590c1512f1bd80566eac1479e3707615b2b7ff"
+  },
+  {
+    "source": "results/grand_rows_918/candidate_025",
+    "counts": {
+      "engines": {
+        "valu": 5476,
+        "load": 1732,
+        "alu": 10949,
+        "store": 858,
+        "flow": 873
+      },
+      "weighted_alu_valu": 54757,
+      "bound": 913,
+      "arithmetic_bound": 913,
+      "table_bundles": 10240,
+      "table_case_bundles": 9600,
+      "static_padding_bundles": 653,
+      "regions": 45,
+      "values": 7821
+    },
+    "bound": 915,
+    "critical_path_bound": 248,
+    "resource_windows": {
+      "alu": {
+        "bound": 915,
+        "release": 1,
+        "tail": 1,
+        "work": 10949,
+        "capacity": 12
+      },
+      "valu": {
+        "bound": 915,
+        "release": 1,
+        "tail": 1,
+        "work": 5475,
+        "capacity": 6
+      },
+      "load": {
+        "bound": 887,
+        "release": 67,
+        "tail": 67,
+        "work": 1505,
+        "capacity": 2
+      },
+      "store": {
+        "bound": 444,
+        "release": 38,
+        "tail": 0,
+        "work": 811,
+        "capacity": 2
+      },
+      "flow": {
+        "bound": 896,
+        "release": 13,
+        "tail": 10,
+        "work": 873,
+        "capacity": 1
+      },
+      "arithmetic": {
+        "bound": 915,
+        "release": 1,
+        "tail": 1,
+        "work": 54749,
+        "capacity": 60
+      }
+    },
+    "formula": "C >= release + tail + ceil(work / capacity)",
+    "scope": "Fixed SSA graph and compound units; scratch ignored. Bootstrap and pause are not included. Not a global task lower bound.",
+    "saved_schedule_cycles": 930,
+    "graph_sha256": "adbafff5531dc1ec492a2128926bc85e6560475264d2a729bc5395bcee063b00"
+  },
+  {
+    "source": "results/grand_rows_918/candidate_032",
+    "counts": {
+      "engines": {
+        "valu": 5459,
+        "load": 1789,
+        "alu": 10917,
+        "store": 866,
+        "flow": 873
+      },
+      "weighted_alu_valu": 54589,
+      "bound": 910,
+      "arithmetic_bound": 910,
+      "table_bundles": 10240,
+      "table_case_bundles": 9600,
+      "static_padding_bundles": 653,
+      "regions": 45,
+      "values": 7808
+    },
+    "bound": 914,
+    "critical_path_bound": 294,
+    "resource_windows": {
+      "alu": {
+        "bound": 912,
+        "release": 1,
+        "tail": 1,
+        "work": 10917,
+        "capacity": 12
+      },
+      "valu": {
+        "bound": 912,
+        "release": 1,
+        "tail": 1,
+        "work": 5458,
+        "capacity": 6
+      },
+      "load": {
+        "bound": 914,
+        "release": 67,
+        "tail": 67,
+        "work": 1560,
+        "capacity": 2
+      },
+      "store": {
+        "bound": 444,
+        "release": 38,
+        "tail": 0,
+        "work": 811,
+        "capacity": 2
+      },
+      "flow": {
+        "bound": 896,
+        "release": 13,
+        "tail": 10,
+        "work": 873,
+        "capacity": 1
+      },
+      "arithmetic": {
+        "bound": 912,
+        "release": 1,
+        "tail": 1,
+        "work": 54581,
+        "capacity": 60
+      }
+    },
+    "formula": "C >= release + tail + ceil(work / capacity)",
+    "scope": "Fixed SSA graph and compound units; scratch ignored. Bootstrap and pause are not included. Not a global task lower bound.",
+    "saved_schedule_cycles": 957,
+    "graph_sha256": "d544ea9e962538d687e8c80e3d43c4610ba8afd18ec16a2e0e3080cc60e6fbf7"
+  },
+  {
+    "source": "results/depth4_918/candidate_027",
+    "counts": {
+      "engines": {
+        "valu": 5435,
+        "load": 1777,
+        "alu": 10866,
+        "store": 831,
+        "flow": 881
+      },
+      "weighted_alu_valu": 54346,
+      "bound": 906,
+      "arithmetic_bound": 906,
+      "table_bundles": 11264,
+      "table_case_bundles": 10112,
+      "static_padding_bundles": 1165,
+      "regions": 45,
+      "values": 7763
+    },
+    "bound": 908,
+    "critical_path_bound": 347,
+    "resource_windows": {
+      "alu": {
+        "bound": 908,
+        "release": 1,
+        "tail": 1,
+        "work": 10866,
+        "capacity": 12
+      },
+      "valu": {
+        "bound": 908,
+        "release": 1,
+        "tail": 1,
+        "work": 5434,
+        "capacity": 6
+      },
+      "load": {
+        "bound": 896,
+        "release": 0,
+        "tail": 67,
+        "work": 1657,
+        "capacity": 2
+      },
+      "store": {
+        "bound": 431,
+        "release": 39,
+        "tail": 0,
+        "work": 784,
+        "capacity": 2
+      },
+      "flow": {
+        "bound": 904,
+        "release": 13,
+        "tail": 10,
+        "work": 881,
+        "capacity": 1
+      },
+      "arithmetic": {
+        "bound": 908,
+        "release": 1,
+        "tail": 1,
+        "work": 54338,
+        "capacity": 60
+      }
+    },
+    "formula": "C >= release + tail + ceil(work / capacity)",
+    "scope": "Fixed SSA graph and compound units; scratch ignored. Bootstrap and pause are not included. Not a global task lower bound.",
+    "saved_schedule_cycles": 948,
+    "graph_sha256": "eee6b97cb69856342c43f9f44513e2cc4dec41ff7a39aa71f13295f9195b4b9c"
+  }
+]

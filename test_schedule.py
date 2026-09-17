@@ -133,6 +133,54 @@ class ScheduleTests(unittest.TestCase):
             self.assertEqual(len(program),36)
             self.assertEqual(int(origins[0]),0)
 
+    def test_vector_store_lookup_aligns_both_halves_without_corrupting_rows(self):
+        graph=Graph()
+        graph.config=dict(lane_allocation=True,compact_main=True,pc_address_pools=True)
+        graph.total_table_words=64
+        zero,targets,choices,positive,negative=[graph.new() for _ in range(5)]
+        sources=[graph.new() for _ in range(4)]
+        graph.initial_zero.append(zero)
+        times=[]
+        def constant(name,dest,value,pc=False):
+            op=graph.emit(name,'load',('const',dest,value),[],[(dest,1)])
+            if pc: graph.pc_constants.append(op)
+            times.append((len(times))//2)
+        for block,source in enumerate(sources):
+            for j in range(8):
+                constant(f'data{block}.{j}',lane(source,j),100+8*block+j)
+        for j in range(8):
+            constant(f'choice{j}',lane(choices,j),j)
+            constant(f'pc{j}',lane(targets,j),8*j+j,pc=True)
+            constant(f'positive{j}',lane(positive,j),68+8*j)
+            constant(f'negative{j}',lane(negative,j),64+8*j)
+        start=graph.emit('entry','flow',('jump_indirect',targets),[(targets,8)],[])
+        times.append(32)
+        parts=[]
+        cache=[sources[q//2] for q in range(8)]
+        for j in range(8):
+            op=graph.emit(f'row{j}','store',
+                          ('lookup_vstore',lane(choices,j),lane(positive,j),lane(negative,j),*cache),
+                          [(lane(choices,j),1),(lane(positive,j),1),(lane(negative,j),1),
+                           *[(v,8) for v in sources]],[])
+            times.append(33+j)
+            slot=('jump_indirect',lane(targets,j+1)) if j<7 else ('jump',0)
+            jump=graph.emit(f'next{j}','flow',slot,[(slot[1],1)] if j<7 else [],[])
+            times.append(33+j)
+            parts.append(([(op,0)],jump))
+        graph.regions=[dict(start=start,parts=parts,n=8,width=1,cases=8,span=1,table=0)]
+        result=graph.new(1)
+        graph.emit('finish','alu',('|',result,zero,zero),[(zero,1)],[(result,1)])
+        times.append(41)
+        bases,audit=allocate(graph,np.asarray(times,dtype=np.int64))
+        self.assertIsNotNone(bases,audit)
+        program,_,_=lower(graph,times,bases)
+        machine=frozen.Machine([0]*136,program,frozen.DebugInfo({}))
+        machine.run()
+        self.assertEqual(machine.cycle,42)
+        self.assertEqual(machine.mem[:64],[0]*64)
+        for j in range(8):
+            self.assertEqual(machine.mem[68+8*j:72+8*j],list(range(100+4*j,104+4*j)))
+
 
 if __name__ == '__main__':
     unittest.main()

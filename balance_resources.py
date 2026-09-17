@@ -8,7 +8,7 @@ import re
 
 import numpy as np
 
-from optimize import build,counts
+from optimize import build,counts,scalar_root_group
 
 
 @lru_cache(maxsize=4)
@@ -47,6 +47,9 @@ def balance(config,source,policy=0):
     rng=random.Random(404+policy)
     candidates=[]
     for name,ids in packs.items():
+        parts=name.split('.')
+        if parts[-1]=='mix' and scalar_root_group(config,int(parts[0][1:]),int(parts[1][1:])):
+            continue
         engine=graph.ops[ids[0]][0]
         if scalar and engine!='valu' or not scalar and engine!='alu': continue
         assert len(ids)==(1 if scalar else 8)

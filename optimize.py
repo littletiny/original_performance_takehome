@@ -61,6 +61,11 @@ def lane(v, j):
     return pt.V(v.vid, v.off + j)
 
 
+def scalar_root_group(config,r,k):
+    groups=config.get('scalar_root_groups',())
+    return r in (0,11) and (groups=='all' or (r,k) in groups or [r,k] in groups)
+
+
 def build(config=None):
     cfg = dict(jump3=0, jump4=32, jump15=32, jump5=0,
                gather3=0, gather14=0, blend4=0, blend15=0,
@@ -87,7 +92,9 @@ def build(config=None):
                scalar_overrides=None, dispatch_spans=(), load_temp_addresses=False,
                header_constants=False, initial_zero_vector=False, heap_io_backup=False,
                early_gather_groups=(), temp_region_order=(), pc_address_pools=False,
-               dispatch5_groups=())
+               dispatch5_groups=(), grand_row_groups=(), grand_row_buffers=3,
+               dispatch4_groups=(), gather_dispatch4=False, precise_restore=False,
+               header_root=False, scalar_root_groups=())
     cfg.update(config or {})
     g = Graph()
     sc, vc = {}, {}
@@ -100,9 +107,28 @@ def build(config=None):
             value = g.new()
             address_vectors[base] = value
             address_lanes.update((base+8*j, lane(value,j)) for j in range(8))
+    row_groups=set(cfg["grand_row_groups"])
+    row_pointers={}
+    if row_groups:
+        assert cfg["compact_heap"] and cfg["store_children"] and cfg["prefetch3"]
+        assert cfg["heap_io_backup"], "Row buffers share the otherwise unused index area"
+        assert row_groups <= set(cfg["prefetch5_groups"])
+        assert 1 <= cfg["grand_row_buffers"] <= 3
+        for buffer in range(cfg["grand_row_buffers"]):
+            pointers=[]
+            for shift in (0,-4):
+                base=2062+72*buffer+shift
+                value=g.new()
+                pointers.append(value)
+                for j in range(8):
+                    address=base+8*j
+                    assert address not in address_lanes
+                    address_lanes[address]=lane(value,j)
+            row_pointers[buffer]=pointers
     scalar_tick = 0
     leaf_tick = 0
     constant_zero = None
+    header_root = None
     ahead_bits = set(tuple(x) for x in cfg["ahead_bits"])
     prefetch_madd_groups = set(tuple(x) for x in cfg["prefetch_madd_groups"])
     if cfg["compact_heap"]:
@@ -253,6 +279,7 @@ def build(config=None):
             vc[0] = sc[0] = zero
         if cfg["header_constants"]:
             header = vload(zero,"header.constants")
+            header_root = lane(header,7)
             for j,value in enumerate((16,2047,256,10,7,2054,2310)):
                 sc[value] = lane(header,j)
 
@@ -274,6 +301,14 @@ def build(config=None):
         assert 0 <= k < 32 and k not in cfg["prefetch5_groups"]
         modes[3][k] = modes[4][k] = "gather"
     for r in (3, 4, 14):
+        if r==3 and cfg['gather_dispatch4']:
+            for k in cfg['dispatch4_groups']:
+                assert 0 <= k < 32 and k not in cfg['prefetch5_groups']
+                modes[3][k]='gather'
+        if r==4:
+            for k in cfg['dispatch4_groups']:
+                assert 0 <= k < 32 and k not in cfg['prefetch5_groups']
+                modes[4][k]='jump'
         if cfg[f"prefetch{r % 11}"]:
             for k in range(32):
                 if modes[r][k] == "jump":
@@ -315,10 +350,15 @@ def build(config=None):
     field_plans = {}
     for (r,k), width in dispatch_groups.items():
         fields = []
-        if cfg["store_children"] and r in (3,14) and cfg["prefetch3"]:
-            fields = [("child",s,c) for s in range(width) for c in range(2)]
+        if cfg["store_children"] and r in (3,4,14) and cfg[f"prefetch{r%11}"]:
+            fields = [("child",s,c) for s in range(width)
+                      if modes[r+1][k+s]=='prefetch' for c in range(2)]
             fields += [("grand",s,c) for s in range(width) if r==3 and k+s in cfg["prefetch5_groups"] for c in range(4)]
             fields = fields[:2*spans.get((r,k),1)]
+            rows=sum(r==3 and k+s in row_groups for s in range(width))
+            if rows:
+                assert spans.get((r,k),1)==1 and rows <= cfg["grand_row_buffers"]
+                fields=fields[:2-rows]
         field_plans[r,k] = fields
     regular_buffers = cfg["temp_buffers"] or 2
     extended_words = 8*max([0,*[len(fields) for key,fields in field_plans.items() if spans.get(key,1)>1]])
@@ -342,7 +382,8 @@ def build(config=None):
     # Prepare runtime tree tables once. Tree/index contents are restored;
     # overwritten input words receive their final output values.
     c = [stage[1] for stage in frozen.HASH_STAGES]
-    cache_gather3 = bool(cfg["tail_gathers"] or cfg["early_gather_groups"])
+    cache_gather3 = bool(cfg["tail_gathers"] or cfg["early_gather_groups"] or
+                         cfg['gather_dispatch4'] and cfg['dispatch4_groups'])
     bases = {d: 7 + (1 << d) - 1 for d in range(11)}
     if cfg["prexor"]:
         bases.update({d: 2054 + (1 << d) - 16 for d in range(4, 8)})
@@ -427,7 +468,9 @@ def build(config=None):
             address = bases[d]+((1 << d)-8-off if 4 <= d <= 7 else off)
             g.control.extend((before, store, 1) for before, source in tree_loads if source < address+8 and address < source+8)
             syncs.setdefault(d, []).append(store)
-    root0 = bcast(raw_nodes[0][0], "root.raw")
+    if cfg['header_root']:
+        assert header_root is not None
+    root0 = bcast(header_root if cfg['header_root'] else raw_nodes[0][0], "root.raw")
     root1 = bcast(adjusted_nodes[0][0], "root.bias")
     child_diffs = {}
     if cfg["prefetch_madd"] or prefetch_madd_groups:
@@ -492,6 +535,8 @@ def build(config=None):
 
     prefetched = {}
     grandchildren = {}
+    row_columns = {}
+    row_records = {}
     previous_temp_loads = {}
     temp_reads = []
     temp_output_reads = {}
@@ -557,10 +602,12 @@ def build(config=None):
             targets = (binary("+", packed, offsets, prefix + "targets", False) if span==1 else
                        madd(packed,vector(span),offsets,prefix+"targets"))
         mixed = [g.new() for _ in range(width)]
-        fetch = d in (3, 4) and cfg[f"prefetch{d}"]
+        fetch_streams=tuple(s for s in range(width) if d in (3,4) and cfg[f"prefetch{d}"]
+                            and modes[r+1][group+s]=='prefetch')
+        fetch = bool(fetch_streams)
         if fetch:
             children = list(reversed(adjusted_nodes[d+1]))
-            store_children = cfg["store_children"] and r in (3, 14)
+            store_children = cfg["store_children"] and r in (3, 4, 14)
             if store_children:
                 ordinal=temp_rank[r,group] if temp_rank is not None else len(g.regions)
                 buffer = ordinal % cfg["temp_buffers"] if cfg["temp_buffers"] else int(r == 14)
@@ -576,14 +623,28 @@ def build(config=None):
                 if not cfg["compact_heap"]:
                     indices = reversed(indices)
                 memory_children = [scalar(bases[d+1]+j) for j in indices]
-            for stream in range(width):
+            for stream in fetch_streams:
                 prefetched[r+1, group+stream] = [g.new(), g.new()]
         grand_streams = [s for s in range(width) if r == 3 and group+s in cfg["prefetch5_groups"]]
         if grand_streams:
             assert width <= 2
             grand_nodes = list(reversed(adjusted_nodes[5]))
             for stream in grand_streams:
-                grandchildren[group+stream] = [g.new() for _ in range(4)]
+                which=group+stream
+                if which in row_groups:
+                    row_buffer=len(row_records)%cfg["grand_row_buffers"]
+                    positive,negative=row_pointers[row_buffer]
+                    if row_buffer not in row_columns:
+                        for j in range(8):
+                            assert scalar(2062+72*row_buffer+8*j)==lane(positive,j)
+                            assert scalar(2058+72*row_buffer+8*j)==lane(negative,j)
+                        row_columns[row_buffer]=[positive]+[
+                            binary("+",positive,vector(c),f"grand_row.buffer{row_buffer}.column{c}",False)
+                            for c in range(1,4)]
+                    grandchildren[which]=row_columns[row_buffer]
+                    row_records[which]=dict(buffer=row_buffer,stores=[],loads=[])
+                else:
+                    grandchildren[which] = [g.new() for _ in range(4)]
         start_unit = len(g.units)
         start = g.emit(prefix + "jump0", "flow", ("jump_indirect", targets),
                        [(targets, 8), *[(values[group+s], 8) for s in range(width)], *[(x, 1) for x in adjusted_nodes[d]],
@@ -613,7 +674,7 @@ def build(config=None):
                     g.ops[op][2].append((g.lookup_bits[op], 1))
                 xors.append((op, stream))
                 relative_times[op] = 1+j*span
-                if fetch:
+                if stream in fetch_streams:
                     for child in range(2):
                         cache = children[child::2] if child == 0 or not prefetch_madd(r+1, group+stream) else child_diffs[d+1]
                         dst = lane(prefetched[r+1, group+stream][child], j)
@@ -646,6 +707,22 @@ def build(config=None):
                         xors.append((op, stream))
                         relative_times[op] = 1+j*span+(field_index[field]//2 if store_child else 0)
                 if stream in grand_streams:
+                    if group+stream in row_groups:
+                        record=row_records[group+stream]
+                        positive,negative=row_pointers[record['buffer']]
+                        # Both four-node halves share one contiguous eight-word
+                        # source. Shift the destination back four words for an
+                        # odd choice, keeping the useful quartet at a fixed row.
+                        cache=[grand_nodes[(4*q)//8*8] for q in range(n)]
+                        assert all(v.off==0 for v in cache)
+                        op=g.emit(prefix+f"grand_row{j}.{stream}","store",
+                                  ("lookup_vstore",q,lane(positive,j),lane(negative,j),*cache),
+                                  [(q,1),(lane(positive,j),1),(lane(negative,j),1),
+                                   *[(v,8) for v in cache]],[])
+                        record['stores'].append(op)
+                        xors.append((op,stream))
+                        relative_times[op]=1+j*span
+                        continue
                     for child in range(4):
                         dst = lane(grandchildren[group+stream][child], j)
                         cache = grand_nodes[child::4]
@@ -667,7 +744,7 @@ def build(config=None):
             parts.append((xors, jump))
         g.units[start_unit:] = [[(op,relative_times[op]) for op in relative_times]]
         g.regions.append(dict(start=start, parts=parts, n=n, width=width, span=span, cases=cases, table=table, groups=list(range(group, group+width)), round=r))
-        if fetch and store_children:
+        if fetch and store_children and fields:
             loads = []
             for i,(kind,stream,child) in enumerate(fields):
                 dst = prefetched[r+1,group+stream][child] if kind=="child" else grandchildren[group+stream][child]
@@ -676,7 +753,7 @@ def build(config=None):
                 op = g.emit(prefix+name, "load", ("vload", dst, addr), [(addr, 1)], [(dst, 8)])
                 g.control.extend((before, op, 1) for before in temp_stores[i])
                 loads.append(op)
-            previous_temp_loads[buffer] = loads
+            previous_temp_loads[buffer] = loads+previous_temp_loads.get(buffer,[])[len(loads):]
             temp_reads.extend(loads)
             for output_group in range((temp_base-2310)//8,(temp_base-2310)//8+len(fields)):
                 temp_output_reads.setdefault(output_group, []).extend(loads)
@@ -702,7 +779,16 @@ def build(config=None):
             mode = modes[r][k]
             if mode == "root":
                 bits[k] = []
-                value = binary("^", values[k], root0 if r == 0 else root1, prefix + "mix")
+                if scalar_root_group(cfg,r,k):
+                    scalar_tick+=1
+                    root=(header_root if cfg['header_root'] else raw_nodes[0][0]) if r==0 else adjusted_nodes[0][0]
+                    value=g.new()
+                    for j in range(8):
+                        dst,src=lane(value,j),lane(values[k],j)
+                        g.emit(prefix+f'mix.lane{j}','alu',('^',dst,src,root),
+                               [(src,1),(root,1)],[(dst,1)])
+                else:
+                    value = binary("^", values[k], root0 if r == 0 else root1, prefix + "mix")
             elif mode == "blend":
                 node = blend(depth, bits[k], prefix)
                 value = binary("^", values[k], node, prefix + "mix")
@@ -724,6 +810,15 @@ def build(config=None):
                 left = select(bits[k][-2], nodes[2], nodes[0], prefix + "grand_left")
                 right = select(bits[k][-2], nodes[3], nodes[1], prefix + "grand_right")
                 node = select(bits[k][-1], right, left, prefix + "grand_node")
+                if k in row_groups:
+                    address=node
+                    node=g.new()
+                    for j in range(8):
+                        op=g.emit(prefix+f"grand_load{j}","load",
+                                  ("load",lane(node,j),lane(address,j)),
+                                  [(lane(address,j),1)],[(lane(node,j),1)])
+                        g.control.append((row_records[k]['stores'][j],op,1))
+                        row_records[k]['loads'].append(op)
                 value = binary("^", values[k], node, prefix + "mix")
             else:
                 address = ptrs[k]
@@ -894,8 +989,13 @@ def build(config=None):
             for addr, raw, off in restored:
                 op = g.emit(f"restore.d{d}.write{off}", "store", ("vstore", addr, raw), [(addr, 1), (raw, 8)], [])
                 g.control.extend((before, op, 1) for before in later_reads)
-                g.control.extend((before, op, 1) for level in (d, d+1) for before in syncs.get(level, ()))
-                g.control.extend((before, op, 1) for before in last_gathers if gather_levels.get(before) in (d, d+1))
+                levels=(d,d+1)
+                if cfg['precise_restore']:
+                    begin=6+(1<<d)+off
+                    levels=tuple(level for level in levels
+                                 if begin<bases[level]+(1<<level) and bases[level]<begin+8)
+                g.control.extend((before, op, 1) for level in levels for before in syncs.get(level, ()))
+                g.control.extend((before, op, 1) for before in last_gathers if gather_levels.get(before) in levels)
         # The six shifted words also overlap the end of depth 3.
         addr, raw = scalar(14), raw_blocks[3][0]
         op = g.emit("restore.d3.write", "store", ("vstore", addr, raw), [(addr, 1), (raw, 8)], [])
@@ -911,6 +1011,22 @@ def build(config=None):
             g.control.extend((before, op, 1) for before in last_gathers if gather_levels.get(before, 4) == depth)
     if cfg["heap_io_backup"]:
         emit_outputs()
+    if row_groups:
+        previous={}
+        for record in row_records.values():
+            buffer=record['buffer']
+            assert len(record['stores'])==len(record['loads'])==8
+            if buffer in previous:
+                g.control.extend((before,after,0) for before,after in
+                                 zip(previous[buffer]['loads'],record['stores']))
+            previous[buffer]=record
+        reads=[op for record in row_records.values() for op in record['loads']]
+        for offset in range(0,72*cfg["grand_row_buffers"],8):
+            address=scalar(2054+offset)
+            zero=vector(0)
+            op=g.emit(f"grand_row.clear{offset}","store",("vstore",address,zero),
+                      [(address,1),(zero,8)],[])
+            g.control.extend((before,op,0) for before in reads)
     if temp_rank is not None:
         previous={}
         for region in sorted(g.regions,key=lambda r:temp_rank[r['round'],r['groups'][0]]):
@@ -919,7 +1035,8 @@ def build(config=None):
             buffer=region['temp_buffer']
             g.control.extend((op,region['start'],-1-i//2)
                              for i,op in enumerate(previous.get(buffer,())) if i<region['temp_fields'])
-            previous[buffer]=region['temp_loads']
+            loads=region['temp_loads']
+            previous[buffer]=loads+previous.get(buffer,[])[len(loads):]
     g.config = cfg
     g.total_table_words = total_words
     if cfg["dce"]:
@@ -1339,6 +1456,8 @@ def lower(g, times, bases):
                                     slot = ("load", slot[1], slot[3+q])
                                 elif slot[0] == "lookup_store":
                                     slot = ("store", slot[1], slot[3+q])
+                                elif slot[0] == "lookup_vstore":
+                                    slot = ("vstore",slot[2+(q&1)],slot[4+q])
                                 else:
                                     assert slot[0] == "lookup_copy"
                                     slot = ("|", slot[1], slot[3+q], slot[3+q])
@@ -1481,6 +1600,40 @@ def search_config(cfg, directory, trials=100, iterations=100, seed=0):
 
 
 def verify_semantics(g, seeds=(0, 1)):
+    class Scratch(dict):
+        def __init__(self,initial):
+            super().__init__(initial)
+            self.pending={}
+        def __setitem__(self,key,value):
+            assert key not in self.pending, (key,'Multiple SSA writes in one cycle')
+            self.pending[key]=value
+        def commit(self):
+            dict.update(self,self.pending)
+            self.pending.clear()
+
+    class Memory(list):
+        def __init__(self,initial):
+            super().__init__(initial)
+            self.pending={}
+        def __setitem__(self,key,value):
+            self.pending[key]=value
+        def commit(self):
+            for key,value in self.pending.items():
+                list.__setitem__(self,key,value)
+            self.pending.clear()
+
+    times=np.arange(len(g.ops),dtype=np.int64)
+    if g.config.get('grand_row_groups'):
+        # Row reuse introduces edges from a later round to an earlier-built
+        # group. Interpret a dependency-valid logical timeline, with all reads
+        # preceding same-cycle writes, instead of construction order.
+        scheduler=Scheduler(g)
+        starts=np.zeros(len(g.units),dtype=np.int64)
+        for unit in scheduler.order:
+            for child,lag in scheduler.children[unit]:
+                starts[child]=max(starts[child],starts[unit]+lag)
+        times=scheduler.op_times(starts)
+    order=np.argsort(times,kind='stable')
     for seed in seeds:
         random.seed(seed)
         tree = frozen.Tree.generate(10)
@@ -1490,7 +1643,8 @@ def verify_semantics(g, seeds=(0, 1)):
         trace = {}
         for ref in frozen.reference_kernel2(mem.copy(), trace):
             pass
-        values = {int(v)+j:0 for v in g.initial_zero for j in range(g.sizes[v.vid])}
+        mem=Memory(mem)
+        values = Scratch({int(v)+j:0 for v in g.initial_zero for j in range(g.sizes[v.vid])})
 
         def binary(op, a, b):
             if op == "+": return (a+b)&MASK
@@ -1502,9 +1656,21 @@ def verify_semantics(g, seeds=(0, 1)):
             if op == "==": return int(a == b)
             raise ValueError(op)
 
-        for op_id, (engine, slot, *_) in enumerate(g.ops):
+        cycle=None
+        for op_id in order:
+            if int(times[op_id])!=cycle:
+                values.commit()
+                mem.commit()
+                cycle=int(times[op_id])
+            engine,slot,*_=g.ops[op_id]
             op, *args = slot
-            if op == "lookup_store":
+            if op == "lookup_vstore":
+                q,positive,negative,*cache=args
+                index=values[int(q)]
+                address=values[int(negative if index&1 else positive)]
+                for j in range(8):
+                    mem[address+j]=values[int(cache[index])+j]
+            elif op == "lookup_store":
                 dst, q, *cache = args
                 index = values[int(q)]
                 if op_id in g.lookup_bits:
@@ -1555,6 +1721,8 @@ def verify_semantics(g, seeds=(0, 1)):
                 for j in range(8): mem[values[int(addr)]+j] = values[int(src)+j]
             else:
                 assert op in ("jump", "jump_indirect")
+        values.commit()
+        mem.commit()
         for value, r, k, stage, bias in g.checks:
             for j in range(8):
                 actual = values[int(value)+j] ^ bias
