@@ -1,0 +1,89 @@
+{
+  "engines": {
+    "valu": 5458,
+    "load": 1769,
+    "alu": 10913,
+    "store": 912,
+    "flow": 846
+  },
+  "weighted_alu_valu": 54577,
+  "bound": 910,
+  "arithmetic_bound": 910,
+  "table_bundles": 10240,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 653,
+  "regions": 45,
+  "values": 8135,
+  "cycles": 915,
+  "bound_scope": "Counts for this fixed graph; not a global task lower bound.",
+  "work_categories_W": {
+    "setup_restoration": {
+      "total": 617,
+      "details": {
+        "constant": 129,
+        "broadcast": 120,
+        "tree_bias": 256,
+        "root_broadcasts": 8,
+        "child_differences": 8,
+        "table_broadcasts": 48,
+        "derive": 48
+      }
+    },
+    "tree_node_mix": {
+      "total": 4096,
+      "details": {
+        "xor": 4096
+      }
+    },
+    "hash_internal": {
+      "total": 41984,
+      "details": {
+        "h1": 4096,
+        "h2.a": 4096,
+        "h2.b": 4096,
+        "h2": 4096,
+        "h4.a": 4096,
+        "h4.b": 4096,
+        "h4": 4096,
+        "h5": 4096,
+        "h6.b": 4096,
+        "h6": 4096,
+        "h6.a": 1024
+      }
+    },
+    "path_bits": {
+      "total": 3584,
+      "details": {
+        "mask": 3584
+      }
+    },
+    "path_updates": {
+      "total": 2840,
+      "details": {
+        "path": 1328,
+        "address": 1512
+      }
+    },
+    "dispatch_addressing": {
+      "total": 768,
+      "details": {
+        "pack": 120,
+        "targets": 360,
+        "offsets": 288
+      }
+    },
+    "conditional_node_copies": {
+      "total": 592,
+      "details": {
+        "children": 240,
+        "grandchildren": 352
+      }
+    },
+    "node_selection_madd": {
+      "total": 96,
+      "details": {
+        "select": 96
+      }
+    }
+  }
+}

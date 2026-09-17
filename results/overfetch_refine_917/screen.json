@@ -1,0 +1,262 @@
+[
+  {
+    "candidate": 0,
+    "source": "results/overfetch_917/candidate_000",
+    "label": "mix_priority",
+    "engines": {
+      "valu": 5461,
+      "load": 1769,
+      "alu": 10921,
+      "store": 912,
+      "flow": 858
+    },
+    "weighted_alu_valu": 54609,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7983
+  },
+  {
+    "candidate": 1,
+    "source": "results/overfetch_917/candidate_019",
+    "label": "mix_priority",
+    "engines": {
+      "valu": 5461,
+      "load": 1769,
+      "alu": 10921,
+      "store": 912,
+      "flow": 842
+    },
+    "weighted_alu_valu": 54609,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8135
+  },
+  {
+    "candidate": 2,
+    "source": "results/overfetch_917/candidate_019",
+    "label": "madd_4_head",
+    "engines": {
+      "valu": 5458,
+      "load": 1769,
+      "alu": 10913,
+      "store": 912,
+      "flow": 846
+    },
+    "weighted_alu_valu": 54577,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8135
+  },
+  {
+    "candidate": 3,
+    "source": "results/overfetch_917/candidate_019",
+    "label": "madd_4_tail",
+    "engines": {
+      "valu": 5458,
+      "load": 1769,
+      "alu": 10913,
+      "store": 912,
+      "flow": 846
+    },
+    "weighted_alu_valu": 54577,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8135
+  },
+  {
+    "candidate": 4,
+    "source": "results/overfetch_917/candidate_019",
+    "label": "madd_8_head",
+    "engines": {
+      "valu": 5454,
+      "load": 1769,
+      "alu": 10913,
+      "store": 912,
+      "flow": 850
+    },
+    "weighted_alu_valu": 54545,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8135
+  },
+  {
+    "candidate": 5,
+    "source": "results/overfetch_917/candidate_019",
+    "label": "madd_8_tail",
+    "engines": {
+      "valu": 5454,
+      "load": 1769,
+      "alu": 10913,
+      "store": 912,
+      "flow": 850
+    },
+    "weighted_alu_valu": 54545,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8135
+  },
+  {
+    "candidate": 6,
+    "source": "results/overfetch_917/candidate_019",
+    "label": "madd_12_head",
+    "engines": {
+      "valu": 5451,
+      "load": 1769,
+      "alu": 10905,
+      "store": 912,
+      "flow": 854
+    },
+    "weighted_alu_valu": 54513,
+    "bound": 909,
+    "arithmetic_bound": 909,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8135
+  },
+  {
+    "candidate": 7,
+    "source": "results/overfetch_917/candidate_019",
+    "label": "madd_12_tail",
+    "engines": {
+      "valu": 5451,
+      "load": 1769,
+      "alu": 10905,
+      "store": 912,
+      "flow": 854
+    },
+    "weighted_alu_valu": 54513,
+    "bound": 909,
+    "arithmetic_bound": 909,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8135
+  },
+  {
+    "candidate": 8,
+    "source": "results/overfetch_917/candidate_019",
+    "label": "madd_16_head",
+    "engines": {
+      "valu": 5448,
+      "load": 1769,
+      "alu": 10889,
+      "store": 912,
+      "flow": 858
+    },
+    "weighted_alu_valu": 54473,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8111
+  },
+  {
+    "candidate": 9,
+    "source": "results/overfetch_917/candidate_019",
+    "label": "madd_16_tail",
+    "engines": {
+      "valu": 5448,
+      "load": 1769,
+      "alu": 10889,
+      "store": 912,
+      "flow": 858
+    },
+    "weighted_alu_valu": 54473,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8111
+  },
+  {
+    "candidate": 10,
+    "source": "results/overfetch_917/candidate_025",
+    "label": "mix_priority",
+    "engines": {
+      "valu": 5459,
+      "load": 1766,
+      "alu": 10919,
+      "store": 896,
+      "flow": 810
+    },
+    "weighted_alu_valu": 54591,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8432
+  },
+  {
+    "candidate": 11,
+    "source": "results/overfetch_917/candidate_027",
+    "label": "mix_priority",
+    "engines": {
+      "valu": 5445,
+      "load": 1766,
+      "alu": 10895,
+      "store": 896,
+      "flow": 826
+    },
+    "weighted_alu_valu": 54455,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8408
+  },
+  {
+    "candidate": 12,
+    "source": "results/overfetch_917/candidate_029",
+    "label": "mix_priority",
+    "engines": {
+      "valu": 5430,
+      "load": 1766,
+      "alu": 10855,
+      "store": 896,
+      "flow": 874
+    },
+    "weighted_alu_valu": 54295,
+    "bound": 905,
+    "arithmetic_bound": 905,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8412
+  }
+]

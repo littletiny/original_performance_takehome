@@ -1,0 +1,2672 @@
+[
+  {
+    "candidate": 0,
+    "source": "results/late_pair_rows_917/candidate_012",
+    "length": 2,
+    "stretch": 2,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5464,
+      "load": 1764,
+      "alu": 10926,
+      "store": 845,
+      "flow": 876
+    },
+    "weighted_alu_valu": 54638,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7837
+  },
+  {
+    "candidate": 1,
+    "source": "results/late_pair_rows_917/candidate_012",
+    "length": 2,
+    "stretch": 4,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      [
+        [
+          14,
+          15
+        ],
+        [
+          14,
+          16
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5464,
+      "load": 1764,
+      "alu": 10926,
+      "store": 845,
+      "flow": 874
+    },
+    "weighted_alu_valu": 54638,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7837
+  },
+  {
+    "candidate": 2,
+    "source": "results/late_pair_rows_917/candidate_012",
+    "length": 2,
+    "stretch": null,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          2
+        ]
+      ],
+      [
+        [
+          14,
+          3
+        ],
+        [
+          14,
+          7
+        ]
+      ],
+      [
+        [
+          14,
+          6
+        ],
+        [
+          14,
+          8
+        ]
+      ],
+      [
+        [
+          14,
+          4
+        ],
+        [
+          14,
+          10
+        ]
+      ],
+      [
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      [
+        [
+          14,
+          14
+        ],
+        [
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          14,
+          16
+        ],
+        [
+          14,
+          18
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ],
+      [
+        [
+          14,
+          24
+        ],
+        [
+          14,
+          26
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5464,
+      "load": 1764,
+      "alu": 10926,
+      "store": 845,
+      "flow": 868
+    },
+    "weighted_alu_valu": 54638,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7837
+  },
+  {
+    "candidate": 3,
+    "source": "results/late_pair_rows_917/candidate_012",
+    "length": 2,
+    "stretch": null,
+    "offset": 1,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          7
+        ],
+        [
+          14,
+          6
+        ]
+      ],
+      [
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          4
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      [
+        [
+          14,
+          12
+        ],
+        [
+          14,
+          14
+        ]
+      ],
+      [
+        [
+          14,
+          15
+        ],
+        [
+          14,
+          16
+        ]
+      ],
+      [
+        [
+          14,
+          18
+        ],
+        [
+          14,
+          19
+        ]
+      ],
+      [
+        [
+          14,
+          20
+        ],
+        [
+          14,
+          22
+        ]
+      ],
+      [
+        [
+          14,
+          23
+        ],
+        [
+          14,
+          24
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5464,
+      "load": 1764,
+      "alu": 10926,
+      "store": 845,
+      "flow": 868
+    },
+    "weighted_alu_valu": 54638,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7837
+  },
+  {
+    "candidate": 4,
+    "source": "results/late_pair_rows_917/candidate_012",
+    "length": 3,
+    "stretch": 8,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          4
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      [
+        [
+          14,
+          14
+        ],
+        [
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5464,
+      "load": 1764,
+      "alu": 10926,
+      "store": 845,
+      "flow": 870
+    },
+    "weighted_alu_valu": 54638,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7837
+  },
+  {
+    "candidate": 5,
+    "source": "results/late_pair_rows_917/candidate_012",
+    "length": 4,
+    "stretch": 6,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      [
+        [
+          14,
+          12
+        ],
+        [
+          14,
+          14
+        ]
+      ],
+      [
+        [
+          14,
+          15
+        ],
+        [
+          14,
+          16
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5464,
+      "load": 1764,
+      "alu": 10926,
+      "store": 845,
+      "flow": 871
+    },
+    "weighted_alu_valu": 54638,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7837
+  },
+  {
+    "candidate": 6,
+    "source": "results/late_pair_rows_917/candidate_012",
+    "length": 4,
+    "stretch": null,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ],
+        [
+          14,
+          7
+        ]
+      ],
+      [
+        [
+          14,
+          6
+        ],
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          4
+        ],
+        [
+          14,
+          10
+        ]
+      ],
+      [
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ],
+        [
+          14,
+          14
+        ],
+        [
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          14,
+          16
+        ],
+        [
+          14,
+          18
+        ],
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ],
+        [
+          14,
+          24
+        ],
+        [
+          14,
+          26
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5464,
+      "load": 1764,
+      "alu": 10926,
+      "store": 845,
+      "flow": 863
+    },
+    "weighted_alu_valu": 54638,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7837
+  },
+  {
+    "candidate": 7,
+    "source": "results/late_pair_rows_917/candidate_036",
+    "length": 2,
+    "stretch": 2,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5456,
+      "load": 1774,
+      "alu": 10910,
+      "store": 845,
+      "flow": 885
+    },
+    "weighted_alu_valu": 54558,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 8,
+    "source": "results/late_pair_rows_917/candidate_036",
+    "length": 2,
+    "stretch": 4,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5456,
+      "load": 1774,
+      "alu": 10910,
+      "store": 845,
+      "flow": 884
+    },
+    "weighted_alu_valu": 54558,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 9,
+    "source": "results/late_pair_rows_917/candidate_036",
+    "length": 2,
+    "stretch": null,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          2
+        ]
+      ],
+      [
+        [
+          14,
+          3
+        ],
+        [
+          14,
+          7
+        ]
+      ],
+      [
+        [
+          14,
+          6
+        ],
+        [
+          14,
+          8
+        ]
+      ],
+      [
+        [
+          14,
+          4
+        ],
+        [
+          14,
+          10
+        ]
+      ],
+      [
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      [
+        [
+          14,
+          14
+        ],
+        [
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          14,
+          16
+        ],
+        [
+          14,
+          18
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ],
+      [
+        [
+          14,
+          24
+        ],
+        [
+          14,
+          26
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5456,
+      "load": 1774,
+      "alu": 10910,
+      "store": 845,
+      "flow": 878
+    },
+    "weighted_alu_valu": 54558,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 10,
+    "source": "results/late_pair_rows_917/candidate_036",
+    "length": 2,
+    "stretch": null,
+    "offset": 1,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          7
+        ],
+        [
+          14,
+          6
+        ]
+      ],
+      [
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          4
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      [
+        [
+          14,
+          12
+        ],
+        [
+          14,
+          14
+        ]
+      ],
+      [
+        [
+          14,
+          15
+        ],
+        [
+          14,
+          16
+        ]
+      ],
+      [
+        [
+          14,
+          18
+        ],
+        [
+          14,
+          19
+        ]
+      ],
+      [
+        [
+          14,
+          20
+        ],
+        [
+          14,
+          22
+        ]
+      ],
+      [
+        [
+          14,
+          23
+        ],
+        [
+          14,
+          24
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5456,
+      "load": 1774,
+      "alu": 10910,
+      "store": 845,
+      "flow": 878
+    },
+    "weighted_alu_valu": 54558,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 11,
+    "source": "results/late_pair_rows_917/candidate_036",
+    "length": 3,
+    "stretch": 8,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          4
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      [
+        [
+          14,
+          14
+        ],
+        [
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5456,
+      "load": 1774,
+      "alu": 10910,
+      "store": 845,
+      "flow": 880
+    },
+    "weighted_alu_valu": 54558,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 12,
+    "source": "results/late_pair_rows_917/candidate_036",
+    "length": 4,
+    "stretch": 6,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      [
+        [
+          14,
+          14
+        ],
+        [
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5456,
+      "load": 1774,
+      "alu": 10910,
+      "store": 845,
+      "flow": 881
+    },
+    "weighted_alu_valu": 54558,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 13,
+    "source": "results/late_pair_rows_917/candidate_036",
+    "length": 4,
+    "stretch": null,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ],
+        [
+          14,
+          7
+        ]
+      ],
+      [
+        [
+          14,
+          6
+        ],
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          4
+        ],
+        [
+          14,
+          10
+        ]
+      ],
+      [
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ],
+        [
+          14,
+          14
+        ],
+        [
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          14,
+          16
+        ],
+        [
+          14,
+          18
+        ],
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ],
+        [
+          14,
+          24
+        ],
+        [
+          14,
+          26
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5456,
+      "load": 1774,
+      "alu": 10910,
+      "store": 845,
+      "flow": 873
+    },
+    "weighted_alu_valu": 54558,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 14,
+    "source": "results/late_pair_rows_917/candidate_037",
+    "length": 2,
+    "stretch": 2,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5454,
+      "load": 1791,
+      "alu": 10908,
+      "store": 845,
+      "flow": 885
+    },
+    "weighted_alu_valu": 54540,
+    "bound": 909,
+    "arithmetic_bound": 909,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 15,
+    "source": "results/late_pair_rows_917/candidate_037",
+    "length": 2,
+    "stretch": 4,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      [
+        [
+          14,
+          12
+        ],
+        [
+          14,
+          14
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5454,
+      "load": 1791,
+      "alu": 10908,
+      "store": 845,
+      "flow": 882
+    },
+    "weighted_alu_valu": 54540,
+    "bound": 909,
+    "arithmetic_bound": 909,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 16,
+    "source": "results/late_pair_rows_917/candidate_037",
+    "length": 2,
+    "stretch": null,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          2
+        ]
+      ],
+      [
+        [
+          14,
+          3
+        ],
+        [
+          14,
+          7
+        ]
+      ],
+      [
+        [
+          14,
+          6
+        ],
+        [
+          14,
+          8
+        ]
+      ],
+      [
+        [
+          14,
+          4
+        ],
+        [
+          14,
+          10
+        ]
+      ],
+      [
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      [
+        [
+          14,
+          14
+        ],
+        [
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          14,
+          16
+        ],
+        [
+          14,
+          18
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ],
+      [
+        [
+          14,
+          24
+        ],
+        [
+          14,
+          26
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5454,
+      "load": 1791,
+      "alu": 10908,
+      "store": 845,
+      "flow": 878
+    },
+    "weighted_alu_valu": 54540,
+    "bound": 909,
+    "arithmetic_bound": 909,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 17,
+    "source": "results/late_pair_rows_917/candidate_037",
+    "length": 2,
+    "stretch": null,
+    "offset": 1,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          7
+        ],
+        [
+          14,
+          6
+        ]
+      ],
+      [
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          4
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      [
+        [
+          14,
+          12
+        ],
+        [
+          14,
+          14
+        ]
+      ],
+      [
+        [
+          14,
+          15
+        ],
+        [
+          14,
+          16
+        ]
+      ],
+      [
+        [
+          14,
+          18
+        ],
+        [
+          14,
+          19
+        ]
+      ],
+      [
+        [
+          14,
+          20
+        ],
+        [
+          14,
+          22
+        ]
+      ],
+      [
+        [
+          14,
+          23
+        ],
+        [
+          14,
+          24
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5454,
+      "load": 1791,
+      "alu": 10908,
+      "store": 845,
+      "flow": 878
+    },
+    "weighted_alu_valu": 54540,
+    "bound": 909,
+    "arithmetic_bound": 909,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 18,
+    "source": "results/late_pair_rows_917/candidate_037",
+    "length": 3,
+    "stretch": 8,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          6
+        ],
+        [
+          14,
+          8
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      [
+        [
+          14,
+          15
+        ],
+        [
+          14,
+          16
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5454,
+      "load": 1791,
+      "alu": 10908,
+      "store": 845,
+      "flow": 880
+    },
+    "weighted_alu_valu": 54540,
+    "bound": 909,
+    "arithmetic_bound": 909,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 19,
+    "source": "results/late_pair_rows_917/candidate_037",
+    "length": 4,
+    "stretch": 6,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5454,
+      "load": 1791,
+      "alu": 10908,
+      "store": 845,
+      "flow": 882
+    },
+    "weighted_alu_valu": 54540,
+    "bound": 909,
+    "arithmetic_bound": 909,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 20,
+    "source": "results/late_pair_rows_917/candidate_037",
+    "length": 4,
+    "stretch": null,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ],
+        [
+          14,
+          7
+        ]
+      ],
+      [
+        [
+          14,
+          6
+        ],
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          4
+        ],
+        [
+          14,
+          10
+        ]
+      ],
+      [
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ],
+        [
+          14,
+          14
+        ],
+        [
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          14,
+          16
+        ],
+        [
+          14,
+          18
+        ],
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ],
+        [
+          14,
+          24
+        ],
+        [
+          14,
+          26
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5454,
+      "load": 1791,
+      "alu": 10908,
+      "store": 845,
+      "flow": 873
+    },
+    "weighted_alu_valu": 54540,
+    "bound": 909,
+    "arithmetic_bound": 909,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7847
+  },
+  {
+    "candidate": 21,
+    "source": "results/late_pair_rows_917/candidate_042",
+    "length": 2,
+    "stretch": 2,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5458,
+      "load": 1774,
+      "alu": 10912,
+      "store": 851,
+      "flow": 885
+    },
+    "weighted_alu_valu": 54576,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7865
+  },
+  {
+    "candidate": 22,
+    "source": "results/late_pair_rows_917/candidate_042",
+    "length": 2,
+    "stretch": 4,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5458,
+      "load": 1774,
+      "alu": 10912,
+      "store": 851,
+      "flow": 884
+    },
+    "weighted_alu_valu": 54576,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7865
+  },
+  {
+    "candidate": 23,
+    "source": "results/late_pair_rows_917/candidate_042",
+    "length": 2,
+    "stretch": null,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          2
+        ]
+      ],
+      [
+        [
+          14,
+          3
+        ],
+        [
+          14,
+          7
+        ]
+      ],
+      [
+        [
+          14,
+          6
+        ],
+        [
+          14,
+          8
+        ]
+      ],
+      [
+        [
+          14,
+          4
+        ],
+        [
+          14,
+          10
+        ]
+      ],
+      [
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      [
+        [
+          14,
+          14
+        ],
+        [
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          14,
+          16
+        ],
+        [
+          14,
+          18
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ],
+      [
+        [
+          14,
+          24
+        ],
+        [
+          14,
+          26
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5458,
+      "load": 1774,
+      "alu": 10912,
+      "store": 851,
+      "flow": 878
+    },
+    "weighted_alu_valu": 54576,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7865
+  },
+  {
+    "candidate": 24,
+    "source": "results/late_pair_rows_917/candidate_042",
+    "length": 2,
+    "stretch": null,
+    "offset": 1,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          7
+        ],
+        [
+          14,
+          6
+        ]
+      ],
+      [
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          4
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      [
+        [
+          14,
+          12
+        ],
+        [
+          14,
+          14
+        ]
+      ],
+      [
+        [
+          14,
+          15
+        ],
+        [
+          14,
+          16
+        ]
+      ],
+      [
+        [
+          14,
+          18
+        ],
+        [
+          14,
+          19
+        ]
+      ],
+      [
+        [
+          14,
+          20
+        ],
+        [
+          14,
+          22
+        ]
+      ],
+      [
+        [
+          14,
+          23
+        ],
+        [
+          14,
+          24
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5458,
+      "load": 1774,
+      "alu": 10912,
+      "store": 851,
+      "flow": 878
+    },
+    "weighted_alu_valu": 54576,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7865
+  },
+  {
+    "candidate": 25,
+    "source": "results/late_pair_rows_917/candidate_042",
+    "length": 3,
+    "stretch": 8,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          4
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      [
+        [
+          14,
+          14
+        ],
+        [
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5458,
+      "load": 1774,
+      "alu": 10912,
+      "store": 851,
+      "flow": 880
+    },
+    "weighted_alu_valu": 54576,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7865
+  },
+  {
+    "candidate": 26,
+    "source": "results/late_pair_rows_917/candidate_042",
+    "length": 4,
+    "stretch": 6,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      [
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      [
+        [
+          14,
+          14
+        ],
+        [
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ]
+      ],
+      [
+        [
+          14,
+          26
+        ],
+        [
+          14,
+          27
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5458,
+      "load": 1774,
+      "alu": 10912,
+      "store": 851,
+      "flow": 881
+    },
+    "weighted_alu_valu": 54576,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7865
+  },
+  {
+    "candidate": 27,
+    "source": "results/late_pair_rows_917/candidate_042",
+    "length": 4,
+    "stretch": null,
+    "offset": 0,
+    "chains": [
+      [
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ],
+        [
+          14,
+          7
+        ]
+      ],
+      [
+        [
+          14,
+          6
+        ],
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          4
+        ],
+        [
+          14,
+          10
+        ]
+      ],
+      [
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ],
+        [
+          14,
+          14
+        ],
+        [
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          14,
+          16
+        ],
+        [
+          14,
+          18
+        ],
+        [
+          14,
+          19
+        ],
+        [
+          14,
+          20
+        ]
+      ],
+      [
+        [
+          14,
+          22
+        ],
+        [
+          14,
+          23
+        ],
+        [
+          14,
+          24
+        ],
+        [
+          14,
+          26
+        ]
+      ]
+    ],
+    "engines": {
+      "valu": 5458,
+      "load": 1774,
+      "alu": 10912,
+      "store": 851,
+      "flow": 873
+    },
+    "weighted_alu_valu": 54576,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7865
+  }
+]

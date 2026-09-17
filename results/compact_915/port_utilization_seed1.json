@@ -1,0 +1,106 @@
+{
+  "generated_at_utc": "2026-09-17T09:34:45.550220+00:00",
+  "source": "perf_takehome.py",
+  "source_sha256": "c10a8c0fec5f1cb91e030f2948a5842b57fb059bc06e35b170e574de35b65e18",
+  "simulator": "tests/frozen_problem.py",
+  "workload": {
+    "forest_height": 10,
+    "n_nodes": 2047,
+    "batch_size": 256,
+    "rounds": 16
+  },
+  "seed": 1,
+  "cycles": 915,
+  "static_bundles": 10808,
+  "static_slot_operations": 231286,
+  "dynamic_slot_operations": 19900,
+  "output_verified": true,
+  "non_output_memory_preserved": true,
+  "ports": {
+    "alu": {
+      "slots_per_cycle": 12,
+      "used_slots": 10913,
+      "available_slots": 10980,
+      "idle_slots": 67,
+      "utilization_percent": 99.38979963570128,
+      "full_cycles": 907,
+      "active_cycles": 912,
+      "opcodes": {
+        "&": 984,
+        "+": 101,
+        "-": 28,
+        ">>": 2160,
+        "^": 7048,
+        "|": 592
+      }
+    },
+    "valu": {
+      "slots_per_cycle": 6,
+      "used_slots": 5458,
+      "available_slots": 5490,
+      "idle_slots": 32,
+      "utilization_percent": 99.41712204007285,
+      "full_cycles": 907,
+      "active_cycles": 913,
+      "opcodes": {
+        "&": 325,
+        "*": 1,
+        "+": 81,
+        "-": 4,
+        "==": 1,
+        ">>": 754,
+        "^": 1839,
+        "multiply_add": 2431,
+        "vbroadcast": 22
+      }
+    },
+    "load": {
+      "slots_per_cycle": 2,
+      "used_slots": 1769,
+      "available_slots": 1830,
+      "idle_slots": 61,
+      "utilization_percent": 96.66666666666667,
+      "full_cycles": 882,
+      "active_cycles": 887,
+      "opcodes": {
+        "const": 69,
+        "load": 1128,
+        "vload": 572
+      }
+    },
+    "store": {
+      "slots_per_cycle": 2,
+      "used_slots": 912,
+      "available_slots": 1830,
+      "idle_slots": 918,
+      "utilization_percent": 49.83606557377049,
+      "full_cycles": 455,
+      "active_cycles": 457,
+      "opcodes": {
+        "store": 792,
+        "vstore": 120
+      }
+    },
+    "flow": {
+      "slots_per_cycle": 1,
+      "used_slots": 848,
+      "available_slots": 915,
+      "idle_slots": 67,
+      "utilization_percent": 92.6775956284153,
+      "full_cycles": 848,
+      "active_cycles": 848,
+      "opcodes": {
+        "jump": 45,
+        "jump_indirect": 360,
+        "pause": 1,
+        "vselect": 442
+      }
+    }
+  },
+  "notes": [
+    "Counts are from the actual executed path, not the static dispatch tables.",
+    "Utilization = occupied slots / (dynamic cycles * engine slots per cycle).",
+    "Setup, cleanup, pause, and jumps are included; debug instructions are excluded.",
+    "Each vector instruction counts as one slot, not eight scalar lane operations."
+  ]
+}

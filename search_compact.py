@@ -7,7 +7,7 @@ import random
 
 import numpy as np
 
-from optimize import build, counts, Scheduler, allocate
+from optimize import build, counts, Scheduler, allocate, overfetch_member
 
 
 def warm_keys(source, graph, scheduler=None):
@@ -21,6 +21,22 @@ def warm_keys(source, graph, scheduler=None):
     keys = [named.get(graph.names[rows[0][0]],
                       named.get(graph.names[rows[0][0]].rsplit('.lane', 1)[0]))
             for rows in graph.units]
+    lead=graph.config.get('memory_vector_lead',0)
+    if lead:
+        selected={record['name'] for record in getattr(graph,'memory_vectors',())}
+        for u,rows in enumerate(graph.units):
+            if graph.names[rows[0][0]] in selected and keys[u] is not None:
+                keys[u]-=lead
+    if graph.config.get('overfetch_mix_priority'):
+        for u,rows in enumerate(graph.units):
+            name=graph.names[rows[0][0]]
+            parts=name.split('.')
+            if len(parts)!=4 or parts[2]!='mix' or not parts[3].startswith('lane'):
+                continue
+            r,k=int(parts[0][1:]),int(parts[1][1:])
+            if overfetch_member(graph.config,r,k):
+                parent=named.get(f'{parts[0]}.{parts[1]}.load{parts[3][4:]}')
+                if parent is not None:keys[u]=parent+1
     if any(key is None for key in keys):
         scheduler = scheduler or Scheduler(graph)
         # Give new operations their consumers' approximate release window.

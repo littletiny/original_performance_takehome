@@ -8,7 +8,7 @@ import re
 
 import numpy as np
 
-from optimize import build,counts,scalar_root_group
+from optimize import build,counts,forced_scalar_pack
 
 
 @lru_cache(maxsize=4)
@@ -39,23 +39,33 @@ def balance(config,source,policy=0):
     centers=[regions[r,k]+4 for r,k,span in config.get('dispatch_spans',()) if span>1]
     if not centers:
         centers=[t+4 for t in regions.values()]
+    if policy in ('pair_local','pair_final'):
+        members={k for start in config.get('late_pair_groups',()) for k in (start,start+1)}
+        local=[named[f'r{r}.g{k}.{label}'] for r,label in ((14,'bit'),(15,'mix'))
+               for k in members if f'r{r}.g{k}.{label}' in named]
+        if local:centers=local
     packs=defaultdict(list)
     pattern=re.compile(r'r\d+\.g\d+\.(?:mix|h2(?:\.[ab])?|h4|h6(?:\.[ab])?|bit)$')
     for i,name in enumerate(graph.names):
         stem=name.rsplit('.lane',1)[0]
         if pattern.fullmatch(stem): packs[stem].append(i)
-    rng=random.Random(404+policy)
+    rng=random.Random(404+policy if isinstance(policy,int) else 404)
     candidates=[]
     for name,ids in packs.items():
         parts=name.split('.')
-        if parts[-1]=='mix' and scalar_root_group(config,int(parts[0][1:]),int(parts[1][1:])):
+        if forced_scalar_pack(config,int(parts[0][1:]),int(parts[1][1:]),parts[-1]):
             continue
         engine=graph.ops[ids[0]][0]
         if scalar and engine!='valu' or not scalar and engine!='alu': continue
         assert len(ids)==(1 if scalar else 8)
         t=named.get(name,named.get('.'.join(name.split('.')[:2])+'.h1',1)-1)
         near=min(abs(t-c) for c in centers)
-        if policy==0:key=(near,t,name)
+        rnd=int(parts[0][1:])
+        if policy=='late':key=(t if scalar else -t,name)
+        elif policy=='pair_local':key=(near,t,name)
+        elif policy=='pair_final':key=(rnd!=15,not name.endswith(('h6.a','h6.b')),near,t,name)
+        elif policy=='final_round':key=(rnd!=15,near,t,name)
+        elif policy==0:key=(near,t,name)
         elif policy==1:key=(not name.endswith('h2.b'),near,t,name)
         else:key=(rng.random(),)
         candidates.append((key,name))

@@ -1,0 +1,12 @@
+{
+  "cycles": 915,
+  "seeds": [
+    901,
+    12345
+  ],
+  "checkpoints_per_seed": 20480,
+  "static_bundles": 10808,
+  "static_slots": 231286,
+  "complete_actual_builder_program_equal": true,
+  "source_sha256": "c10a8c0fec5f1cb91e030f2948a5842b57fb059bc06e35b170e574de35b65e18"
+}

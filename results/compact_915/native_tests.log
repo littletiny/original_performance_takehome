@@ -1,0 +1,15 @@
+test_kernel_cycles (perf_takehome.Tests.test_kernel_cycles) ... ok
+test_kernel_trace (perf_takehome.Tests.test_kernel_trace) ... ok
+test_ref_kernels (perf_takehome.Tests.test_ref_kernels)
+Test the reference kernels against each other ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.187s
+
+OK
+forest_height=10, rounds=16, batch_size=256
+CYCLES:  915
+Speedup over baseline:  161.45792349726776
+forest_height=10, rounds=16, batch_size=256
+CYCLES:  915
+Speedup over baseline:  161.45792349726776

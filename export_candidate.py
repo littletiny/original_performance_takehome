@@ -37,6 +37,8 @@ def _build_tuned_standard():
                     slot = ("store", operation[1], operation[3+index])
                 elif code == "lookup_vstore":
                     slot = ("vstore", operation[2+(index&1)], operation[4+index])
+                elif code == "lookup_pair_store":
+                    slot = ("vstore", operation[1], operation[3+index])
                 else:
                     assert code == "lookup_load"
                     slot = ("load", operation[1], operation[3+index])

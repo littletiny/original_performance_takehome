@@ -1,0 +1,14 @@
+{
+  "cycles": 917,
+  "static_bundles": 10810,
+  "graph_sha256": "c6a8752fc31ec2d860890a96243a7c955224938df851c0802a8aabf31e77cf84",
+  "production_source_sha256": "8f9919eff4f5a039a1cb6bee7718191111a505a4433ba76759e87875000d196a",
+  "complete_actual_builder_program_equal": true,
+  "allocation": {
+    "scratch_words": 1536,
+    "allocation_policy": "lanes-0",
+    "lane_live_peak": 1357
+  },
+  "regression_tests_passed": 16,
+  "strict_sub900_achieved": false
+}

@@ -494,9 +494,8 @@ optimality claim is made. See `results/product_fusion_918/README.md`.
 
 ## Remaining work
 
-- Evaluate the explicitly unimplemented late child-pair layout in
-  `results/compact_917/NEXT_EXPERIMENT.md`, including its register-padding and
-  memory-order proof obligations before accepting any performance result.
+- The late child-pair proposal is now implemented and validated; its best
+  screen is 919. Further copy reductions need a different cost balance.
 - Reduce actual work or change dispatch structure: several superficially
   balanced graphs have stronger load-release/tail bounds above 900.
 - Improve scheduling and allocation together. Aggregate live-word demand can
@@ -522,3 +521,43 @@ and lists eight rewrite directions. It also records the narrow LOAD/FLOW
 headroom and the latest local late-pair-layout results, which reduce arithmetic
 but do not improve the production cycle count. No new optimization search or
 production change is part of this enumeration.
+
+## Memory replication, deep overfetch and the 915 checkpoint
+
+The late-pair-row implementation now has poisoned-padding and delayed-read
+regressions, a wider research virtual reference type, and a native allocator
+stride parameter. Its 48 layout, 28 chain-order and 16 local-balance screens
+do not beat 917; six selected candidates passed full ten-seed frozen execution.
+See `results/late_pair_rows_917/README.md`.
+
+`memory_vectors` replaces selected uniform-vector setup operations with eight
+STOREs and one VLOAD in a reusable, fully cleared index row. The broad 30-case
+screen delayed startup. An 18-case later-use follow-up retained 917 while
+reducing weighted arithmetic by 67; six hole rebalances and 15 PC combinations
+did not improve cycles. This became the source for a new address representation.
+
+For deep tree addresses A=q+6, VLOAD at q can supply the required node in lane
+six while retaining the simpler recurrence q_next=2*q+parity. All eight writes
+are allocated and all seven padding lanes are audited as unobserved. The LOAD
+instruction count does not increase for overfetch. Thirty configurations and
+13 priority/selection follow-ups produced a fully verified **915-cycle /
+10,808-bundle** kernel, now embedded in `perf_takehome.py`.
+
+The promoted configuration uses 16 even-numbered groups and transfers four
+MADD node selections to the released FLOW slots. Compared with production 917,
+it saves 75 weighted arithmetic slots, 28 runtime FLOW slots, two static bundles
+and 903 static engine-slot operations. It adds nine LOAD and 73 STORE operations.
+The count-only necessary arithmetic cut for strict sub-900 is now 637 W; its
+fixed graph has a resource-window lower bound of 912. The goal remains unmet.
+
+The nine submission tests, three native tests and 17 research regressions pass.
+Twelve seeds pass all retained hash-stage checkpoints, PC mappings, outputs and
+non-output memory. The actual KernelBuilder and standalone decoder both match
+the verified program. The updated, visually checked port plot is retained in
+`results/compact_915/`; root-level utilization artifacts were left intact.
+
+Further hash synthesis rejects specific four-operation outer-XOR/feedback
+families and 18 AND/OR target/family combinations in necessary 9/12-bit systems.
+Independent evaluation checks 41,472 original-hash projections and two complete
+nine-bit projection models. No 32-bit rewrite or global hash lower bound is
+claimed; see `results/affine_outer_917/README.md`.

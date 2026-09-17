@@ -7,17 +7,17 @@
 #include <vector>
 
 extern "C" int allocate_lanes_native(
-    int n, int horizon, int capacity, const int64_t* sizes,
+    int n, int horizon, int capacity, int words, const int64_t* sizes,
     const int64_t* begins, const int64_t* ends, int policy, int64_t* bases) {
   const int stride = (horizon + 63) / 64;
   using Part = std::pair<int, uint64_t>;
-  std::vector<std::vector<Part>> masks(n * 8);
+  std::vector<std::vector<Part>> masks(n * words);
   std::vector<int> start(n, horizon), finish(n, 0), order;
   std::vector<uint64_t> occupied(capacity * stride, 0);
   for (int v = 0; v < n; ++v) {
     bases[v] = -1;
     for (int lane = 0; lane < sizes[v]; ++lane) {
-      const int a = begins[v*8+lane], b = ends[v*8+lane];
+      const int a = begins[v*words+lane], b = ends[v*words+lane];
       if (a >= b) continue;
       start[v] = std::min(start[v], a);
       finish[v] = std::max(finish[v], b);
@@ -25,7 +25,7 @@ extern "C" int allocate_lanes_native(
         const int lo = std::max(a, word*64) - word*64;
         const int hi = std::min(b, (word+1)*64) - word*64;
         const uint64_t upper = hi == 64 ? ~uint64_t(0) : (uint64_t(1) << hi)-1;
-        masks[v*8+lane].emplace_back(word, upper & (~uint64_t(0) << lo));
+        masks[v*words+lane].emplace_back(word, upper & (~uint64_t(0) << lo));
       }
     }
     if (finish[v]) order.push_back(v);
@@ -58,7 +58,7 @@ extern "C" int allocate_lanes_native(
   for (int v : order) {
     auto fits = [&](int base) {
       for (int lane = 0; lane < sizes[v]; ++lane)
-        for (auto [word, mask] : masks[v*8+lane])
+        for (auto [word, mask] : masks[v*words+lane])
           if (occupied[(base+lane)*stride+word] & mask) return false;
       return true;
     };
@@ -69,8 +69,8 @@ extern "C" int allocate_lanes_native(
         if (!fits(base)) continue;
         int gap = 0;
         for (int lane = 0; lane < sizes[v]; ++lane) {
-          if (masks[v*8+lane].empty()) continue;
-          const int a = begins[v*8+lane], b = ends[v*8+lane];
+          if (masks[v*words+lane].empty()) continue;
+          const int a = begins[v*words+lane], b = ends[v*words+lane];
           const auto* cells = &occupied[(base+lane)*stride];
           int left = 0, right = horizon;
           if (a) {
@@ -105,7 +105,7 @@ extern "C" int allocate_lanes_native(
     if (chosen < 0) return v+1;
     bases[v] = chosen;
     for (int lane = 0; lane < sizes[v]; ++lane)
-      for (auto [word, mask] : masks[v*8+lane])
+      for (auto [word, mask] : masks[v*words+lane])
         occupied[(chosen+lane)*stride+word] |= mask;
   }
   return 0;

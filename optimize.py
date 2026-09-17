@@ -29,6 +29,20 @@ CAPACITY = np.array([12, 6, 2, 2, 1], dtype=np.int64)
 RESOURCE_CAPACITY = np.append(CAPACITY, 1)  # exclusive dispatch execution
 
 
+class WideV(pt.V):
+    """Research-only virtual spans; the real machine still has eight lanes."""
+    STRIDE = 16
+
+    def __new__(cls, vid, off=0):
+        assert 0 <= off < cls.STRIDE
+        obj = int.__new__(cls, pt.VA_BASE + vid*cls.STRIDE + off)
+        obj.vid, obj.off = vid, off
+        return obj
+
+    def __reduce__(self):
+        return type(self),(self.vid,self.off)
+
+
 @dataclass
 class Graph:
     ops: list = field(default_factory=list)
@@ -43,9 +57,11 @@ class Graph:
     lookup_bits: dict = field(default_factory=dict)
     initial_zero: list = field(default_factory=list)
     tag: tuple = (-1, 0)
+    ref_type: type = pt.V
 
     def new(self, n=8):
-        v = pt.V(len(self.sizes))
+        assert 1 <= n <= getattr(self.ref_type, 'STRIDE', 8)
+        v = self.ref_type(len(self.sizes))
         self.sizes.append(n)
         return v
 
@@ -58,12 +74,27 @@ class Graph:
 
 
 def lane(v, j):
-    return pt.V(v.vid, v.off + j)
+    return type(v)(v.vid, v.off + j)
 
 
 def scalar_root_group(config,r,k):
     groups=config.get('scalar_root_groups',())
     return r in (0,11) and (groups=='all' or (r,k) in groups or [r,k] in groups)
+
+
+def late_pair_member(config, k):
+    return any(k in (group,group+1) for group in config.get('late_pair_groups',()))
+
+
+def overfetch_member(config,r,k):
+    groups=config.get('overfetch_groups',())
+    return r%11 in config.get('overfetch_levels',(8,9,10)) and (groups=='all' or k in groups)
+
+
+def forced_scalar_pack(config, r, k, label):
+    return (label=='mix' and scalar_root_group(config,r,k) or
+            label=='mix' and overfetch_member(config,r,k) or
+            ((r==14 and label=='bit') or (r==15 and label=='mix')) and late_pair_member(config,k))
 
 
 def build(config=None):
@@ -96,9 +127,23 @@ def build(config=None):
                dispatch4_groups=(), gather_dispatch4=False, precise_restore=False,
                header_root=False, scalar_root_groups=(), force_load_scalars=(),
                dispatch2_groups=(), dispatch13_groups=(), width2=3, prefetch2=True,
-               fold_path3_groups=(), pc_bit_pools=())
+               fold_path3_groups=(), pc_bit_pools=(),
+               late_pair_groups=(), late_pair_buffers=1, late_pair_order=(),
+               memory_vectors=(), memory_vector_buffers=1, memory_vector_order=(),
+               overfetch_groups=(), overfetch_levels=(8,9,10))
     cfg.update(config or {})
-    g = Graph()
+    late_pairs=set(cfg['late_pair_groups'])
+    g = Graph(ref_type=WideV if late_pairs else pt.V)
+    g.overfetch_values=[]
+    if cfg['overfetch_groups']:
+        assert cfg['compact_heap']
+        assert set(cfg['overfetch_levels'])<={8,9,10}
+        assert cfg['overfetch_groups']=='all' or set(cfg['overfetch_groups'])<=set(range(32))
+    if late_pairs:
+        assert cfg['compact_heap'] and cfg['store_children'] and cfg['prefetch3']
+        assert cfg['heap_io_backup'] and not cfg['grand_row_groups']
+        assert not cfg['dispatch_spans']
+        assert 1 <= cfg['late_pair_buffers'] <= 4
     sc, vc = {}, {}
     # Fixed table addresses can share the scalar pointers already required by
     # tree loads and I/O. Allocate those words together before emitting them.
@@ -365,6 +410,10 @@ def build(config=None):
             dispatch_groups[r, k] = width
             k += width
 
+    for k in late_pairs:
+        assert dispatch_groups.get((14,k))==2
+        assert all(modes[15][j]=='prefetch' and not prefetch_madd(15,j) for j in (k,k+1))
+
     spans = {(r,k):span for r,k,span in cfg["dispatch_spans"]}
     assert set(spans) <= set(dispatch_groups)
     assert all(1 <= span <= 4 for span in spans.values())
@@ -380,6 +429,8 @@ def build(config=None):
             if rows:
                 assert spans.get((r,k),1)==1 and rows <= cfg["grand_row_buffers"]
                 fields=fields[:2-rows]
+        if r==14 and k in late_pairs:
+            fields=[]
         field_plans[r,k] = fields
     regular_buffers = cfg["temp_buffers"] or 2
     extended_words = 8*max([0,*[len(fields) for key,fields in field_plans.items() if spans.get(key,1)>1]])
@@ -390,6 +441,12 @@ def build(config=None):
         order=[tuple(key) for key in cfg["temp_region_order"] if tuple(key) in dispatch_groups]
         assert len(order)==len(set(order)) and set(order)==set(dispatch_groups)
         temp_rank={key:i for i,key in enumerate(order)}
+    pair_order=list(cfg['late_pair_order'])
+    if pair_order:
+        assert temp_rank is None and len(pair_order)==len(set(pair_order)) and set(pair_order)==late_pairs
+    else:
+        pair_order=sorted(late_pairs,key=lambda k:temp_rank[14,k] if temp_rank else k)
+    pair_rank={k:i for i,k in enumerate(pair_order)}
     values=io=input_loads=None
     io_backup_groups={}
     next_io_backup=reserved_io_words//8
@@ -459,7 +516,7 @@ def build(config=None):
                     shallow_biased = binary("^", shallow_raw, vector(c[5]), "tree.shallow.bias", False)
                 bias = lane(shallow_biased, (1 << d)-1)
             elif mirrored:
-                bias = g.new()
+                bias = g.new(14 if d==4 and late_pairs else 8)
                 src = scalar(c[5])
                 for j in range(8):
                     dst, source = lane(bias, 7-j), lane(raw, j)
@@ -570,6 +627,10 @@ def build(config=None):
     grandchildren = {}
     row_columns = {}
     row_records = {}
+    pair_nodes={}
+    pair_bits={}
+    pair_loads=[]
+    g.pair_rows=[]
     previous_temp_loads = {}
     temp_reads = []
     temp_output_reads = {}
@@ -646,9 +707,11 @@ def build(config=None):
         fetch_streams=tuple(s for s in range(width) if d in (2,3,4) and cfg[f"prefetch{d}"]
                             and modes[r+1][group+s]=='prefetch')
         fetch = bool(fetch_streams)
+        pair_row = r==14 and group in late_pairs
+        pair_pointers=None
         if fetch:
             children = list(reversed(adjusted_nodes[d+1]))
-            store_children = cfg["store_children"] and r in (2, 3, 4, 13, 14)
+            store_children = cfg["store_children"] and r in (2, 3, 4, 13, 14) and not pair_row
             if store_children:
                 ordinal=temp_rank[r,group] if temp_rank is not None else len(g.regions)
                 buffer = ordinal % cfg["temp_buffers"] if cfg["temp_buffers"] else int(r == 14)
@@ -665,7 +728,17 @@ def build(config=None):
                     indices = reversed(indices)
                 memory_children = [scalar(bases[d+1]+j) for j in indices]
             for stream in fetch_streams:
-                prefetched[r+1, group+stream] = [g.new(), g.new()]
+                if pair_row:
+                    pair_nodes[group+stream]=[g.new(9),g.new(9)]
+                else:
+                    prefetched[r+1, group+stream] = [g.new(), g.new()]
+        if pair_row:
+            assert fetch_streams==(0,1) and span==1
+            pair_buffer=pair_rank[group]%cfg['late_pair_buffers']
+            pair_base=2054+48*pair_buffer
+            pair_buffer_key=regular_buffers+pair_buffer
+            pair_pointers=[[scalar(pair_base+24*s+2*j) for j in range(8)] for s in range(2)]
+            pair_stores=[[],[]]
         grand_streams = [s for s in range(width) if r == 3 and group+s in cfg["prefetch5_groups"]]
         if grand_streams:
             assert width <= 2
@@ -701,6 +774,9 @@ def build(config=None):
                                  for i,op in enumerate(previous_temp_loads.get(buffer, ())) if i<len(fields))
             for source_group in range((temp_base-2310)//8,(temp_base-2310)//8+len(fields)):
                 g.control.append((input_loads[source_group], start, 1))
+        if pair_row and temp_rank is None and not cfg['late_pair_order']:
+            g.control.extend((op,start,-1-i//2)
+                             for i,op in enumerate(previous_temp_loads.get(pair_buffer_key,())))
         parts = []
         temp_stores = [[] for _ in fields]
         relative_times = {start:0}
@@ -716,7 +792,21 @@ def build(config=None):
                 xors.append((op, stream))
                 relative_times[op] = 1+j*span
                 if stream in fetch_streams:
-                    for child in range(2):
+                    if pair_row:
+                        cache=children[::2]
+                        assert all(children[2*q+1]==lane(src,1) and src.off+8<=g.sizes[src.vid]
+                                   for q,src in enumerate(cache))
+                        dst=pair_pointers[stream][j]
+                        op=g.emit(prefix+f'pair_row{j}.{stream}','store',
+                                  ('lookup_pair_store',dst,q,*cache),
+                                  [(dst,1),(q,1),*[(src,2) for src in cache]],[])
+                        if fused:
+                            g.lookup_bits[op]=lane(bits[group+stream][-1],j)
+                            g.ops[op][2].append((g.lookup_bits[op],1))
+                        pair_stores[stream].append(op)
+                        xors.append((op,stream))
+                        relative_times[op]=1+j
+                    for child in (() if pair_row else range(2)):
                         cache = children[child::2] if child == 0 or not prefetch_madd(r+1, group+stream) else child_diffs[d+1]
                         dst = lane(prefetched[r+1, group+stream][child], j)
                         field = ("child",stream,child)
@@ -801,6 +891,23 @@ def build(config=None):
             g.regions[-1]["temp_loads"] = loads
             g.regions[-1]["temp_buffer"] = buffer
             g.regions[-1]["temp_fields"] = len(fields)
+        if pair_row:
+            loads=[]
+            for block in range(2):
+                for stream in range(2):
+                    dst=pair_nodes[group+stream][block]
+                    address=pair_pointers[stream][4*block]
+                    op=g.emit(prefix+f'pair_load{block}.{stream}','load',
+                              ('vload',dst,address),[(address,1)],[(dst,8)])
+                    g.control.extend((before,op,1) for j,before in enumerate(pair_stores[stream])
+                                     if 2*j<8*block+8 and 8*block<2*j+8)
+                    loads.append(op)
+            previous_temp_loads[pair_buffer_key]=loads
+            pair_loads.extend(loads)
+            g.regions[-1].update(temp_loads=loads,temp_buffer=pair_buffer_key,temp_fields=4)
+            g.pair_rows.append(dict(group=group,base=pair_base,
+                                    stores=[[g.names[i] for i in row] for row in pair_stores],
+                                    loads=[g.names[i] for i in loads]))
         return mixed
 
     if values is None:
@@ -840,12 +947,30 @@ def build(config=None):
                     mixed_pairs.update((k+s, v) for s, v in enumerate(both))
                 value = mixed_pairs[k]
             elif mode == "prefetch":
-                no, yes = prefetched[r, k]
-                if prefetch_madd(r, k):
-                    node = madd(bits[k][-1], yes, no, prefix + "prefetched_node")
+                if r==15 and k in pair_nodes:
+                    selected=[]
+                    for block in range(2):
+                        no=pair_nodes[k][block]
+                        yes=lane(no,1)
+                        cond=pair_bits[k][block]
+                        node=g.new()
+                        inputs=[(lane(v,j),1) for v in (cond,yes,no) for j in (0,2,4,6)]
+                        g.emit(prefix+f'prefetched_node.half{block}','flow',
+                               ('vselect_even',node,cond,yes,no),inputs,[(node,8)])
+                        selected.extend(lane(node,2*j) for j in range(4))
+                    scalar_tick+=1
+                    value=g.new()
+                    for j in range(8):
+                        dst,src,node=lane(value,j),lane(values[k],j),selected[j]
+                        g.emit(prefix+f'mix.lane{j}','alu',('^',dst,src,node),
+                               [(src,1),(node,1)],[(dst,1)])
                 else:
-                    node = select(bits[k][-1], yes, no, prefix + "prefetched_node")
-                value = binary("^", values[k], node, prefix + "mix")
+                    no, yes = prefetched[r, k]
+                    if prefetch_madd(r, k):
+                        node = madd(bits[k][-1], yes, no, prefix + "prefetched_node")
+                    else:
+                        node = select(bits[k][-1], yes, no, prefix + "prefetched_node")
+                    value = binary("^", values[k], node, prefix + "mix")
             elif mode == "grand":
                 nodes = grandchildren[k]
                 left = select(bits[k][-2], nodes[2], nodes[0], prefix + "grand_left")
@@ -864,7 +989,9 @@ def build(config=None):
             else:
                 address = ptrs[k]
                 assert state[k] == "a"
-                node = g.new()
+                overfetch=overfetch_member(cfg,r,k)
+                node = None if overfetch else g.new()
+                node_parts=[]
                 deps = syncs.get(depth, [])
                 if depth <= 3 and not deps:
                     # Rare shallow gathers use raw nodes, so absorb the
@@ -873,14 +1000,32 @@ def build(config=None):
                 else:
                     bias_gather = False
                 for j in range(8):
-                    op = g.emit(prefix + f"load{j}", "load", ("load", lane(node, j), lane(address, j)), [(lane(address, j), 1)], [(lane(node, j), 1)])
+                    if overfetch:
+                        # The original node is at 6+q. VLOAD's implicit lane
+                        # offset supplies +6 while the recurrence keeps q.
+                        part=g.new()
+                        g.overfetch_values.append(part)
+                        node_parts.append(lane(part,6))
+                        op=g.emit(prefix+f'load{j}','load',('vload',part,lane(address,j)),
+                                  [(lane(address,j),1)],[(part,8)])
+                    else:
+                        op = g.emit(prefix + f"load{j}", "load", ("load", lane(node, j), lane(address, j)), [(lane(address, j), 1)], [(lane(node, j), 1)])
                     g.control.extend((before, op, 1) for before in deps)
                     if deps:
                         last_gathers.append(op)
                         gather_levels[op] = depth
                 if bias_gather:
                     node = binary("^", node, vector(c[5]), prefix + "load.bias")
-                value = binary("^", values[k], node, prefix + "mix")
+                if overfetch:
+                    assert not bias_gather
+                    value=g.new()
+                    scalar_tick+=1
+                    for j,source in enumerate(node_parts):
+                        dst,old=lane(value,j),lane(values[k],j)
+                        g.emit(prefix+f'mix.lane{j}','alu',('^',dst,old,source),
+                               [(old,1),(source,1)],[(dst,1)])
+                else:
+                    value = binary("^", values[k], node, prefix + "mix")
             defer = r != 15 and ((r+1) % 11 <= 3 or modes[r+1][k] in ("blend", "jump", "prefetch", "grand") or cfg["prexor"] and 4 <= (r+1)%11 <= 7)
 
             def checkpoint(value, stage, biased=False):
@@ -905,6 +1050,18 @@ def build(config=None):
             checkpoint(value, 5, defer)
             values[k] = value
             if r == 15 or depth == 10:
+                continue
+            if r==14 and k in pair_nodes:
+                # This parity is only consumed by the final node selection.
+                # Its former coordinate update has no live consumer.
+                scalar_tick+=1
+                pair_bits[k]=[g.new(),g.new()]
+                one=scalar(1)
+                for j in range(8):
+                    dst=lane(pair_bits[k][j//4],2*(j%4))
+                    src=lane(value,j)
+                    g.emit(prefix+f'bit.lane{j}','alu',('&',dst,src,one),
+                           [(src,1),(one,1)],[(dst,1)])
                 continue
             next_state = "a" if modes[r+1][k] == "gather" else "q"
             if (r, k) in ahead_bits:
@@ -964,7 +1121,7 @@ def build(config=None):
                             return -1, (1 << d)-1
                         if 4 <= d <= 7:
                             return -1, bases[d]+(1 << d)-1
-                        return 1, bases[d]
+                        return 1, bases[d]-(6 if overfetch_member(cfg,d,k) else 0)
                     sign, offset = coordinate(state[k], depth)
                     next_sign, next_offset = coordinate(next_state, depth+1)
                     scale = 2*sign*next_sign
@@ -1079,6 +1236,22 @@ def build(config=None):
             op=g.emit(f"grand_row.clear{offset}","store",("vstore",address,zero),
                       [(address,1),(zero,8)],[])
             g.control.extend((before,op,0) for before in reads)
+    if late_pairs:
+        for offset in range(0,48*cfg['late_pair_buffers'],8):
+            address=scalar(2054+offset)
+            zero=vector(0)
+            op=g.emit(f'late_pair.clear{offset}','store',('vstore',address,zero),
+                      [(address,1),(zero,8)],[])
+            g.control.extend((before,op,0) for before in pair_loads)
+        if cfg['late_pair_order']:
+            regions={r['groups'][0]:r for r in g.regions if r['round']==14 and r['groups'][0] in late_pairs}
+            previous={}
+            for k in pair_order:
+                region=regions[k]
+                buffer=region['temp_buffer']
+                g.control.extend((op,region['start'],-1-i//2)
+                                 for i,op in enumerate(previous.get(buffer,())))
+                previous[buffer]=region['temp_loads']
     if temp_rank is not None:
         previous={}
         for region in sorted(g.regions,key=lambda r:temp_rank[r['round'],r['groups'][0]]):
@@ -1089,6 +1262,50 @@ def build(config=None):
                              for i,op in enumerate(previous.get(buffer,())) if i<region['temp_fields'])
             loads=region['temp_loads']
             previous[buffer]=loads+previous.get(buffer,[])[len(loads):]
+    if cfg['memory_vectors']:
+        # Replicate a scalar through otherwise unused index memory. Each read
+        # follows all eight stores; the next fill may share its read cycle.
+        assert cfg['compact_heap'] and cfg['heap_io_backup'] and cfg['initial_zero_vector']
+        assert not row_groups and not late_pairs
+        assert 1 <= cfg['memory_vector_buffers'] <= 8
+        eligible={name:i for i,(name,op) in enumerate(zip(g.names,g.ops))
+                  if op[1][0]=='vbroadcast' or name.startswith('derive.')}
+        selected=(list(eligible) if cfg['memory_vectors']=='all' else list(cfg['memory_vectors']))
+        assert len(selected)==len(set(selected)) and set(selected)<=set(eligible)
+        order=cfg['memory_vector_order'] or [name for name in eligible if name in selected]
+        assert len(order)==len(set(order)) and set(order)==set(selected)
+        previous={}
+        addresses={}
+        g.memory_vectors=[]
+        old_tag=g.tag
+        g.tag=(-1,0)
+        for ordinal,name in enumerate(order):
+            i=eligible[name]
+            op=g.ops[i]
+            assert op[0]=='valu' and len(op[3])==1 and op[3][0][1]==8
+            src=op[1][2] if op[1][0]=='vbroadcast' else scalar(int(name.split('.')[1]))
+            dst=op[3][0][0]
+            buffer=ordinal%cfg['memory_vector_buffers']
+            if buffer not in addresses:
+                addresses[buffer]=[scalar(2054+8*buffer+j) for j in range(8)]
+            stores=[]
+            for j,ptr in enumerate(addresses[buffer]):
+                store=g.emit(f'memory_vector.{name}.store{j}','store',('store',ptr,src),
+                             [(ptr,1),(src,1)],[])
+                g.control.append((store,i,1))
+                if buffer in previous:g.control.append((previous[buffer],store,0))
+                stores.append(g.names[store])
+            ptr=addresses[buffer][0]
+            g.ops[i]=['load',('vload',dst,ptr),[(ptr,1)],[(dst,8)],op[4]]
+            previous[buffer]=i
+            g.memory_vectors.append(dict(name=name,buffer=buffer,address=2054+8*buffer,stores=stores))
+        for buffer,read in previous.items():
+            ptr=addresses[buffer][0]
+            zero=vector(0)
+            clear=g.emit(f'memory_vector.clear{buffer}','store',('vstore',ptr,zero),
+                         [(ptr,1),(zero,8)],[])
+            g.control.append((read,clear,0))
+        g.tag=old_tag
     g.config = cfg
     g.total_table_words = total_words
     if cfg["dce"]:
@@ -1097,7 +1314,33 @@ def build(config=None):
         merge_dispatch_regions(g, max(len(chain) for chain in cfg["merge_chains"]))
     elif cfg["merge_regions"] > 1:
         merge_dispatch_regions(g, cfg["merge_regions"])
+    audit_pair_padding(g)
+    audit_overfetch_padding(g)
     return g
+
+
+def audit_pair_padding(g):
+    """Prove unused vector selection outputs have no logical consumer."""
+    observed={int(v)+j for op in g.ops for v,n in op[2] for j in range(n)}
+    observed.update(int(v)+j for v,*_ in g.checks for j in range(8))
+    for engine,slot,inputs,outputs,*_ in g.ops:
+        if slot[0]=='vselect_even':
+            _,dest,cond,yes,no=slot
+            assert engine=='flow' and outputs==[(dest,8)]
+            assert inputs==[(lane(v,j),1) for v in (cond,yes,no) for j in (0,2,4,6)]
+            assert all(v.off+8<=g.sizes[v.vid] for v in (dest,cond,yes,no))
+            assert not {int(dest)+j for j in (1,3,5,7)}.intersection(observed)
+        elif slot[0]=='lookup_pair_store':
+            assert engine=='store' and not outputs
+            assert all(v.off+8<=g.sizes[v.vid] for v in slot[3:])
+
+
+def audit_overfetch_padding(g):
+    observed={int(v)+j for op in g.ops for v,n in op[2] for j in range(n)}
+    observed.update(int(v)+j for v,*_ in g.checks for j in range(8))
+    for value in getattr(g,'overfetch_values',()):
+        assert g.sizes[value.vid]==8
+        assert not {int(value)+j for j in range(8) if j!=6}.intersection(observed)
 
 
 def eliminate_dead(g):
@@ -1400,11 +1643,12 @@ def allocate_lanes(g, times):
             Path(temporary).unlink(missing_ok=True)
     lib = ctypes.CDLL(str(path))
     ptr = np.ctypeslib.ndpointer(dtype=np.int64, flags="C_CONTIGUOUS")
-    lib.allocate_lanes_native.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ptr, ptr, ptr, ctypes.c_int, ptr]
+    lib.allocate_lanes_native.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ptr, ptr, ptr, ctypes.c_int, ptr]
     lib.allocate_lanes_native.restype = ctypes.c_int
     n, horizon = len(g.sizes), int(max(times))+3
-    first = np.full((n, 8), horizon, dtype=np.int64)
-    end = np.full((n, 8), -1, dtype=np.int64)
+    words=16 if max(g.sizes,default=8)>8 else 8
+    first = np.full((n, words), horizon, dtype=np.int64)
+    end = np.full((n, words), -1, dtype=np.int64)
     for v in g.initial_zero:
         first[v.vid, :g.sizes[v.vid]] = 0
         end[v.vid, :g.sizes[v.vid]] = 1
@@ -1423,7 +1667,7 @@ def allocate_lanes(g, times):
         for base, length in op[2]:
             assert np.all(first[base.vid, base.off:base.off+length] <= int(times[i])), g.names[i]
     sizes = np.asarray(g.sizes, dtype=np.int64)
-    assert np.all((1 <= sizes) & (sizes <= 8))
+    assert np.all((1 <= sizes) & (sizes <= words))
     live = first < end
     events = np.zeros(horizon+1, dtype=np.int64)
     np.add.at(events, first[live], 1)
@@ -1435,7 +1679,7 @@ def allocate_lanes(g, times):
     output = np.empty(n, dtype=np.int64)
     failures = []
     for policy in range(g.config.get("lane_allocation_trials", 8)):
-        failed = lib.allocate_lanes_native(n, horizon, 1536, sizes, first, end, policy, output)
+        failed = lib.allocate_lanes_native(n, horizon, 1536, words, sizes, first, end, policy, output)
         if failed:
             failures.append(int(failed)-1)
             continue
@@ -1464,6 +1708,9 @@ def lower(g, times, bases):
         return bases[v.vid] + v.off if isinstance(v, pt.V) else v
 
     slots = [tuple(word(v) for v in op[1]) for op in g.ops]
+    for i,slot in enumerate(slots):
+        if slot[0]=='vselect_even':
+            slots[i]=('vselect',*slot[1:])
     for i in g.pc_constants:
         code, dst, immediate = slots[i]
         slots[i] = (code, dst, immediate+(14 if tables_first else total))
@@ -1510,6 +1757,8 @@ def lower(g, times, bases):
                                     slot = ("store", slot[1], slot[3+q])
                                 elif slot[0] == "lookup_vstore":
                                     slot = ("vstore",slot[2+(q&1)],slot[4+q])
+                                elif slot[0] == 'lookup_pair_store':
+                                    slot = ('vstore',slot[1],slot[3+q])
                                 else:
                                     assert slot[0] == "lookup_copy"
                                     slot = ("|", slot[1], slot[3+q], slot[3+q])
@@ -1652,6 +1901,8 @@ def search_config(cfg, directory, trials=100, iterations=100, seed=0):
 
 
 def verify_semantics(g, seeds=(0, 1)):
+    audit_pair_padding(g)
+    audit_overfetch_padding(g)
     class Scratch(dict):
         def __init__(self,initial):
             super().__init__(initial)
@@ -1675,7 +1926,8 @@ def verify_semantics(g, seeds=(0, 1)):
             self.pending.clear()
 
     times=np.arange(len(g.ops),dtype=np.int64)
-    if g.config.get('grand_row_groups'):
+    if (g.config.get('grand_row_groups') or g.config.get('late_pair_groups') or
+            g.config.get('memory_vectors')):
         # Row reuse introduces edges from a later round to an earlier-built
         # group. Interpret a dependency-valid logical timeline, with all reads
         # preceding same-cycle writes, instead of construction order.
@@ -1722,6 +1974,18 @@ def verify_semantics(g, seeds=(0, 1)):
                 address=values[int(negative if index&1 else positive)]
                 for j in range(8):
                     mem[address+j]=values[int(cache[index])+j]
+            elif op == 'lookup_pair_store':
+                dst,q,*cache=args
+                index=values[int(q)]
+                if op_id in g.lookup_bits:
+                    index=2*index+values[int(g.lookup_bits[op_id])]
+                address=values[int(dst)]
+                for j in range(8):
+                    # Only the adjacent child pair is semantically retained.
+                    # Poison the other writes; later ordered stores/clears
+                    # must eliminate them before any observed memory read.
+                    mem[address+j]=(values[int(cache[index])+j] if j<2 else
+                                    (0xa5a50000 ^ (index<<8) ^ j))
             elif op == "lookup_store":
                 dst, q, *cache = args
                 index = values[int(q)]
@@ -1762,6 +2026,11 @@ def verify_semantics(g, seeds=(0, 1)):
                     elif op == "multiply_add": val = (values[int(args[1])+j]*values[int(args[2])+j]+values[int(args[3])+j])&MASK
                     else: val = binary(op, values[int(args[1])+j], values[int(args[2])+j])
                     values[int(dst)+j] = val
+            elif op == 'vselect_even':
+                dst,cond,yes,no=args
+                for j in range(8):
+                    values[int(dst)+j]=(values[int(yes if values[int(cond)+j] else no)+j]
+                                        if j%2==0 else 0x5a5a0000+j)
             elif op == "vselect":
                 dst, bit, yes, no = args
                 for j in range(8): values[int(dst)+j] = values[int(yes if values[int(bit)+j] else no)+j]
@@ -1770,7 +2039,9 @@ def verify_semantics(g, seeds=(0, 1)):
                 values[int(dst)] = (values[int(src)] + immediate) & MASK
             elif engine == "store":
                 addr, src = args
-                for j in range(8): mem[values[int(addr)]+j] = values[int(src)+j]
+                assert op in ('store','vstore')
+                for j in range(8 if op=='vstore' else 1):
+                    mem[values[int(addr)]+j] = values[int(src)+j]
             else:
                 assert op in ("jump", "jump_indirect")
         values.commit()

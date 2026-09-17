@@ -1,0 +1,24 @@
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.338s
+
+OK
+Testing forest_height=10, rounds=16, batch_size=256
+CYCLES:  915
+Testing forest_height=10, rounds=16, batch_size=256
+CYCLES:  915
+Testing forest_height=10, rounds=16, batch_size=256
+CYCLES:  915
+Testing forest_height=10, rounds=16, batch_size=256
+CYCLES:  915
+Testing forest_height=10, rounds=16, batch_size=256
+CYCLES:  915
+Testing forest_height=10, rounds=16, batch_size=256
+CYCLES:  915
+Testing forest_height=10, rounds=16, batch_size=256
+CYCLES:  915
+Testing forest_height=10, rounds=16, batch_size=256
+CYCLES:  915
+Testing forest_height=10, rounds=16, batch_size=256
+CYCLES:  915
+Speedup over baseline:  161.45792349726776

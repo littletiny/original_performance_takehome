@@ -1,4 +1,11 @@
-# Proposed late child-pair layout — not implemented or measured
+# Late child-pair layout — implemented and measured in research
+
+The proposal below has now been implemented in `optimize.py` and measured in
+`results/late_pair_rows_917/`. Its best screen is 919 cycles; the seven-pair
+layout saves 94 weighted arithmetic slots but executes in 927 cycles. It has
+not replaced the submitted kernel. See that directory's README for validation,
+padding rules, reuse ordering and follow-up screens. The remainder records the
+original proposal and its verification requirements.
 
 The seven paired depth-3 regions in round 14 still copy the second stream's
 two children with ALU (16 copies per region). Unlike round 3, their outgoing
@@ -59,5 +66,5 @@ chains would be required before the extra FLOW count can fit a sub-900 graph.
   eight child-pair choices and buffer reuse, and verifies the payload plus
   restoration. Require full frozen execution before reporting performance.
 
-The source checkpoint is `results/compact_917`. None of this proposal is
-present in the submitted kernel yet.
+The source checkpoint is `results/compact_917`. This proposal is available as
+a research configuration and is absent from the submitted kernel.
