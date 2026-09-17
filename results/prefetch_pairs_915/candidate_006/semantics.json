@@ -1,0 +1,8 @@
+{
+  "seeds": [
+    0,
+    1
+  ],
+  "hash_checkpoints_per_seed": 20480,
+  "preserved_non_output_memory": true
+}

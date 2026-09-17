@@ -1,0 +1,23 @@
+{
+  "index": 42,
+  "labels": [],
+  "roots": true,
+  "keep6": false,
+  "anchors": 12,
+  "resource_bound": 899,
+  "engines": {
+    "valu": 5383,
+    "load": 1793,
+    "alu": 10761,
+    "store": 998,
+    "flow": 874
+  },
+  "weighted_alu_valu": 53825,
+  "bound": 898,
+  "arithmetic_bound": 898,
+  "table_bundles": 11264,
+  "table_case_bundles": 10368,
+  "static_padding_bundles": 909,
+  "regions": 43,
+  "values": 8458
+}

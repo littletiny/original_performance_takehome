@@ -9,9 +9,7 @@ import numpy as np
 from optimize import build,Scheduler,ENGINES,CAPACITY,counts
 
 
-def analyze(source):
-    graph=build(json.loads((source/'config.json').read_text()))
-    scheduler=Scheduler(graph)
+def _analyze_graph(graph,scheduler,source):
     early=np.zeros(len(graph.units),dtype=np.int64)
     for unit in scheduler.order:
         for child,lag in scheduler.children[unit]:
@@ -37,6 +35,20 @@ def analyze(source):
                 critical_path_bound=critical,resource_windows=evidence,
                 formula='C >= release + tail + ceil(work / capacity)',
                 scope='Fixed SSA graph and compound units; scratch ignored. Bootstrap and pause are not included. Not a global task lower bound.')
+    signature=json.dumps([graph.ops,graph.units,graph.control,graph.sizes],separators=(',',':'))
+    report['graph_sha256']=hashlib.sha256(signature.encode()).hexdigest()
+    return report
+
+
+def analyze_graph(graph,source='unsaved graph'):
+    """Evaluate a proposed graph before spending work on an allocated schedule."""
+    return _analyze_graph(graph,Scheduler(graph),source)
+
+
+def analyze(source):
+    graph=build(json.loads((source/'config.json').read_text()))
+    scheduler=Scheduler(graph)
+    report=_analyze_graph(graph,scheduler,source)
     if (source/'best.npz').exists():
         schedule=np.load(source/'best.npz')
         times=schedule['times'];units=schedule['unit_times']
@@ -44,10 +56,8 @@ def analyze(source):
         assert np.array_equal(times,scheduler.op_times(units))
         assert np.all(units[scheduler.dests]>=units[scheduler.sources]+scheduler.lags)
         cycles=int(times.max())+1
-        assert bound<=cycles,(bound,cycles)
+        assert report['bound']<=cycles,(report['bound'],cycles)
         report['saved_schedule_cycles']=cycles
-    signature=json.dumps([graph.ops,graph.units,graph.control,graph.sizes],separators=(',',':'))
-    report['graph_sha256']=hashlib.sha256(signature.encode()).hexdigest()
     return report
 
 

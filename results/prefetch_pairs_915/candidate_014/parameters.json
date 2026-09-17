@@ -1,0 +1,48 @@
+{
+  "candidate": 14,
+  "source": "results/bound899_915/candidate_009",
+  "parameters": {
+    "family": "joint",
+    "mode": "prefetch_pair_groups",
+    "groups": [
+      0,
+      1,
+      4,
+      5,
+      6,
+      8,
+      9,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "removed": 2,
+    "keep": []
+  },
+  "resource_bound": 905,
+  "static_bundles_at_899": 11832,
+  "engines": {
+    "valu": 5389,
+    "load": 1807,
+    "alu": 10783,
+    "store": 982,
+    "flow": 874
+  },
+  "weighted_alu_valu": 53895,
+  "bound": 904,
+  "arithmetic_bound": 899,
+  "table_bundles": 11264,
+  "table_case_bundles": 10368,
+  "static_padding_bundles": 909,
+  "regions": 43,
+  "values": 8484
+}

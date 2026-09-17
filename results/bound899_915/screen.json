@@ -1,0 +1,1493 @@
+[
+  {
+    "index": 0,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": true,
+    "keep6": false,
+    "anchors": 4,
+    "resource_bound": 899,
+    "engines": {
+      "valu": 5383,
+      "load": 1785,
+      "alu": 10761,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53825,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458,
+    "candidate": 0
+  },
+  {
+    "index": 1,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": true,
+    "keep6": false,
+    "anchors": 8,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5382,
+      "load": 1789,
+      "alu": 10765,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53821,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 2,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": true,
+    "keep6": false,
+    "anchors": 12,
+    "resource_bound": 899,
+    "engines": {
+      "valu": 5382,
+      "load": 1793,
+      "alu": 10761,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53817,
+    "bound": 897,
+    "arithmetic_bound": 897,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458,
+    "candidate": 1
+  },
+  {
+    "index": 3,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": true,
+    "keep6": false,
+    "anchors": 16,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5382,
+      "load": 1797,
+      "alu": 10757,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53813,
+    "bound": 899,
+    "arithmetic_bound": 897,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 4,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": true,
+    "keep6": false,
+    "anchors": 20,
+    "resource_bound": 902,
+    "engines": {
+      "valu": 5381,
+      "load": 1801,
+      "alu": 10761,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53809,
+    "bound": 901,
+    "arithmetic_bound": 897,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 5,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": true,
+    "keep6": true,
+    "anchors": 4,
+    "resource_bound": 899,
+    "engines": {
+      "valu": 5383,
+      "load": 1777,
+      "alu": 10761,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53825,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450,
+    "candidate": 2
+  },
+  {
+    "index": 6,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": true,
+    "keep6": true,
+    "anchors": 8,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5382,
+      "load": 1781,
+      "alu": 10765,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53821,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 7,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": true,
+    "keep6": true,
+    "anchors": 12,
+    "resource_bound": 899,
+    "engines": {
+      "valu": 5382,
+      "load": 1785,
+      "alu": 10761,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53817,
+    "bound": 897,
+    "arithmetic_bound": 897,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450,
+    "candidate": 3
+  },
+  {
+    "index": 8,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": true,
+    "keep6": true,
+    "anchors": 16,
+    "resource_bound": 899,
+    "engines": {
+      "valu": 5382,
+      "load": 1789,
+      "alu": 10757,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53813,
+    "bound": 897,
+    "arithmetic_bound": 897,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450,
+    "candidate": 4
+  },
+  {
+    "index": 9,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": true,
+    "keep6": true,
+    "anchors": 20,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5381,
+      "load": 1793,
+      "alu": 10761,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53809,
+    "bound": 897,
+    "arithmetic_bound": 897,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 10,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": false,
+    "keep6": false,
+    "anchors": 4,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1786,
+      "alu": 10769,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53833,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 11,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": false,
+    "keep6": false,
+    "anchors": 8,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1790,
+      "alu": 10765,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53829,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 12,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": false,
+    "keep6": false,
+    "anchors": 12,
+    "resource_bound": 899,
+    "engines": {
+      "valu": 5383,
+      "load": 1794,
+      "alu": 10761,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53825,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458,
+    "candidate": 5
+  },
+  {
+    "index": 13,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": false,
+    "keep6": false,
+    "anchors": 16,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5382,
+      "load": 1798,
+      "alu": 10765,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53821,
+    "bound": 899,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 14,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": false,
+    "keep6": false,
+    "anchors": 20,
+    "resource_bound": 902,
+    "engines": {
+      "valu": 5382,
+      "load": 1802,
+      "alu": 10761,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53817,
+    "bound": 901,
+    "arithmetic_bound": 897,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 15,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": false,
+    "keep6": true,
+    "anchors": 4,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1778,
+      "alu": 10769,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53833,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 16,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": false,
+    "keep6": true,
+    "anchors": 8,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1782,
+      "alu": 10765,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53829,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 17,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": false,
+    "keep6": true,
+    "anchors": 12,
+    "resource_bound": 899,
+    "engines": {
+      "valu": 5383,
+      "load": 1786,
+      "alu": 10761,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53825,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450,
+    "candidate": 6
+  },
+  {
+    "index": 18,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": false,
+    "keep6": true,
+    "anchors": 16,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5382,
+      "load": 1790,
+      "alu": 10765,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53821,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 19,
+    "labels": [
+      "h6.a",
+      "h6.b"
+    ],
+    "roots": false,
+    "keep6": true,
+    "anchors": 20,
+    "resource_bound": 902,
+    "engines": {
+      "valu": 5382,
+      "load": 1794,
+      "alu": 10761,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53817,
+    "bound": 897,
+    "arithmetic_bound": 897,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 20,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": true,
+    "keep6": false,
+    "anchors": 4,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1785,
+      "alu": 10769,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53833,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 21,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": true,
+    "keep6": false,
+    "anchors": 8,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1789,
+      "alu": 10765,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53829,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 22,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": true,
+    "keep6": false,
+    "anchors": 12,
+    "resource_bound": 899,
+    "engines": {
+      "valu": 5383,
+      "load": 1793,
+      "alu": 10761,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53825,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458,
+    "candidate": 7
+  },
+  {
+    "index": 23,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": true,
+    "keep6": false,
+    "anchors": 16,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5382,
+      "load": 1797,
+      "alu": 10765,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53821,
+    "bound": 899,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 24,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": true,
+    "keep6": false,
+    "anchors": 20,
+    "resource_bound": 902,
+    "engines": {
+      "valu": 5382,
+      "load": 1801,
+      "alu": 10761,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53817,
+    "bound": 901,
+    "arithmetic_bound": 897,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 25,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": true,
+    "keep6": true,
+    "anchors": 4,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1777,
+      "alu": 10769,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53833,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 26,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": true,
+    "keep6": true,
+    "anchors": 8,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1781,
+      "alu": 10765,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53829,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 27,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": true,
+    "keep6": true,
+    "anchors": 12,
+    "resource_bound": 899,
+    "engines": {
+      "valu": 5383,
+      "load": 1785,
+      "alu": 10761,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53825,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450,
+    "candidate": 8
+  },
+  {
+    "index": 28,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": true,
+    "keep6": true,
+    "anchors": 16,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5382,
+      "load": 1789,
+      "alu": 10765,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53821,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 29,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": true,
+    "keep6": true,
+    "anchors": 20,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5382,
+      "load": 1793,
+      "alu": 10761,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53817,
+    "bound": 897,
+    "arithmetic_bound": 897,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 30,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": false,
+    "keep6": false,
+    "anchors": 4,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5384,
+      "load": 1786,
+      "alu": 10769,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53841,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 31,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": false,
+    "keep6": false,
+    "anchors": 8,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5384,
+      "load": 1790,
+      "alu": 10765,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53837,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 32,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": false,
+    "keep6": false,
+    "anchors": 12,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1794,
+      "alu": 10769,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53833,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 33,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": false,
+    "keep6": false,
+    "anchors": 16,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1798,
+      "alu": 10765,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53829,
+    "bound": 899,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 34,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": false,
+    "keep6": false,
+    "anchors": 20,
+    "resource_bound": 902,
+    "engines": {
+      "valu": 5383,
+      "load": 1802,
+      "alu": 10761,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53825,
+    "bound": 901,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 35,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": false,
+    "keep6": true,
+    "anchors": 4,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5384,
+      "load": 1778,
+      "alu": 10769,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53841,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 36,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": false,
+    "keep6": true,
+    "anchors": 8,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5384,
+      "load": 1782,
+      "alu": 10765,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53837,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 37,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": false,
+    "keep6": true,
+    "anchors": 12,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1786,
+      "alu": 10769,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53833,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 38,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": false,
+    "keep6": true,
+    "anchors": 16,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1790,
+      "alu": 10765,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53829,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 39,
+    "labels": [
+      "h6.a"
+    ],
+    "roots": false,
+    "keep6": true,
+    "anchors": 20,
+    "resource_bound": 902,
+    "engines": {
+      "valu": 5383,
+      "load": 1794,
+      "alu": 10761,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53825,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 40,
+    "labels": [],
+    "roots": true,
+    "keep6": false,
+    "anchors": 4,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1785,
+      "alu": 10769,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53833,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 41,
+    "labels": [],
+    "roots": true,
+    "keep6": false,
+    "anchors": 8,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1789,
+      "alu": 10765,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53829,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 42,
+    "labels": [],
+    "roots": true,
+    "keep6": false,
+    "anchors": 12,
+    "resource_bound": 899,
+    "engines": {
+      "valu": 5383,
+      "load": 1793,
+      "alu": 10761,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53825,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458,
+    "candidate": 9
+  },
+  {
+    "index": 43,
+    "labels": [],
+    "roots": true,
+    "keep6": false,
+    "anchors": 16,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5382,
+      "load": 1797,
+      "alu": 10765,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53821,
+    "bound": 899,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 44,
+    "labels": [],
+    "roots": true,
+    "keep6": false,
+    "anchors": 20,
+    "resource_bound": 902,
+    "engines": {
+      "valu": 5382,
+      "load": 1801,
+      "alu": 10761,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53817,
+    "bound": 901,
+    "arithmetic_bound": 897,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 45,
+    "labels": [],
+    "roots": true,
+    "keep6": true,
+    "anchors": 4,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1777,
+      "alu": 10769,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53833,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 46,
+    "labels": [],
+    "roots": true,
+    "keep6": true,
+    "anchors": 8,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1781,
+      "alu": 10765,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53829,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 47,
+    "labels": [],
+    "roots": true,
+    "keep6": true,
+    "anchors": 12,
+    "resource_bound": 899,
+    "engines": {
+      "valu": 5383,
+      "load": 1785,
+      "alu": 10761,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53825,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450,
+    "candidate": 10
+  },
+  {
+    "index": 48,
+    "labels": [],
+    "roots": true,
+    "keep6": true,
+    "anchors": 16,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5382,
+      "load": 1789,
+      "alu": 10765,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53821,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 49,
+    "labels": [],
+    "roots": true,
+    "keep6": true,
+    "anchors": 20,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5382,
+      "load": 1793,
+      "alu": 10761,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53817,
+    "bound": 897,
+    "arithmetic_bound": 897,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 50,
+    "labels": [],
+    "roots": false,
+    "keep6": false,
+    "anchors": 4,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5384,
+      "load": 1786,
+      "alu": 10769,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53841,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 51,
+    "labels": [],
+    "roots": false,
+    "keep6": false,
+    "anchors": 8,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5384,
+      "load": 1790,
+      "alu": 10765,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53837,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 52,
+    "labels": [],
+    "roots": false,
+    "keep6": false,
+    "anchors": 12,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1794,
+      "alu": 10769,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53833,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 53,
+    "labels": [],
+    "roots": false,
+    "keep6": false,
+    "anchors": 16,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1798,
+      "alu": 10765,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53829,
+    "bound": 899,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 54,
+    "labels": [],
+    "roots": false,
+    "keep6": false,
+    "anchors": 20,
+    "resource_bound": 902,
+    "engines": {
+      "valu": 5383,
+      "load": 1802,
+      "alu": 10761,
+      "store": 1006,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53825,
+    "bound": 901,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  {
+    "index": 55,
+    "labels": [],
+    "roots": false,
+    "keep6": true,
+    "anchors": 4,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5384,
+      "load": 1778,
+      "alu": 10769,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53841,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 56,
+    "labels": [],
+    "roots": false,
+    "keep6": true,
+    "anchors": 8,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5384,
+      "load": 1782,
+      "alu": 10765,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53837,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 57,
+    "labels": [],
+    "roots": false,
+    "keep6": true,
+    "anchors": 12,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1786,
+      "alu": 10769,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53833,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 58,
+    "labels": [],
+    "roots": false,
+    "keep6": true,
+    "anchors": 16,
+    "resource_bound": 900,
+    "engines": {
+      "valu": 5383,
+      "load": 1790,
+      "alu": 10765,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53829,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  },
+  {
+    "index": 59,
+    "labels": [],
+    "roots": false,
+    "keep6": true,
+    "anchors": 20,
+    "resource_bound": 902,
+    "engines": {
+      "valu": 5383,
+      "load": 1794,
+      "alu": 10761,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53825,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8450
+  }
+]

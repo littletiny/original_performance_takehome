@@ -34,7 +34,7 @@ def prepare(source, contractions, expansions):
         stem = name.rsplit('.lane',1)[0]
         if pattern.fullmatch(stem) and graph.ops[i][0] in ('alu','valu'):
             parts=stem.split('.')
-            if forced_scalar_pack(cfg,int(parts[0][1:]),int(parts[1][1:]),parts[-1]):
+            if forced_scalar_pack(cfg,int(parts[0][1:]),int(parts[1][1:]),'.'.join(parts[2:])):
                 continue
             packs[stem].append(i)
 

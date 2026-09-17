@@ -1,0 +1,75 @@
+{
+  "strict_cycle_cap": 899,
+  "static_bundle_cap": 12000,
+  "measured": [
+    {
+      "source": "results/compact_915",
+      "cycles": 915,
+      "static_bundles": 10808,
+      "resource_window_bound": 912,
+      "observed_gap": 3,
+      "weighted_alu_valu": 54577,
+      "graph_sha256": "ba837acf3cc6828d78e4e1bf3a790f61b292fbb97588f8eedeacf0e16457bb99",
+      "verified_seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ]
+    },
+    {
+      "source": "results/bound899_915/candidate_009",
+      "cycles": 967,
+      "static_bundles": 11900,
+      "resource_window_bound": 899,
+      "observed_gap": 68,
+      "weighted_alu_valu": 53825,
+      "graph_sha256": "5a777ccb17839ae7e95a94064239ebc4dd7d479d1a8015897894cae6a19c2327",
+      "verified_seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ]
+    }
+  ],
+  "margins": [
+    {
+      "bound_target": 899,
+      "max_gap_for_899": 0,
+      "capacity_only_work_ceiling": 53940,
+      "necessary_work_cut_from_915": 637
+    },
+    {
+      "bound_target": 895,
+      "max_gap_for_899": 4,
+      "capacity_only_work_ceiling": 53700,
+      "necessary_work_cut_from_915": 877
+    },
+    {
+      "bound_target": 890,
+      "max_gap_for_899": 9,
+      "capacity_only_work_ceiling": 53400,
+      "necessary_work_cut_from_915": 1177
+    }
+  ],
+  "submitted_source_sha256": "c10a8c0fec5f1cb91e030f2948a5842b57fb059bc06e35b170e574de35b65e18",
+  "caveats": [
+    "A resource bound is necessary, not an attainable schedule.",
+    "Observed gaps include heuristic search quality; they are not proven unavoidable overhead.",
+    "Work ceilings use only ALU+8*VALU capacity; startup, tails, other ports and scratch still constrain schedules.",
+    "These are fixed-graph bounds, not lower bounds for every implementation of the task."
+  ]
+}

@@ -1,0 +1,676 @@
+[
+  {
+    "candidate": 0,
+    "source": "results/compact_915",
+    "parameters": {
+      "family": "local",
+      "mode": "early_prefix_groups",
+      "groups": [
+        0,
+        1
+      ]
+    },
+    "resource_bound": 912,
+    "static_bundles_at_899": 10792,
+    "engines": {
+      "valu": 5459,
+      "load": 1769,
+      "alu": 10920,
+      "store": 912,
+      "flow": 846
+    },
+    "weighted_alu_valu": 54592,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8134
+  },
+  {
+    "candidate": 1,
+    "source": "results/compact_915",
+    "parameters": {
+      "family": "local",
+      "mode": "early_prefix_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5
+      ]
+    },
+    "resource_bound": 912,
+    "static_bundles_at_899": 10792,
+    "engines": {
+      "valu": 5459,
+      "load": 1769,
+      "alu": 10920,
+      "store": 912,
+      "flow": 846
+    },
+    "weighted_alu_valu": 54592,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8132
+  },
+  {
+    "candidate": 2,
+    "source": "results/compact_915",
+    "parameters": {
+      "family": "local",
+      "mode": "early_prefix_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        12
+      ]
+    },
+    "resource_bound": 912,
+    "static_bundles_at_899": 10792,
+    "engines": {
+      "valu": 5459,
+      "load": 1769,
+      "alu": 10920,
+      "store": 912,
+      "flow": 846
+    },
+    "weighted_alu_valu": 54592,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8128
+  },
+  {
+    "candidate": 3,
+    "source": "results/compact_915",
+    "parameters": {
+      "family": "local",
+      "mode": "early_prefix_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        12,
+        13,
+        16,
+        17,
+        19,
+        20,
+        21,
+        23,
+        24,
+        25,
+        27,
+        28,
+        29,
+        31
+      ]
+    },
+    "resource_bound": 912,
+    "static_bundles_at_899": 10792,
+    "engines": {
+      "valu": 5459,
+      "load": 1769,
+      "alu": 10920,
+      "store": 912,
+      "flow": 846
+    },
+    "weighted_alu_valu": 54592,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8118
+  },
+  {
+    "candidate": 4,
+    "source": "results/compact_915",
+    "parameters": {
+      "family": "local",
+      "mode": "prefetch_pair_groups",
+      "groups": [
+        0,
+        1
+      ]
+    },
+    "resource_bound": 912,
+    "static_bundles_at_899": 10792,
+    "engines": {
+      "valu": 5459,
+      "load": 1769,
+      "alu": 10920,
+      "store": 912,
+      "flow": 850
+    },
+    "weighted_alu_valu": 54592,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8140
+  },
+  {
+    "candidate": 5,
+    "source": "results/compact_915",
+    "parameters": {
+      "family": "local",
+      "mode": "prefetch_pair_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5
+      ]
+    },
+    "resource_bound": 912,
+    "static_bundles_at_899": 10792,
+    "engines": {
+      "valu": 5459,
+      "load": 1769,
+      "alu": 10920,
+      "store": 912,
+      "flow": 854
+    },
+    "weighted_alu_valu": 54592,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8144
+  },
+  {
+    "candidate": 6,
+    "source": "results/compact_915",
+    "parameters": {
+      "family": "local",
+      "mode": "prefetch_pair_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        12
+      ]
+    },
+    "resource_bound": 912,
+    "static_bundles_at_899": 10792,
+    "engines": {
+      "valu": 5459,
+      "load": 1769,
+      "alu": 10920,
+      "store": 912,
+      "flow": 862
+    },
+    "weighted_alu_valu": 54592,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8152
+  },
+  {
+    "candidate": 7,
+    "source": "results/compact_915",
+    "parameters": {
+      "family": "local",
+      "mode": "prefetch_pair_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        12,
+        13,
+        16,
+        17,
+        19,
+        20,
+        21,
+        23,
+        24,
+        25,
+        27,
+        28,
+        29,
+        31
+      ]
+    },
+    "resource_bound": 912,
+    "static_bundles_at_899": 10792,
+    "engines": {
+      "valu": 5459,
+      "load": 1769,
+      "alu": 10920,
+      "store": 912,
+      "flow": 888
+    },
+    "weighted_alu_valu": 54592,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8181
+  },
+  {
+    "candidate": 8,
+    "source": "results/bound899_915/candidate_009",
+    "parameters": {
+      "family": "joint",
+      "mode": "early_prefix_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        12,
+        13,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "removed": 0,
+      "keep": []
+    },
+    "resource_bound": 900,
+    "static_bundles_at_899": 11832,
+    "engines": {
+      "valu": 5383,
+      "load": 1791,
+      "alu": 10767,
+      "store": 982,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53831,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8455
+  },
+  {
+    "candidate": 9,
+    "source": "results/bound899_915/candidate_009",
+    "parameters": {
+      "family": "joint",
+      "mode": "early_prefix_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        12,
+        13,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "removed": 0,
+      "keep": [
+        6,
+        7
+      ]
+    },
+    "resource_bound": 900,
+    "static_bundles_at_899": 11832,
+    "engines": {
+      "valu": 5383,
+      "load": 1767,
+      "alu": 10767,
+      "store": 958,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53831,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8431
+  },
+  {
+    "candidate": 10,
+    "source": "results/bound899_915/candidate_009",
+    "parameters": {
+      "family": "joint",
+      "mode": "early_prefix_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "removed": 2,
+      "keep": []
+    },
+    "resource_bound": 905,
+    "static_bundles_at_899": 11832,
+    "engines": {
+      "valu": 5374,
+      "load": 1807,
+      "alu": 10751,
+      "store": 982,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53743,
+    "bound": 904,
+    "arithmetic_bound": 896,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8446
+  },
+  {
+    "candidate": 11,
+    "source": "results/bound899_915/candidate_009",
+    "parameters": {
+      "family": "joint",
+      "mode": "early_prefix_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "removed": 2,
+      "keep": [
+        6,
+        7
+      ]
+    },
+    "resource_bound": 903,
+    "static_bundles_at_899": 11832,
+    "engines": {
+      "valu": 5374,
+      "load": 1783,
+      "alu": 10751,
+      "store": 958,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53743,
+    "bound": 896,
+    "arithmetic_bound": 896,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8422
+  },
+  {
+    "candidate": 12,
+    "source": "results/bound899_915/candidate_009",
+    "parameters": {
+      "family": "joint",
+      "mode": "prefetch_pair_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        12,
+        13,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "removed": 0,
+      "keep": []
+    },
+    "resource_bound": 902,
+    "static_bundles_at_899": 11832,
+    "engines": {
+      "valu": 5397,
+      "load": 1791,
+      "alu": 10791,
+      "store": 982,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53967,
+    "bound": 900,
+    "arithmetic_bound": 900,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8489
+  },
+  {
+    "candidate": 13,
+    "source": "results/bound899_915/candidate_009",
+    "parameters": {
+      "family": "joint",
+      "mode": "prefetch_pair_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        12,
+        13,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "removed": 0,
+      "keep": [
+        6,
+        7
+      ]
+    },
+    "resource_bound": 902,
+    "static_bundles_at_899": 11832,
+    "engines": {
+      "valu": 5397,
+      "load": 1767,
+      "alu": 10791,
+      "store": 958,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53967,
+    "bound": 900,
+    "arithmetic_bound": 900,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8465
+  },
+  {
+    "candidate": 14,
+    "source": "results/bound899_915/candidate_009",
+    "parameters": {
+      "family": "joint",
+      "mode": "prefetch_pair_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "removed": 2,
+      "keep": []
+    },
+    "resource_bound": 905,
+    "static_bundles_at_899": 11832,
+    "engines": {
+      "valu": 5389,
+      "load": 1807,
+      "alu": 10783,
+      "store": 982,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53895,
+    "bound": 904,
+    "arithmetic_bound": 899,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8484
+  },
+  {
+    "candidate": 15,
+    "source": "results/bound899_915/candidate_009",
+    "parameters": {
+      "family": "joint",
+      "mode": "prefetch_pair_groups",
+      "groups": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "removed": 2,
+      "keep": [
+        6,
+        7
+      ]
+    },
+    "resource_bound": 903,
+    "static_bundles_at_899": 11832,
+    "engines": {
+      "valu": 5389,
+      "load": 1783,
+      "alu": 10783,
+      "store": 958,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53895,
+    "bound": 899,
+    "arithmetic_bound": 899,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8460
+  }
+]

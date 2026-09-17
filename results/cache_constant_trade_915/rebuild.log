@@ -1,0 +1,212 @@
+[
+  {
+    "configuration": "anchors_2",
+    "bound": 900,
+    "weighted_alu_valu": 53827,
+    "graph_sha256": "2aec6610d2b1fd1a9d67206b016fb003bce99b1379ca343d964e38b194cd4cee",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "anchors_4",
+    "bound": 899,
+    "weighted_alu_valu": 53825,
+    "graph_sha256": "c670ad30a95d5ddfda38631f295a36e6298124671bacbf38d90a6653f8898e00",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "anchors_6",
+    "bound": 900,
+    "weighted_alu_valu": 53823,
+    "graph_sha256": "9ac99f66150e1c2aadb85157652543f4fd019da0754cd466d67af1c7ec56c60e",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "chain_2_2",
+    "bound": 900,
+    "weighted_alu_valu": 53820,
+    "graph_sha256": "53cbb1561520fef0a7c0f8db2efe1cfdc1ea22a8bcd118ce2de8a0e77ebd20cd",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "chain_2_3",
+    "bound": 903,
+    "weighted_alu_valu": 53804,
+    "graph_sha256": "adc0539b65afb6c6d7656af09d6640a390156b7f4e2b31b0855271508164895e",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "chain_2_4",
+    "bound": 903,
+    "weighted_alu_valu": 53796,
+    "graph_sha256": "e3fe07cacc332a59efe5c0b8646988f31d1c1f0260c785ac1871978dd7697703",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "chain_3_3",
+    "bound": 907,
+    "weighted_alu_valu": 53788,
+    "graph_sha256": "eb08742586d094939d7883f3844157ab49e2e139503310ccda40193b6d417cdd",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "chain_3_4",
+    "bound": 907,
+    "weighted_alu_valu": 53780,
+    "graph_sha256": "4b7b1b75bb2635b2e5ab7ccda1917e151d923da54ab46c30120e40fe307be46f",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "probe_3",
+    "bound": 903,
+    "weighted_alu_valu": 53820,
+    "graph_sha256": "5ba380894c8a82140fa1f15fde2b3be5f0ea3f8bd49642f85f2baf6297f8f6a0",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "probe_4",
+    "bound": 907,
+    "weighted_alu_valu": 53772,
+    "graph_sha256": "a3715da794a615fcc59802b246e5e8eea48a39bcc612dadb82b97682d1b519bc",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "probe_5",
+    "bound": 911,
+    "weighted_alu_valu": 53732,
+    "graph_sha256": "dddf9170e2aa217c18a63a689624a2e92d0133bb9745bf43ea260f0d89cfb3dd",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "probe_6",
+    "bound": 915,
+    "weighted_alu_valu": 53684,
+    "graph_sha256": "a311792c52147f032dd47af69f1e2091891ee1540931de55c9db34922ccbf6be",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "setup_0_none",
+    "bound": 900,
+    "weighted_alu_valu": 53829,
+    "graph_sha256": "63245f38015095d41e2a26dd0250a5133ee5e6f840c5021d4b3c59dcd0ab24bb",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "setup_1_d3",
+    "bound": 900,
+    "weighted_alu_valu": 53829,
+    "graph_sha256": "7d07808a1d4e5586a61d2c361638159320554944741c393f4da9575da232c50e",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  },
+  {
+    "configuration": "setup_1_shallow",
+    "bound": 900,
+    "weighted_alu_valu": 53828,
+    "graph_sha256": "8ee469416733705fda0a8885c2d9e4061405cbe9667080a9265e0cc504d6f75e",
+    "semantics": {
+      "seeds": [
+        0,
+        1
+      ],
+      "hash_checkpoints_per_seed": 20480,
+      "preserved_non_output_memory": true
+    }
+  }
+]

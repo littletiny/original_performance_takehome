@@ -1,0 +1,241 @@
+{"candidate": 3, "bound": 902, "weighted_alu_valu": 53998, "static_bundles_at_899": 11832}
+{"candidate": 2, "bound": 902, "weighted_alu_valu": 53966, "static_bundles_at_899": 11832}
+{"candidate": 1, "bound": 902, "weighted_alu_valu": 53974, "static_bundles_at_899": 11832}
+{"candidate": 0, "bound": 902, "weighted_alu_valu": 54006, "static_bundles_at_899": 11832}
+{"candidate": 4, "bound": 902, "weighted_alu_valu": 53966, "static_bundles_at_899": 11832}
+{"candidate": 5, "bound": 902, "weighted_alu_valu": 53958, "static_bundles_at_899": 11832}
+{"candidate": 7, "bound": 907, "weighted_alu_valu": 53958, "static_bundles_at_899": 11832}
+{"candidate": 6, "bound": 908, "weighted_alu_valu": 53990, "static_bundles_at_899": 11832}
+{"candidate": 9, "fold": 24, "memory_family": "late", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 867, "status": "unsupported_configuration", "error": ""}
+{"candidate": 10, "fold": 24, "memory_family": "late", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 875, "status": "unsupported_configuration", "error": ""}
+{"candidate": 11, "fold": 24, "memory_family": "late", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 877, "status": "unsupported_configuration", "error": ""}
+{"candidate": 8, "bound": 907, "weighted_alu_valu": 53950, "static_bundles_at_899": 11832}
+{"candidate": 12, "bound": 902, "weighted_alu_valu": 53989, "static_bundles_at_899": 11832}
+{"candidate": 13, "bound": 902, "weighted_alu_valu": 53957, "static_bundles_at_899": 11832}
+{"candidate": 14, "bound": 902, "weighted_alu_valu": 53949, "static_bundles_at_899": 11832}
+{"candidate": 15, "bound": 902, "weighted_alu_valu": 53981, "static_bundles_at_899": 11832}
+{"candidate": 16, "bound": 902, "weighted_alu_valu": 53949, "static_bundles_at_899": 11832}
+{"candidate": 18, "bound": 902, "weighted_alu_valu": 53989, "static_bundles_at_899": 11832}
+{"candidate": 17, "bound": 902, "weighted_alu_valu": 53941, "static_bundles_at_899": 11832}
+{"candidate": 19, "bound": 902, "weighted_alu_valu": 53957, "static_bundles_at_899": 11832}
+{"candidate": 20, "bound": 902, "weighted_alu_valu": 53949, "static_bundles_at_899": 11832}
+{"candidate": 21, "bound": 902, "weighted_alu_valu": 53981, "static_bundles_at_899": 11832}
+{"candidate": 22, "bound": 902, "weighted_alu_valu": 53949, "static_bundles_at_899": 11832}
+{"candidate": 23, "bound": 902, "weighted_alu_valu": 53941, "static_bundles_at_899": 11832}
+{"candidate": 24, "bound": 902, "weighted_alu_valu": 53989, "static_bundles_at_899": 11832}
+{"candidate": 25, "bound": 902, "weighted_alu_valu": 53957, "static_bundles_at_899": 11832}
+{"candidate": 26, "bound": 902, "weighted_alu_valu": 53949, "static_bundles_at_899": 11832}
+{"candidate": 27, "bound": 902, "weighted_alu_valu": 53981, "static_bundles_at_899": 11832}
+{"candidate": 28, "bound": 902, "weighted_alu_valu": 53949, "static_bundles_at_899": 11832}
+{"candidate": 30, "bound": 905, "weighted_alu_valu": 53958, "static_bundles_at_899": 11832}
+{"candidate": 29, "bound": 902, "weighted_alu_valu": 53941, "static_bundles_at_899": 11832}
+{"candidate": 31, "bound": 905, "weighted_alu_valu": 53926, "static_bundles_at_899": 11832}
+{"candidate": 32, "bound": 905, "weighted_alu_valu": 53918, "static_bundles_at_899": 11832}
+{"candidate": 33, "bound": 902, "weighted_alu_valu": 53950, "static_bundles_at_899": 11832}
+{"candidate": 34, "bound": 902, "weighted_alu_valu": 53918, "static_bundles_at_899": 11832}
+{"candidate": 35, "bound": 902, "weighted_alu_valu": 53910, "static_bundles_at_899": 11832}
+{"candidate": 36, "bound": 907, "weighted_alu_valu": 53942, "static_bundles_at_899": 11832}
+{"candidate": 39, "fold": 24, "memory_family": "tables", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 867, "status": "unsupported_configuration", "error": ""}
+{"candidate": 37, "bound": 907, "weighted_alu_valu": 53910, "static_bundles_at_899": 11832}
+{"candidate": 38, "bound": 907, "weighted_alu_valu": 53902, "static_bundles_at_899": 11832}
+{"candidate": 40, "fold": 24, "memory_family": "tables", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 875, "status": "unsupported_configuration", "error": ""}
+{"candidate": 41, "fold": 24, "memory_family": "tables", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 877, "status": "unsupported_configuration", "error": ""}
+{"candidate": 42, "bound": 905, "weighted_alu_valu": 53941, "static_bundles_at_899": 11832}
+{"candidate": 43, "bound": 905, "weighted_alu_valu": 53909, "static_bundles_at_899": 11832}
+{"candidate": 44, "bound": 905, "weighted_alu_valu": 53901, "static_bundles_at_899": 11832}
+{"candidate": 45, "bound": 902, "weighted_alu_valu": 53933, "static_bundles_at_899": 11832}
+{"candidate": 46, "bound": 902, "weighted_alu_valu": 53901, "static_bundles_at_899": 11832}
+{"candidate": 47, "bound": 902, "weighted_alu_valu": 53893, "static_bundles_at_899": 11832}
+{"candidate": 48, "bound": 905, "weighted_alu_valu": 53941, "static_bundles_at_899": 11832}
+{"candidate": 49, "bound": 905, "weighted_alu_valu": 53909, "static_bundles_at_899": 11832}
+{"candidate": 50, "bound": 905, "weighted_alu_valu": 53901, "static_bundles_at_899": 11832}
+{"candidate": 51, "bound": 902, "weighted_alu_valu": 53933, "static_bundles_at_899": 11832}
+{"candidate": 52, "bound": 902, "weighted_alu_valu": 53901, "static_bundles_at_899": 11832}
+{"candidate": 53, "bound": 902, "weighted_alu_valu": 53893, "static_bundles_at_899": 11832}
+{"candidate": 54, "bound": 905, "weighted_alu_valu": 53941, "static_bundles_at_899": 11832}
+{"candidate": 55, "bound": 905, "weighted_alu_valu": 53909, "static_bundles_at_899": 11832}
+{"candidate": 56, "bound": 905, "weighted_alu_valu": 53901, "static_bundles_at_899": 11832}
+{"candidate": 57, "bound": 902, "weighted_alu_valu": 53933, "static_bundles_at_899": 11832}
+{"candidate": 58, "bound": 902, "weighted_alu_valu": 53901, "static_bundles_at_899": 11832}
+{"candidate": 59, "bound": 902, "weighted_alu_valu": 53893, "static_bundles_at_899": 11832}
+{"candidate": 60, "fold": 24, "memory_family": "keep_h1", "scalar_labels": [], "scalar_roots": false, "flow_target": 867, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 61, "fold": 24, "memory_family": "keep_h1", "scalar_labels": [], "scalar_roots": false, "flow_target": 875, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 62, "fold": 24, "memory_family": "keep_h1", "scalar_labels": [], "scalar_roots": false, "flow_target": 877, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 63, "fold": 24, "memory_family": "keep_h1", "scalar_labels": [], "scalar_roots": true, "flow_target": 867, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 64, "fold": 24, "memory_family": "keep_h1", "scalar_labels": [], "scalar_roots": true, "flow_target": 875, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 65, "fold": 24, "memory_family": "keep_h1", "scalar_labels": [], "scalar_roots": true, "flow_target": 877, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 69, "fold": 24, "memory_family": "keep_h1", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 867, "status": "unsupported_configuration", "error": ""}
+{"candidate": 67, "fold": 24, "memory_family": "keep_h1", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": false, "flow_target": 875, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 66, "fold": 24, "memory_family": "keep_h1", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": false, "flow_target": 867, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 68, "fold": 24, "memory_family": "keep_h1", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": false, "flow_target": 877, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 70, "fold": 24, "memory_family": "keep_h1", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 875, "status": "unsupported_configuration", "error": ""}
+{"candidate": 71, "fold": 24, "memory_family": "keep_h1", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 877, "status": "unsupported_configuration", "error": ""}
+{"candidate": 72, "bound": 910, "weighted_alu_valu": 53877, "static_bundles_at_899": 11832}
+{"candidate": 73, "bound": 914, "weighted_alu_valu": 53845, "static_bundles_at_899": 11832}
+{"candidate": 74, "bound": 916, "weighted_alu_valu": 53837, "static_bundles_at_899": 11832}
+{"candidate": 75, "bound": 911, "weighted_alu_valu": 53869, "static_bundles_at_899": 11832}
+{"candidate": 76, "bound": 914, "weighted_alu_valu": 53837, "static_bundles_at_899": 11832}
+{"candidate": 77, "bound": 916, "weighted_alu_valu": 53829, "static_bundles_at_899": 11832}
+{"candidate": 79, "bound": 913, "weighted_alu_valu": 53845, "static_bundles_at_899": 11832}
+{"candidate": 78, "bound": 909, "weighted_alu_valu": 53877, "static_bundles_at_899": 11832}
+{"candidate": 80, "bound": 915, "weighted_alu_valu": 53837, "static_bundles_at_899": 11832}
+{"candidate": 81, "bound": 911, "weighted_alu_valu": 53869, "static_bundles_at_899": 11832}
+{"candidate": 82, "bound": 913, "weighted_alu_valu": 53837, "static_bundles_at_899": 11832}
+{"candidate": 83, "bound": 915, "weighted_alu_valu": 53829, "static_bundles_at_899": 11832}
+{"candidate": 84, "bound": 910, "weighted_alu_valu": 53877, "static_bundles_at_899": 11832}
+{"candidate": 85, "bound": 914, "weighted_alu_valu": 53845, "static_bundles_at_899": 11832}
+{"candidate": 86, "bound": 916, "weighted_alu_valu": 53837, "static_bundles_at_899": 11832}
+{"candidate": 87, "bound": 911, "weighted_alu_valu": 53869, "static_bundles_at_899": 11832}
+{"candidate": 88, "bound": 914, "weighted_alu_valu": 53837, "static_bundles_at_899": 11832}
+{"candidate": 89, "bound": 916, "weighted_alu_valu": 53829, "static_bundles_at_899": 11832}
+{"candidate": 90, "fold": 24, "memory_family": "all", "scalar_labels": [], "scalar_roots": false, "flow_target": 867, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 91, "fold": 24, "memory_family": "all", "scalar_labels": [], "scalar_roots": false, "flow_target": 875, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 92, "fold": 24, "memory_family": "all", "scalar_labels": [], "scalar_roots": false, "flow_target": 877, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 93, "fold": 24, "memory_family": "all", "scalar_labels": [], "scalar_roots": true, "flow_target": 867, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 94, "fold": 24, "memory_family": "all", "scalar_labels": [], "scalar_roots": true, "flow_target": 875, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 95, "fold": 24, "memory_family": "all", "scalar_labels": [], "scalar_roots": true, "flow_target": 877, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 96, "fold": 24, "memory_family": "all", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": false, "flow_target": 867, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 99, "fold": 24, "memory_family": "all", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 867, "status": "unsupported_configuration", "error": ""}
+{"candidate": 97, "fold": 24, "memory_family": "all", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": false, "flow_target": 875, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 98, "fold": 24, "memory_family": "all", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": false, "flow_target": 877, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 100, "fold": 24, "memory_family": "all", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 875, "status": "unsupported_configuration", "error": ""}
+{"candidate": 101, "fold": 24, "memory_family": "all", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 877, "status": "unsupported_configuration", "error": ""}
+{"candidate": 102, "bound": 917, "weighted_alu_valu": 53853, "static_bundles_at_899": 11832}
+{"candidate": 103, "bound": 917, "weighted_alu_valu": 53821, "static_bundles_at_899": 11832}
+{"candidate": 104, "bound": 919, "weighted_alu_valu": 53813, "static_bundles_at_899": 11832}
+{"candidate": 105, "bound": 918, "weighted_alu_valu": 53853, "static_bundles_at_899": 11832}
+{"candidate": 106, "bound": 917, "weighted_alu_valu": 53821, "static_bundles_at_899": 11832}
+{"candidate": 107, "bound": 918, "weighted_alu_valu": 53813, "static_bundles_at_899": 11832}
+{"candidate": 108, "bound": 917, "weighted_alu_valu": 53853, "static_bundles_at_899": 11832}
+{"candidate": 109, "bound": 916, "weighted_alu_valu": 53821, "static_bundles_at_899": 11832}
+{"candidate": 110, "bound": 918, "weighted_alu_valu": 53813, "static_bundles_at_899": 11832}
+{"candidate": 111, "bound": 918, "weighted_alu_valu": 53853, "static_bundles_at_899": 11832}
+{"candidate": 112, "bound": 917, "weighted_alu_valu": 53821, "static_bundles_at_899": 11832}
+{"candidate": 113, "bound": 917, "weighted_alu_valu": 53813, "static_bundles_at_899": 11832}
+{"candidate": 114, "bound": 917, "weighted_alu_valu": 53853, "static_bundles_at_899": 11832}
+{"candidate": 115, "bound": 917, "weighted_alu_valu": 53821, "static_bundles_at_899": 11832}
+{"candidate": 116, "bound": 919, "weighted_alu_valu": 53813, "static_bundles_at_899": 11832}
+{"candidate": 117, "bound": 918, "weighted_alu_valu": 53853, "static_bundles_at_899": 11832}
+{"candidate": 118, "bound": 917, "weighted_alu_valu": 53821, "static_bundles_at_899": 11832}
+{"candidate": 119, "bound": 918, "weighted_alu_valu": 53813, "static_bundles_at_899": 11832}
+{"candidate": 120, "bound": 902, "weighted_alu_valu": 54006, "static_bundles_at_899": 11832}
+{"candidate": 121, "bound": 902, "weighted_alu_valu": 53974, "static_bundles_at_899": 11832}
+{"candidate": 122, "bound": 902, "weighted_alu_valu": 53966, "static_bundles_at_899": 11832}
+{"candidate": 123, "bound": 902, "weighted_alu_valu": 53998, "static_bundles_at_899": 11832}
+{"candidate": 124, "bound": 902, "weighted_alu_valu": 53966, "static_bundles_at_899": 11832}
+{"candidate": 125, "bound": 902, "weighted_alu_valu": 53958, "static_bundles_at_899": 11832}
+{"candidate": 126, "bound": 908, "weighted_alu_valu": 53990, "static_bundles_at_899": 11832}
+{"candidate": 129, "fold": 32, "memory_family": "late", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 867, "status": "unsupported_configuration", "error": ""}
+{"candidate": 128, "bound": 907, "weighted_alu_valu": 53950, "static_bundles_at_899": 11832}
+{"candidate": 127, "bound": 907, "weighted_alu_valu": 53958, "static_bundles_at_899": 11832}
+{"candidate": 130, "fold": 32, "memory_family": "late", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 875, "status": "unsupported_configuration", "error": ""}
+{"candidate": 131, "fold": 32, "memory_family": "late", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 877, "status": "unsupported_configuration", "error": ""}
+{"candidate": 132, "bound": 902, "weighted_alu_valu": 53989, "static_bundles_at_899": 11832}
+{"candidate": 133, "bound": 902, "weighted_alu_valu": 53957, "static_bundles_at_899": 11832}
+{"candidate": 135, "bound": 902, "weighted_alu_valu": 53981, "static_bundles_at_899": 11832}
+{"candidate": 134, "bound": 902, "weighted_alu_valu": 53949, "static_bundles_at_899": 11832}
+{"candidate": 137, "bound": 902, "weighted_alu_valu": 53941, "static_bundles_at_899": 11832}
+{"candidate": 136, "bound": 902, "weighted_alu_valu": 53949, "static_bundles_at_899": 11832}
+{"candidate": 138, "bound": 902, "weighted_alu_valu": 53989, "static_bundles_at_899": 11832}
+{"candidate": 139, "bound": 902, "weighted_alu_valu": 53957, "static_bundles_at_899": 11832}
+{"candidate": 140, "bound": 902, "weighted_alu_valu": 53949, "static_bundles_at_899": 11832}
+{"candidate": 141, "bound": 902, "weighted_alu_valu": 53981, "static_bundles_at_899": 11832}
+{"candidate": 142, "bound": 902, "weighted_alu_valu": 53949, "static_bundles_at_899": 11832}
+{"candidate": 143, "bound": 902, "weighted_alu_valu": 53941, "static_bundles_at_899": 11832}
+{"candidate": 144, "bound": 902, "weighted_alu_valu": 53989, "static_bundles_at_899": 11832}
+{"candidate": 145, "bound": 902, "weighted_alu_valu": 53957, "static_bundles_at_899": 11832}
+{"candidate": 146, "bound": 902, "weighted_alu_valu": 53949, "static_bundles_at_899": 11832}
+{"candidate": 147, "bound": 902, "weighted_alu_valu": 53981, "static_bundles_at_899": 11832}
+{"candidate": 148, "bound": 902, "weighted_alu_valu": 53949, "static_bundles_at_899": 11832}
+{"candidate": 149, "bound": 902, "weighted_alu_valu": 53941, "static_bundles_at_899": 11832}
+{"candidate": 150, "bound": 905, "weighted_alu_valu": 53958, "static_bundles_at_899": 11832}
+{"candidate": 151, "bound": 905, "weighted_alu_valu": 53926, "static_bundles_at_899": 11832}
+{"candidate": 152, "bound": 905, "weighted_alu_valu": 53918, "static_bundles_at_899": 11832}
+{"candidate": 153, "bound": 902, "weighted_alu_valu": 53950, "static_bundles_at_899": 11832}
+{"candidate": 154, "bound": 902, "weighted_alu_valu": 53918, "static_bundles_at_899": 11832}
+{"candidate": 155, "bound": 902, "weighted_alu_valu": 53910, "static_bundles_at_899": 11832}
+{"candidate": 159, "fold": 32, "memory_family": "tables", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 867, "status": "unsupported_configuration", "error": ""}
+{"candidate": 156, "bound": 907, "weighted_alu_valu": 53942, "static_bundles_at_899": 11832}
+{"candidate": 157, "bound": 907, "weighted_alu_valu": 53910, "static_bundles_at_899": 11832}
+{"candidate": 158, "bound": 907, "weighted_alu_valu": 53902, "static_bundles_at_899": 11832}
+{"candidate": 160, "fold": 32, "memory_family": "tables", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 875, "status": "unsupported_configuration", "error": ""}
+{"candidate": 161, "fold": 32, "memory_family": "tables", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 877, "status": "unsupported_configuration", "error": ""}
+{"candidate": 162, "bound": 905, "weighted_alu_valu": 53941, "static_bundles_at_899": 11832}
+{"candidate": 163, "bound": 905, "weighted_alu_valu": 53909, "static_bundles_at_899": 11832}
+{"candidate": 165, "bound": 902, "weighted_alu_valu": 53933, "static_bundles_at_899": 11832}
+{"candidate": 164, "bound": 905, "weighted_alu_valu": 53901, "static_bundles_at_899": 11832}
+{"candidate": 166, "bound": 902, "weighted_alu_valu": 53901, "static_bundles_at_899": 11832}
+{"candidate": 167, "bound": 902, "weighted_alu_valu": 53893, "static_bundles_at_899": 11832}
+{"candidate": 168, "bound": 905, "weighted_alu_valu": 53941, "static_bundles_at_899": 11832}
+{"candidate": 169, "bound": 905, "weighted_alu_valu": 53909, "static_bundles_at_899": 11832}
+{"candidate": 170, "bound": 905, "weighted_alu_valu": 53901, "static_bundles_at_899": 11832}
+{"candidate": 171, "bound": 902, "weighted_alu_valu": 53933, "static_bundles_at_899": 11832}
+{"candidate": 172, "bound": 902, "weighted_alu_valu": 53901, "static_bundles_at_899": 11832}
+{"candidate": 173, "bound": 902, "weighted_alu_valu": 53893, "static_bundles_at_899": 11832}
+{"candidate": 174, "bound": 905, "weighted_alu_valu": 53941, "static_bundles_at_899": 11832}
+{"candidate": 175, "bound": 905, "weighted_alu_valu": 53909, "static_bundles_at_899": 11832}
+{"candidate": 176, "bound": 905, "weighted_alu_valu": 53901, "static_bundles_at_899": 11832}
+{"candidate": 177, "bound": 902, "weighted_alu_valu": 53933, "static_bundles_at_899": 11832}
+{"candidate": 178, "bound": 902, "weighted_alu_valu": 53901, "static_bundles_at_899": 11832}
+{"candidate": 179, "bound": 902, "weighted_alu_valu": 53893, "static_bundles_at_899": 11832}
+{"candidate": 180, "fold": 32, "memory_family": "keep_h1", "scalar_labels": [], "scalar_roots": false, "flow_target": 867, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 181, "fold": 32, "memory_family": "keep_h1", "scalar_labels": [], "scalar_roots": false, "flow_target": 875, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 182, "fold": 32, "memory_family": "keep_h1", "scalar_labels": [], "scalar_roots": false, "flow_target": 877, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 183, "fold": 32, "memory_family": "keep_h1", "scalar_labels": [], "scalar_roots": true, "flow_target": 867, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 184, "fold": 32, "memory_family": "keep_h1", "scalar_labels": [], "scalar_roots": true, "flow_target": 875, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 185, "fold": 32, "memory_family": "keep_h1", "scalar_labels": [], "scalar_roots": true, "flow_target": 877, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 186, "fold": 32, "memory_family": "keep_h1", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": false, "flow_target": 867, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 189, "fold": 32, "memory_family": "keep_h1", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 867, "status": "unsupported_configuration", "error": ""}
+{"candidate": 187, "fold": 32, "memory_family": "keep_h1", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": false, "flow_target": 875, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 188, "fold": 32, "memory_family": "keep_h1", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": false, "flow_target": 877, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 190, "fold": 32, "memory_family": "keep_h1", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 875, "status": "unsupported_configuration", "error": ""}
+{"candidate": 191, "fold": 32, "memory_family": "keep_h1", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 877, "status": "unsupported_configuration", "error": ""}
+{"candidate": 192, "bound": 910, "weighted_alu_valu": 53877, "static_bundles_at_899": 11832}
+{"candidate": 193, "bound": 914, "weighted_alu_valu": 53845, "static_bundles_at_899": 11832}
+{"candidate": 194, "bound": 916, "weighted_alu_valu": 53837, "static_bundles_at_899": 11832}
+{"candidate": 195, "bound": 911, "weighted_alu_valu": 53869, "static_bundles_at_899": 11832}
+{"candidate": 196, "bound": 914, "weighted_alu_valu": 53837, "static_bundles_at_899": 11832}
+{"candidate": 197, "bound": 916, "weighted_alu_valu": 53829, "static_bundles_at_899": 11832}
+{"candidate": 198, "bound": 909, "weighted_alu_valu": 53877, "static_bundles_at_899": 11832}
+{"candidate": 199, "bound": 913, "weighted_alu_valu": 53845, "static_bundles_at_899": 11832}
+{"candidate": 200, "bound": 915, "weighted_alu_valu": 53837, "static_bundles_at_899": 11832}
+{"candidate": 201, "bound": 911, "weighted_alu_valu": 53869, "static_bundles_at_899": 11832}
+{"candidate": 202, "bound": 913, "weighted_alu_valu": 53837, "static_bundles_at_899": 11832}
+{"candidate": 203, "bound": 915, "weighted_alu_valu": 53829, "static_bundles_at_899": 11832}
+{"candidate": 204, "bound": 910, "weighted_alu_valu": 53877, "static_bundles_at_899": 11832}
+{"candidate": 205, "bound": 914, "weighted_alu_valu": 53845, "static_bundles_at_899": 11832}
+{"candidate": 206, "bound": 916, "weighted_alu_valu": 53837, "static_bundles_at_899": 11832}
+{"candidate": 207, "bound": 911, "weighted_alu_valu": 53869, "static_bundles_at_899": 11832}
+{"candidate": 208, "bound": 914, "weighted_alu_valu": 53837, "static_bundles_at_899": 11832}
+{"candidate": 210, "fold": 32, "memory_family": "all", "scalar_labels": [], "scalar_roots": false, "flow_target": 867, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 209, "bound": 916, "weighted_alu_valu": 53829, "static_bundles_at_899": 11832}
+{"candidate": 211, "fold": 32, "memory_family": "all", "scalar_labels": [], "scalar_roots": false, "flow_target": 875, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 212, "fold": 32, "memory_family": "all", "scalar_labels": [], "scalar_roots": false, "flow_target": 877, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 213, "fold": 32, "memory_family": "all", "scalar_labels": [], "scalar_roots": true, "flow_target": 867, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 214, "fold": 32, "memory_family": "all", "scalar_labels": [], "scalar_roots": true, "flow_target": 875, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 215, "fold": 32, "memory_family": "all", "scalar_labels": [], "scalar_roots": true, "flow_target": 877, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 216, "fold": 32, "memory_family": "all", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": false, "flow_target": 867, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 219, "fold": 32, "memory_family": "all", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 867, "status": "unsupported_configuration", "error": ""}
+{"candidate": 217, "fold": 32, "memory_family": "all", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": false, "flow_target": 875, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 218, "fold": 32, "memory_family": "all", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": false, "flow_target": 877, "status": "unsupported_configuration", "error": "Cyclic compound schedule"}
+{"candidate": 220, "fold": 32, "memory_family": "all", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 875, "status": "unsupported_configuration", "error": ""}
+{"candidate": 221, "fold": 32, "memory_family": "all", "scalar_labels": ["h2.a", "h2.b"], "scalar_roots": true, "flow_target": 877, "status": "unsupported_configuration", "error": ""}
+{"candidate": 222, "bound": 917, "weighted_alu_valu": 53853, "static_bundles_at_899": 11832}
+{"candidate": 223, "bound": 917, "weighted_alu_valu": 53821, "static_bundles_at_899": 11832}
+{"candidate": 225, "bound": 918, "weighted_alu_valu": 53853, "static_bundles_at_899": 11832}
+{"candidate": 224, "bound": 919, "weighted_alu_valu": 53813, "static_bundles_at_899": 11832}
+{"candidate": 226, "bound": 917, "weighted_alu_valu": 53821, "static_bundles_at_899": 11832}
+{"candidate": 227, "bound": 918, "weighted_alu_valu": 53813, "static_bundles_at_899": 11832}
+{"candidate": 229, "bound": 916, "weighted_alu_valu": 53821, "static_bundles_at_899": 11832}
+{"candidate": 228, "bound": 917, "weighted_alu_valu": 53853, "static_bundles_at_899": 11832}
+{"candidate": 230, "bound": 918, "weighted_alu_valu": 53813, "static_bundles_at_899": 11832}
+{"candidate": 231, "bound": 918, "weighted_alu_valu": 53853, "static_bundles_at_899": 11832}
+{"candidate": 232, "bound": 917, "weighted_alu_valu": 53821, "static_bundles_at_899": 11832}
+{"candidate": 233, "bound": 917, "weighted_alu_valu": 53813, "static_bundles_at_899": 11832}
+{"candidate": 234, "bound": 917, "weighted_alu_valu": 53853, "static_bundles_at_899": 11832}
+{"candidate": 235, "bound": 917, "weighted_alu_valu": 53821, "static_bundles_at_899": 11832}
+{"candidate": 236, "bound": 919, "weighted_alu_valu": 53813, "static_bundles_at_899": 11832}
+{"candidate": 237, "bound": 918, "weighted_alu_valu": 53853, "static_bundles_at_899": 11832}
+{"candidate": 238, "bound": 917, "weighted_alu_valu": 53821, "static_bundles_at_899": 11832}
+{"candidate": 239, "bound": 918, "weighted_alu_valu": 53813, "static_bundles_at_899": 11832}
+RESULT {"candidates": 240, "retained": [47, 53, 59, 167, 173, 179, 46, 52, 58, 166, 172, 178], "necessary_conditions_passed": []}

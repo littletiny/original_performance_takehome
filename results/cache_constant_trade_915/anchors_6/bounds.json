@@ -1,0 +1,69 @@
+{
+  "source": "unsaved graph",
+  "counts": {
+    "engines": {
+      "valu": 5382,
+      "load": 1787,
+      "alu": 10767,
+      "store": 998,
+      "flow": 874
+    },
+    "weighted_alu_valu": 53823,
+    "bound": 898,
+    "arithmetic_bound": 898,
+    "table_bundles": 11264,
+    "table_case_bundles": 10368,
+    "static_padding_bundles": 909,
+    "regions": 43,
+    "values": 8458
+  },
+  "bound": 900,
+  "critical_path_bound": 274,
+  "resource_windows": {
+    "alu": {
+      "bound": 900,
+      "release": 1,
+      "tail": 1,
+      "work": 10767,
+      "capacity": 12
+    },
+    "valu": {
+      "bound": 899,
+      "release": 1,
+      "tail": 1,
+      "work": 5381,
+      "capacity": 6
+    },
+    "load": {
+      "bound": 897,
+      "release": 70,
+      "tail": 1,
+      "work": 1652,
+      "capacity": 2
+    },
+    "store": {
+      "bound": 503,
+      "release": 4,
+      "tail": 0,
+      "work": 997,
+      "capacity": 2
+    },
+    "flow": {
+      "bound": 897,
+      "release": 13,
+      "tail": 10,
+      "work": 874,
+      "capacity": 1
+    },
+    "arithmetic": {
+      "bound": 899,
+      "release": 0,
+      "tail": 1,
+      "work": 53823,
+      "capacity": 60
+    }
+  },
+  "formula": "C >= release + tail + ceil(work / capacity)",
+  "scope": "Fixed SSA graph and compound units; scratch ignored. Bootstrap and pause are not included. Not a global task lower bound.",
+  "graph_sha256": "9ac99f66150e1c2aadb85157652543f4fd019da0754cd466d67af1c7ec56c60e"
+}

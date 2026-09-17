@@ -1,18 +1,18 @@
 # Sub-900 optimization checkpoint
 
-The current verified entry point is **917 cycles with 10,810 static bundles**,
+The current verified entry point is **915 cycles with 10,808 static bundles**,
 down from the initial 980 cycles.
 The requested **<900-cycle target has not been reached**.
 
 On 2026-09-17 the user relaxed the static VLIW instruction-bundle limit from
 10,000 to **12,000**
 (`len(KernelBuilder.instrs)`). Both the exporter and the standalone decoder
-enforce this limit. The current program contains **232,189 individual
+enforce this limit. The current program contains **231,286 individual
 engine-slot operations**, including the initial pause; those are a different
 quantity from bundles.
 
 The preceding 932-cycle checkpoint used 477,092 static bundles. The current
-version reduces that count by **97.73%** and uses 15 fewer dynamic cycles. Its
+version reduces that count by **97.73%** and uses 17 fewer dynamic cycles. Its
 verified artifacts remain at `results/portfolio_1/`, and its submitted source
 is preserved in commit `e2c302f`; it is no longer the default implementation.
 The first compressed checkpoint, 971 cycles and 9,819 bundles, remains in
@@ -30,7 +30,24 @@ The preceding 919-cycle / 10,159-bundle checkpoint remains in
 The 918-cycle / 10,811-bundle checkpoint remains in `results/compact_918/`
 and commit `e9da622`.
 
-## Verified checkpoint
+## Latest verified checkpoint and lower-bound margin
+
+The current source and schedule are recorded in `results/compact_915/`.
+Its fixed-graph resource-window lower bound is 912, and its weighted arithmetic
+work is 54,577. The latest source/graph hashes still match the promoted 915
+checkpoint; the experiments below have not changed the submitted kernel.
+
+`results/sub900_margin_915/` answers the requested engineering margin question.
+Bounds of 899, 895 and 890 permit gaps of 0, 4 and 9 cycles respectively at a
+899-cycle target. A 890–895 bound is a useful design target, not a guarantee.
+The new combined graph with bound 899 has a best frozen-verified schedule of
+967 cycles; its 68-cycle gap includes heuristic-search limitations and is not
+a proven unavoidable overhead. The same gap cannot be assumed across graphs.
+
+The detailed checkpoint narrative immediately below records the archived 917
+version. Later sections document subsequent experiments and the 915 promotion.
+
+## Archived 917 checkpoint
 
 Source configuration and schedule: `results/compact_917/config.json` and
 `results/compact_917/best.npz`. Frozen verification and export metadata:
@@ -561,3 +578,45 @@ families and 18 AND/OR target/family combinations in necessary 9/12-bit systems.
 Independent evaluation checks 41,472 original-hash projections and two complete
 nine-bit projection models. No 32-bit rewrite or global hash lower bound is
 claimed; see `results/affine_outer_917/README.md`.
+
+## Joint reductions and lower-bound margin controls
+
+The builder now permits memory-broadcast rows after disjoint late-child rows.
+Optional scalar uniform-operand sharing can remove broadcasts whose consumers
+are all scalar; the balancing tools honor complete hash-stage labels. Sixteen
+uniform-operand screens did not improve 915. The 240-combination joint inventory
+reached a best retained resource-window bound of 902, but no graph <=899.
+
+Explicit cache/constant/chain configurations in `results/cache_constant_trade_915/`
+then reached a 899-bound graph. Shorter dispatch chains relax the late LOAD
+window, while selected input-pointer LOAD constants improve early arithmetic
+readiness. These graph prototypes all rebuild with the saved graph digest and
+pass two reference seeds; they are not measured schedules.
+
+`search_bound899.py` screened 60 variants and scheduled the 11 passing the 899
+bound. The best allocated result was 967 cycles / 11,900 bundles, now fully
+frozen-verified on seeds 0–9, including every retained hash checkpoint, output,
+non-output memory, executed-PC mapping and standalone expansion. This provides
+a concrete control against treating a lower bound as an achievable schedule.
+
+`early_prefix_groups` forms the depth-5 sibling address after round 3 and adds
+the final branch bit after round 4. `prefetch_pair_groups` also issues eight
+ordered VLOADs at scratch offsets 0,2,...,14, retaining both possible children
+in words 0..15. Real eight-word writes occupy a 22-word virtual span, with all
+padding writes allocated. Two FLOW selections later choose the eight nodes.
+The load instruction count is unchanged from eight scalar gathers. Relative
+to a folded address, this costs eight additional weighted arithmetic slots
+per group; the prefix-only variant releases two FLOW selections per group.
+
+The 16-case `search_prefetch_pairs.py` screen does not beat production. Selected
+prefix and packed-prefetch candidates are frozen-verified at 915, 917 and 968
+cycles. The real-machine microtest checks both branch choices with fixed and
+allocated scratch; removing an overlapping-write dependency makes the full
+reference negative control fail at the first depth-5 hash checkpoint. All 21
+research regressions pass. The production source and graph are unchanged.
+
+For W=54,577, reaching a pure arithmetic capacity target of 895 or 890 requires
+at least 877 or 1,177 fewer W respectively. These are optimistic necessary
+cuts: stronger per-port windows and scratch still need to fit. The next search
+should target actual work reductions together with a small measured scheduling
+gap. The <900 goal remains unmet.

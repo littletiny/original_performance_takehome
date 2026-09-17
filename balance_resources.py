@@ -53,7 +53,7 @@ def balance(config,source,policy=0):
     candidates=[]
     for name,ids in packs.items():
         parts=name.split('.')
-        if forced_scalar_pack(config,int(parts[0][1:]),int(parts[1][1:]),parts[-1]):
+        if forced_scalar_pack(config,int(parts[0][1:]),int(parts[1][1:]),'.'.join(parts[2:])):
             continue
         engine=graph.ops[ids[0]][0]
         if scalar and engine!='valu' or not scalar and engine!='alu': continue

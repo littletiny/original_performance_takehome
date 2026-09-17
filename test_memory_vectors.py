@@ -6,6 +6,15 @@ from optimize import ROOT, build, verify_semantics
 
 
 class MemoryVectorTests(unittest.TestCase):
+    def test_broadcast_rows_are_disjoint_from_late_child_rows(self):
+        config=json.loads((ROOT/'results/compact_915/config.json').read_text())
+        graph=build(dict(config,late_pair_groups=[20,24],late_pair_buffers=2))
+        self.assertTrue(graph.memory_vectors)
+        for row in graph.memory_vectors:
+            self.assertGreaterEqual(row['address'],2054+96)
+            self.assertLessEqual(row['address']+8,2294)
+        verify_semantics(graph,(0,1))
+
     def test_delayed_runtime_root_read_survives_buffer_reuse(self):
         config=json.loads((ROOT/'results/compact_917/config.json').read_text())
         graph=build(dict(config,memory_vectors=['root.raw','root.bias']))

@@ -1,0 +1,76 @@
+{
+  "candidate": 47,
+  "fold": 24,
+  "memory_family": "tables",
+  "scalar_labels": [
+    "h6.a",
+    "h6.b"
+  ],
+  "scalar_roots": true,
+  "flow_target": 877,
+  "status": "bounded",
+  "path2_groups": 17,
+  "bound": 902,
+  "count_bound": 899,
+  "engines": {
+    "valu": 5389,
+    "load": 1796,
+    "alu": 10781,
+    "store": 998,
+    "flow": 877
+  },
+  "weighted_alu_valu": 53893,
+  "arithmetic_bound": 899,
+  "table_bundles": 11264,
+  "table_case_bundles": 10368,
+  "static_padding_bundles": 909,
+  "regions": 43,
+  "values": 8483,
+  "resource_windows": {
+    "alu": {
+      "bound": 901,
+      "release": 1,
+      "tail": 1,
+      "work": 10781,
+      "capacity": 12
+    },
+    "valu": {
+      "bound": 901,
+      "release": 3,
+      "tail": 1,
+      "work": 5378,
+      "capacity": 6
+    },
+    "load": {
+      "bound": 902,
+      "release": 0,
+      "tail": 66,
+      "work": 1671,
+      "capacity": 2
+    },
+    "store": {
+      "bound": 501,
+      "release": 2,
+      "tail": 0,
+      "work": 998,
+      "capacity": 2
+    },
+    "flow": {
+      "bound": 900,
+      "release": 13,
+      "tail": 10,
+      "work": 877,
+      "capacity": 1
+    },
+    "arithmetic": {
+      "bound": 901,
+      "release": 1,
+      "tail": 1,
+      "work": 53885,
+      "capacity": 60
+    }
+  },
+  "critical_path_bound": 307,
+  "graph_sha256": "0e2fd2da99271b680e91134073dd91a5e6602ffc30181b3f9f80398f7fa1000d",
+  "static_bundles_at_899": 11832
+}

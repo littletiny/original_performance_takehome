@@ -1,0 +1,35 @@
+{
+  "candidate": 6,
+  "source": "results/compact_915",
+  "parameters": {
+    "family": "local",
+    "mode": "prefetch_pair_groups",
+    "groups": [
+      0,
+      1,
+      4,
+      5,
+      6,
+      8,
+      9,
+      12
+    ]
+  },
+  "resource_bound": 912,
+  "static_bundles_at_899": 10792,
+  "engines": {
+    "valu": 5459,
+    "load": 1769,
+    "alu": 10920,
+    "store": 912,
+    "flow": 862
+  },
+  "weighted_alu_valu": 54592,
+  "bound": 910,
+  "arithmetic_bound": 910,
+  "table_bundles": 10240,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 653,
+  "regions": 45,
+  "values": 8152
+}

@@ -43,6 +43,11 @@ class WideV(pt.V):
         return type(self),(self.vid,self.off)
 
 
+class PackedV(WideV):
+    """Room for eight overlapping eight-word loads at offsets 0,2,...,14."""
+    STRIDE = 32
+
+
 @dataclass
 class Graph:
     ops: list = field(default_factory=list)
@@ -92,8 +97,11 @@ def overfetch_member(config,r,k):
 
 
 def forced_scalar_pack(config, r, k, label):
-    return (label=='mix' and scalar_root_group(config,r,k) or
+    return (label in config.get('scalar_constant_labels',()) or
+            label=='mix' and scalar_root_group(config,r,k) or
             label=='mix' and overfetch_member(config,r,k) or
+            ((r==4 and label=='bit') or (r==5 and label=='mix')) and
+            k in config.get('prefetch_pair_groups',()) or
             ((r==14 and label=='bit') or (r==15 and label=='mix')) and late_pair_member(config,k))
 
 
@@ -130,11 +138,16 @@ def build(config=None):
                fold_path3_groups=(), pc_bit_pools=(),
                late_pair_groups=(), late_pair_buffers=1, late_pair_order=(),
                memory_vectors=(), memory_vector_buffers=1, memory_vector_order=(),
-               overfetch_groups=(), overfetch_levels=(8,9,10))
+               overfetch_groups=(), overfetch_levels=(8,9,10),
+               share_uniform_operands=False, scalar_constant_labels=(), scalar_setup=(),
+               early_prefix_groups=(), prefetch_pair_groups=())
     cfg.update(config or {})
     late_pairs=set(cfg['late_pair_groups'])
-    g = Graph(ref_type=WideV if late_pairs else pt.V)
+    prefetch_pairs=set(cfg['prefetch_pair_groups'])
+    early_prefixes=set(cfg['early_prefix_groups']) | prefetch_pairs
+    g = Graph(ref_type=PackedV if prefetch_pairs else WideV if late_pairs else pt.V)
     g.overfetch_values=[]
+    g.prefetch_pair_rows=[]
     if cfg['overfetch_groups']:
         assert cfg['compact_heap']
         assert set(cfg['overfetch_levels'])<={8,9,10}
@@ -292,6 +305,9 @@ def build(config=None):
                 offload = int((index+1)*f) != int(index*f)
         if flexible and cfg["scalar_overrides"] and name in cfg["scalar_overrides"]:
             offload = cfg["scalar_overrides"][name]
+        if (name in cfg['scalar_setup'] or flexible and name.startswith('r') and
+                '.'.join(name.split('.')[2:]) in cfg['scalar_constant_labels']):
+            offload=True
         if offload:
             for j in range(8):
                 aa, bb, dd = lane(a, j), lane(b, j), lane(dst, j)
@@ -385,6 +401,9 @@ def build(config=None):
     for k in cfg["dispatch5_groups"]:
         assert 0 <= k < 32 and k not in cfg["prefetch5_groups"]
         modes[5][k] = "jump"
+    for k in early_prefixes:
+        assert cfg['compact_heap'] and 0 <= k < 32 and fold_path4(k)
+        assert (modes[3][k],modes[4][k],modes[5][k])==('jump','prefetch','gather')
 
     dispatch_groups = {}
     width_overrides = {(r, k): width for r, k, width in cfg["dispatch_widths"]}
@@ -917,6 +936,7 @@ def build(config=None):
     bits = [[] for _ in range(32)]
     last_gathers = []
     gather_levels = {}
+    early_addresses,early_rows,early_bits={},{},{}
     for r in range(16):
         depth = r % 11
         old_values = values.copy()
@@ -986,6 +1006,23 @@ def build(config=None):
                         g.control.append((row_records[k]['stores'][j],op,1))
                         row_records[k]['loads'].append(op)
                 value = binary("^", values[k], node, prefix + "mix")
+            elif r==5 and k in prefetch_pairs:
+                selected=[]
+                for block in range(2):
+                    no=lane(early_rows[k],8*block)
+                    yes=lane(no,1)
+                    cond=early_bits[k][block]
+                    node=g.new()
+                    inputs=[(lane(v,j),1) for v in (cond,yes,no) for j in (0,2,4,6)]
+                    g.emit(prefix+f'prefetched_pair.half{block}','flow',
+                           ('vselect_even',node,cond,yes,no),inputs,[(node,8)])
+                    selected.extend(lane(node,2*j) for j in range(4))
+                scalar_tick+=1
+                value=g.new()
+                for j,node in enumerate(selected):
+                    dst,src=lane(value,j),lane(values[k],j)
+                    g.emit(prefix+f'mix.lane{j}','alu',('^',dst,src,node),
+                           [(src,1),(node,1)],[(dst,1)])
             else:
                 address = ptrs[k]
                 assert state[k] == "a"
@@ -1063,6 +1100,23 @@ def build(config=None):
                     g.emit(prefix+f'bit.lane{j}','alu',('&',dst,src,one),
                            [(src,1),(one,1)],[(dst,1)])
                 continue
+            if r==4 and k in prefetch_pairs:
+                # Keep the parity beside the interleaved L/R operands. The
+                # next address remains contiguous for later scalar gathers.
+                scalar_tick+=1
+                early_bits[k]=[g.new(),g.new()]
+                one=scalar(1)
+                address=g.new()
+                for j in range(8):
+                    bit=lane(early_bits[k][j//4],2*(j%4))
+                    src=lane(value,j)
+                    g.emit(prefix+f'bit.lane{j}','alu',('&',bit,src,one),
+                           [(src,1),(one,1)],[(bit,1)])
+                    dst,base=lane(address,j),lane(early_addresses[k],j)
+                    g.emit(prefix+f'address.lane{j}','alu',('+',dst,base,bit),
+                           [(base,1),(bit,1)],[(dst,1)])
+                ptrs[k],state[k]=address,'a'
+                continue
             next_state = "a" if modes[r+1][k] == "gather" else "q"
             if (r, k) in ahead_bits:
                 assert next_state == "a" and 4 <= depth <= 9
@@ -1093,10 +1147,36 @@ def build(config=None):
             elif r == 13 and modes[14][k] == "jump" and (cfg["fuse_tail_pc"] or k in pc_bit_groups):
                 pass  # q2 and b13 are consumed separately by the PC builder.
             elif depth == 3 and modes[r+1][k] == "prefetch" and fold_path4(k):
-                pass  # q3, b3 and b4 will directly form the depth-5 address.
+                if r==3 and k in early_prefixes:
+                    aux=select(bit,vector(bases[5]+2),vector(bases[5]),prefix+'pair_base')
+                    address=madd(ptrs[k],vector(4),aux,prefix+'pair_address')
+                    early_addresses[k]=address
+                    if k in prefetch_pairs:
+                        # Each VLOAD supplies both possible children. Later
+                        # loads overwrite padding from earlier loads, leaving
+                        # [L0,R0,...,L7,R7] in words 0..15. Declare every real
+                        # eight-word write, and enforce their WAW order.
+                        row=g.new(22)
+                        early_rows[k]=row
+                        loads=[]
+                        for j in range(8):
+                            dest,ptr=lane(row,2*j),lane(address,j)
+                            op=g.emit(prefix+f'pair_load{j}','load',('vload',dest,ptr),
+                                      [(ptr,1)],[(dest,8)])
+                            g.control.extend((before,op,1) for before in syncs[5])
+                            if loads:g.control.append((loads[-1],op,1))
+                            loads.append(op)
+                            last_gathers.append(op)
+                            gather_levels[op]=5
+                        g.prefetch_pair_rows.append(dict(value=row,group=k,
+                                                         loads=[g.names[i] for i in loads]))
+                # Otherwise q3, b3, b4 form the address after the next hash.
             elif depth == 4 and modes[r][k] == "prefetch" and fold_path4(k):
                 assert defer
-                if next_state == "q":
+                if r==4 and k in early_prefixes:
+                    assert next_state=='a'
+                    ptrs[k]=binary('+',early_addresses[k],bit,prefix+'address',False)
+                elif next_state == "q":
                     hi = select(bit, vector(3), vector(2), prefix+"address.high")
                     aux = select(bits[k][-2], hi, bit, prefix+"address.aux")
                     ptrs[k] = madd(ptrs[k], vector(4), aux, prefix+"address")
@@ -1262,12 +1342,41 @@ def build(config=None):
                              for i,op in enumerate(previous.get(buffer,())) if i<region['temp_fields'])
             loads=region['temp_loads']
             previous[buffer]=loads+previous.get(buffer,[])[len(loads):]
+    if cfg['share_uniform_operands']:
+        # A broadcast repeats one runtime scalar. Real ALU instructions may
+        # read that original scalar directly; only uniform numeric vectors
+        # synthesized with arithmetic need a canonical scalar constant.
+        uniform={int(v)+j:('constant',value) for value,v in vc.items() for j in range(8)}
+        for op in g.ops:
+            if op[1][0]=='vbroadcast':
+                _,dst,src=op[1]
+                uniform.update((int(dst)+j,('source',src)) for j in range(8))
+        old_tag=g.tag
+        g.tag=(-1,0)
+        for i,op in enumerate(tuple(g.ops)):
+            if op[0]!='alu' or len(op[1])!=4 or op[1][0].startswith('lookup_'):
+                continue
+            replacement={}
+            for operand in op[1][2:]:
+                entry=uniform.get(int(operand))
+                if entry is not None:
+                    kind,value=entry
+                    replacement[int(operand)]=value if kind=='source' else scalar(value)
+            if replacement:
+                code,dst,*inputs=op[1]
+                slot=(code,dst,*(replacement.get(int(v),v) for v in inputs))
+                reads=[(replacement.get(int(v),v),n) for v,n in op[2]]
+                g.ops[i]=[op[0],slot,reads,op[3],op[4]]
+        g.tag=old_tag
     if cfg['memory_vectors']:
         # Replicate a scalar through otherwise unused index memory. Each read
         # follows all eight stores; the next fill may share its read cycle.
         assert cfg['compact_heap'] and cfg['heap_io_backup'] and cfg['initial_zero_vector']
-        assert not row_groups and not late_pairs
         assert 1 <= cfg['memory_vector_buffers'] <= 8
+        reserved=(72*cfg['grand_row_buffers'] if row_groups else
+                  48*cfg['late_pair_buffers'] if late_pairs else 0)
+        memory_base=2054+reserved
+        assert memory_base+8*cfg['memory_vector_buffers'] <= 2294, 'Temporary rows overlap the shallow-node cache'
         eligible={name:i for i,(name,op) in enumerate(zip(g.names,g.ops))
                   if op[1][0]=='vbroadcast' or name.startswith('derive.')}
         selected=(list(eligible) if cfg['memory_vectors']=='all' else list(cfg['memory_vectors']))
@@ -1287,7 +1396,7 @@ def build(config=None):
             dst=op[3][0][0]
             buffer=ordinal%cfg['memory_vector_buffers']
             if buffer not in addresses:
-                addresses[buffer]=[scalar(2054+8*buffer+j) for j in range(8)]
+                addresses[buffer]=[scalar(memory_base+8*buffer+j) for j in range(8)]
             stores=[]
             for j,ptr in enumerate(addresses[buffer]):
                 store=g.emit(f'memory_vector.{name}.store{j}','store',('store',ptr,src),
@@ -1298,7 +1407,7 @@ def build(config=None):
             ptr=addresses[buffer][0]
             g.ops[i]=['load',('vload',dst,ptr),[(ptr,1)],[(dst,8)],op[4]]
             previous[buffer]=i
-            g.memory_vectors.append(dict(name=name,buffer=buffer,address=2054+8*buffer,stores=stores))
+            g.memory_vectors.append(dict(name=name,buffer=buffer,address=memory_base+8*buffer,stores=stores))
         for buffer,read in previous.items():
             ptr=addresses[buffer][0]
             zero=vector(0)
@@ -1341,6 +1450,10 @@ def audit_overfetch_padding(g):
     for value in getattr(g,'overfetch_values',()):
         assert g.sizes[value.vid]==8
         assert not {int(value)+j for j in range(8) if j!=6}.intersection(observed)
+    for row in getattr(g,'prefetch_pair_rows',()):
+        value=row['value']
+        assert g.sizes[value.vid]==22
+        assert not {int(value)+j for j in range(16,22)}.intersection(observed)
 
 
 def eliminate_dead(g):
@@ -1646,7 +1759,7 @@ def allocate_lanes(g, times):
     lib.allocate_lanes_native.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ptr, ptr, ptr, ctypes.c_int, ptr]
     lib.allocate_lanes_native.restype = ctypes.c_int
     n, horizon = len(g.sizes), int(max(times))+3
-    words=16 if max(g.sizes,default=8)>8 else 8
+    words=max(8,1 << (max(g.sizes,default=8)-1).bit_length())
     first = np.full((n, words), horizon, dtype=np.int64)
     end = np.full((n, words), -1, dtype=np.int64)
     for v in g.initial_zero:
@@ -1927,7 +2040,7 @@ def verify_semantics(g, seeds=(0, 1)):
 
     times=np.arange(len(g.ops),dtype=np.int64)
     if (g.config.get('grand_row_groups') or g.config.get('late_pair_groups') or
-            g.config.get('memory_vectors')):
+            g.config.get('memory_vectors') or g.config.get('prefetch_pair_groups')):
         # Row reuse introduces edges from a later round to an earlier-built
         # group. Interpret a dependency-valid logical timeline, with all reads
         # preceding same-cycle writes, instead of construction order.
