@@ -140,7 +140,8 @@ def build(config=None):
                memory_vectors=(), memory_vector_buffers=1, memory_vector_order=(),
                overfetch_groups=(), overfetch_levels=(8,9,10),
                share_uniform_operands=False, scalar_constant_labels=(), scalar_setup=(),
-               early_prefix_groups=(), prefetch_pair_groups=())
+               early_prefix_groups=(), prefetch_pair_groups=(),resynthesize_constants=False,
+               constant_expressions=None)
     cfg.update(config or {})
     late_pairs=set(cfg['late_pair_groups'])
     prefetch_pairs=set(cfg['prefetch_pair_groups'])
@@ -155,7 +156,6 @@ def build(config=None):
     if late_pairs:
         assert cfg['compact_heap'] and cfg['store_children'] and cfg['prefetch3']
         assert cfg['heap_io_backup'] and not cfg['grand_row_groups']
-        assert not cfg['dispatch_spans']
         assert 1 <= cfg['late_pair_buffers'] <= 4
     sc, vc = {}, {}
     # Fixed table addresses can share the scalar pointers already required by
@@ -449,6 +449,7 @@ def build(config=None):
                 assert spans.get((r,k),1)==1 and rows <= cfg["grand_row_buffers"]
                 fields=fields[:2-rows]
         if r==14 and k in late_pairs:
+            assert spans.get((r,k),1)==1, 'Late pair stores need consecutive lane writes'
             fields=[]
         field_plans[r,k] = fields
     regular_buffers = cfg["temp_buffers"] or 2
@@ -616,7 +617,8 @@ def build(config=None):
     region_counts = Counter((r % 11, width, spans.get((r,k),1)) for (r, k), width in dispatch_groups.items())
     table_offsets, total_words = {}, 0
     if cfg["pc_address_pools"]:
-        assert not spans, "Address pools currently require single-bundle cases"
+        # Shared address pools serve only the span-one singleton tables. The
+        # sorted layout puts wider spans afterward, with their own constants.
         assert 8 <= region_counts[3,1,1] <= 40
     for key in sorted(region_counts):
         d, width, span = key
@@ -755,7 +757,9 @@ def build(config=None):
             assert fetch_streams==(0,1) and span==1
             pair_buffer=pair_rank[group]%cfg['late_pair_buffers']
             pair_base=2054+48*pair_buffer
-            pair_buffer_key=regular_buffers+pair_buffer
+            # Extended dispatches use the next input-backed buffer key. Pair
+            # rows live in the index area and need a distinct ordering key.
+            pair_buffer_key=regular_buffers+int(extended_words>0)+pair_buffer
             pair_pointers=[[scalar(pair_base+24*s+2*j) for j in range(8)] for s in range(2)]
             pair_stores=[[],[]]
         grand_streams = [s for s in range(width) if r == 3 and group+s in cfg["prefetch5_groups"]]
@@ -1415,6 +1419,14 @@ def build(config=None):
                          [(ptr,1),(zero,8)],[])
             g.control.append((read,clear,0))
         g.tag=old_tag
+    if cfg['resynthesize_constants']:
+        from constant_graph import resynthesize
+        resynthesize(g,sc)
+    if cfg['constant_expressions']:
+        assert not cfg['resynthesize_constants']
+        from constant_graph import apply_expressions
+        apply_expressions(g,sc,cfg['constant_expressions'])
+    g.scalar_constants=dict(sc)
     g.config = cfg
     g.total_table_words = total_words
     if cfg["dce"]:

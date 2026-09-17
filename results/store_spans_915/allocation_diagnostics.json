@@ -1,0 +1,20 @@
+[
+  {
+    "candidate": 164,
+    "unallocated_cycles": 974,
+    "static_bundles": 11763,
+    "allocated": false,
+    "allocation_policy": "lanes",
+    "lane_live_peak": 1604,
+    "reason": "Per-lane live words exceed scratch capacity"
+  },
+  {
+    "candidate": 172,
+    "unallocated_cycles": 976,
+    "static_bundles": 11765,
+    "allocated": false,
+    "allocation_policy": "lanes",
+    "lane_live_peak": 1673,
+    "reason": "Per-lane live words exceed scratch capacity"
+  }
+]

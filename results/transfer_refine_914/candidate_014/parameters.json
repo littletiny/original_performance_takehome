@@ -1,0 +1,25 @@
+{
+  "candidate": 14,
+  "prefixes": [
+    0,
+    1
+  ],
+  "madds": 12,
+  "path_round": 12,
+  "resource_bound": 911,
+  "engines": {
+    "valu": 5454,
+    "load": 1769,
+    "alu": 10904,
+    "store": 912,
+    "flow": 862
+  },
+  "weighted_alu_valu": 54536,
+  "bound": 909,
+  "arithmetic_bound": 909,
+  "table_bundles": 10240,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 653,
+  "regions": 45,
+  "values": 8143
+}

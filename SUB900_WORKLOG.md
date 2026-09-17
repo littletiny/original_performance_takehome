@@ -1,18 +1,18 @@
 # Sub-900 optimization checkpoint
 
-The current verified entry point is **915 cycles with 10,808 static bundles**,
+The current verified entry point is **914 cycles with 10,807 static bundles**,
 down from the initial 980 cycles.
 The requested **<900-cycle target has not been reached**.
 
 On 2026-09-17 the user relaxed the static VLIW instruction-bundle limit from
 10,000 to **12,000**
 (`len(KernelBuilder.instrs)`). Both the exporter and the standalone decoder
-enforce this limit. The current program contains **231,286 individual
+enforce this limit. The current program contains **231,289 individual
 engine-slot operations**, including the initial pause; those are a different
 quantity from bundles.
 
 The preceding 932-cycle checkpoint used 477,092 static bundles. The current
-version reduces that count by **97.73%** and uses 17 fewer dynamic cycles. Its
+version reduces that count by **97.73%** and uses 18 fewer dynamic cycles. Its
 verified artifacts remain at `results/portfolio_1/`, and its submitted source
 is preserved in commit `e2c302f`; it is no longer the default implementation.
 The first compressed checkpoint, 971 cycles and 9,819 bundles, remains in
@@ -32,12 +32,13 @@ and commit `e9da622`.
 
 ## Latest verified checkpoint and lower-bound margin
 
-The current source and schedule are recorded in `results/compact_915/`.
-Its fixed-graph resource-window lower bound is 912, and its weighted arithmetic
-work is 54,577. The latest source/graph hashes still match the promoted 915
-checkpoint; the experiments below have not changed the submitted kernel.
+The current source and schedule are recorded in `results/compact_914/`.
+Its fixed-graph resource-window lower bound is 911, and its weighted arithmetic
+work is 54,536. It is verified on twelve seeds, including the actual submitted
+builder; nine submission tests, three native tests and 24 research regressions
+pass. The current source changes only the generated block.
 
-`results/sub900_margin_915/` answers the requested engineering margin question.
+`results/sub900_margin_915/` records the preceding checkpoint's margin analysis.
 Bounds of 899, 895 and 890 permit gaps of 0, 4 and 9 cycles respectively at a
 899-cycle target. A 890–895 bound is a useful design target, not a guarantee.
 The new combined graph with bound 899 has a best frozen-verified schedule of
@@ -620,3 +621,37 @@ at least 877 or 1,177 fewer W respectively. These are optimistic necessary
 cuts: stronger per-port windows and scratch still need to fit. The next search
 should target actual work reductions together with a small measured scheduling
 gap. The <900 goal remains unmet.
+
+## Ready constant operands, FLOW paths and the 914 checkpoint
+
+The optional STORE-span layout now coexists with fixed PC pools and late child
+rows, with distinct temporary-buffer ordering keys. The 192-configuration
+screen reached bound 901 and W=53,844, but none of its 16 selected graphs
+retained an allocated schedule. Two diagnostic live peaks, 1,604 and 1,673,
+exceed the 1,536-word limit. Twelve local controls retained one verified
+920-cycle result. See `results/store_spans_915/` and `results/store_spans_local_915/`.
+
+Global scalar-constant resynthesis shortened dependencies but did not improve
+cycles; its six-case screen's best result is frozen-verified at 921. A second
+pass uses operands already ready in the source schedule, checks that schedule
+against dependencies/capacities and separately checks scratch. Among twelve
+such variants, 98 expression changes plus two early depth-5 address prefixes
+produced a frozen-verified 914-cycle schedule. That initial result had W=54,592.
+
+The 24-case follow-up transferred eight round-12 shallow path updates to FLOW
+and retained 914 while reducing W to 54,536. It is the promoted configuration
+in `results/compact_914/`, sourced from `results/transfer_refine_914/candidate_014`.
+Relative to 915, it saves one dynamic cycle, one static bundle and 41 W, and
+adds 16 executed FLOW slots. Static slot operations increase by three to
+231,289; bundle count is 10,807. LOAD and STORE counts stay 1,769 and 912.
+
+All nine submission tests, three native tests and 24 research regressions pass.
+Seeds 0–9 and actual-builder seeds 901/12345 pass 20,480 hash checkpoints each,
+PC mappings, outputs and all non-output memory. The standalone expansion and
+entire actual builder program equal the verified lowerer. Only the generated
+production block changed. The new port plot was visually checked; two seeds
+take different PCs with identical per-cycle port counts.
+
+The fixed-graph bound is now 911. Strict sub-900 still requires at least 596
+fewer W by arithmetic capacity alone, before other ports, timing and scratch.
+The full <900 objective remains active and unmet.

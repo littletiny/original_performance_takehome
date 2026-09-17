@@ -1,0 +1,982 @@
+[
+  {
+    "name": "constant.2342",
+    "old_depth": 3,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      1,
+      2341
+    ]
+  },
+  {
+    "name": "constant.2350",
+    "old_depth": 3,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      1,
+      2349
+    ]
+  },
+  {
+    "name": "constant.2358",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      1,
+      2357
+    ]
+  },
+  {
+    "name": "constant.2366",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      1,
+      2365
+    ]
+  },
+  {
+    "name": "constant.2374",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      1,
+      2373
+    ]
+  },
+  {
+    "name": "constant.2382",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      2542
+    ]
+  },
+  {
+    "name": "constant.2390",
+    "old_depth": 6,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      19,
+      2373
+    ]
+  },
+  {
+    "name": "constant.2398",
+    "old_depth": 6,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      2558
+    ]
+  },
+  {
+    "name": "constant.2406",
+    "old_depth": 7,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      2502
+    ]
+  },
+  {
+    "name": "constant.2414",
+    "old_depth": 7,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      2510
+    ]
+  },
+  {
+    "name": "constant.2422",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      2518
+    ]
+  },
+  {
+    "name": "constant.2430",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      2526
+    ]
+  },
+  {
+    "name": "constant.2438",
+    "old_depth": 9,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      16,
+      2454
+    ]
+  },
+  {
+    "name": "constant.2446",
+    "old_depth": 9,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      16,
+      2462
+    ]
+  },
+  {
+    "name": "constant.14",
+    "old_depth": 3,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      7,
+      7
+    ]
+  },
+  {
+    "name": "constant.22",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "-",
+      32,
+      10
+    ]
+  },
+  {
+    "name": "constant.30",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      190
+    ]
+  },
+  {
+    "name": "constant.38",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      19,
+      19
+    ]
+  },
+  {
+    "name": "constant.56",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      150,
+      174
+    ]
+  },
+  {
+    "name": "constant.46",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "-",
+      206,
+      160
+    ]
+  },
+  {
+    "name": "constant.54",
+    "old_depth": 6,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      150,
+      160
+    ]
+  },
+  {
+    "name": "constant.40",
+    "old_depth": 3,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      8,
+      32
+    ]
+  },
+  {
+    "name": "constant.62",
+    "old_depth": 6,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      150,
+      168
+    ]
+  },
+  {
+    "name": "constant.70",
+    "old_depth": 7,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      230
+    ]
+  },
+  {
+    "name": "constant.120",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      150,
+      238
+    ]
+  },
+  {
+    "name": "constant.78",
+    "old_depth": 7,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      238
+    ]
+  },
+  {
+    "name": "constant.112",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      150,
+      230
+    ]
+  },
+  {
+    "name": "constant.86",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      246
+    ]
+  },
+  {
+    "name": "constant.104",
+    "old_depth": 7,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      150,
+      254
+    ]
+  },
+  {
+    "name": "constant.94",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      254
+    ]
+  },
+  {
+    "name": "constant.96",
+    "old_depth": 9,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      150,
+      246
+    ]
+  },
+  {
+    "name": "constant.102",
+    "old_depth": 9,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      198
+    ]
+  },
+  {
+    "name": "constant.88",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      150,
+      206
+    ]
+  },
+  {
+    "name": "constant.110",
+    "old_depth": 9,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      206
+    ]
+  },
+  {
+    "name": "constant.80",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      150,
+      198
+    ]
+  },
+  {
+    "name": "constant.118",
+    "old_depth": 10,
+    "new_depth": 2,
+    "expression": [
+      "-",
+      150,
+      32
+    ]
+  },
+  {
+    "name": "constant.72",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      150,
+      222
+    ]
+  },
+  {
+    "name": "constant.126",
+    "old_depth": 10,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      160,
+      222
+    ]
+  },
+  {
+    "name": "constant.64",
+    "old_depth": 3,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      32,
+      32
+    ]
+  },
+  {
+    "name": "constant.134",
+    "old_depth": 11,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      16,
+      150
+    ]
+  },
+  {
+    "name": "constant.142",
+    "old_depth": 11,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      32,
+      174
+    ]
+  },
+  {
+    "name": "constant.232",
+    "old_depth": 3,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      10,
+      222
+    ]
+  },
+  {
+    "name": "constant.158",
+    "old_depth": 12,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      8,
+      150
+    ]
+  },
+  {
+    "name": "constant.216",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      10,
+      206
+    ]
+  },
+  {
+    "name": "constant.208",
+    "old_depth": 3,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      10,
+      198
+    ]
+  },
+  {
+    "name": "constant.200",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      10,
+      190
+    ]
+  },
+  {
+    "name": "constant.192",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      10,
+      182
+    ]
+  },
+  {
+    "name": "constant.184",
+    "old_depth": 6,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      8,
+      176
+    ]
+  },
+  {
+    "name": "constant.152",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "-",
+      160,
+      8
+    ]
+  },
+  {
+    "name": "constant.144",
+    "old_depth": 9,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      32,
+      176
+    ]
+  },
+  {
+    "name": "constant.136",
+    "old_depth": 9,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      32,
+      168
+    ]
+  },
+  {
+    "name": "constant.128",
+    "old_depth": 9,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      32,
+      160
+    ]
+  },
+  {
+    "name": "constant.2312",
+    "old_depth": 3,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      150,
+      2462
+    ]
+  },
+  {
+    "name": "constant.2313",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      7,
+      2318
+    ]
+  },
+  {
+    "name": "constant.2314",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "-",
+      2333,
+      19
+    ]
+  },
+  {
+    "name": "constant.2315",
+    "old_depth": 6,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      32,
+      2347
+    ]
+  },
+  {
+    "name": "constant.2316",
+    "old_depth": 7,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      10,
+      2310
+    ]
+  },
+  {
+    "name": "constant.2317",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      7,
+      2310
+    ]
+  },
+  {
+    "name": "constant.2320",
+    "old_depth": 3,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      10,
+      2310
+    ]
+  },
+  {
+    "name": "constant.2321",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "-",
+      2340,
+      19
+    ]
+  },
+  {
+    "name": "constant.2322",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "-",
+      2332,
+      10
+    ]
+  },
+  {
+    "name": "constant.2323",
+    "old_depth": 6,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      32,
+      2355
+    ]
+  },
+  {
+    "name": "constant.2324",
+    "old_depth": 7,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      8,
+      2332
+    ]
+  },
+  {
+    "name": "constant.2325",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      7,
+      2318
+    ]
+  },
+  {
+    "name": "constant.2327",
+    "old_depth": 3,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      10,
+      2333
+    ]
+  },
+  {
+    "name": "constant.2328",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      10,
+      2318
+    ]
+  },
+  {
+    "name": "constant.2329",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      19,
+      2310
+    ]
+  },
+  {
+    "name": "constant.2330",
+    "old_depth": 6,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      7,
+      2333
+    ]
+  },
+  {
+    "name": "constant.2331",
+    "old_depth": 7,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      7,
+      2332
+    ]
+  },
+  {
+    "name": "constant.2336",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      19,
+      2355
+    ]
+  },
+  {
+    "name": "constant.2337",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      10,
+      2347
+    ]
+  },
+  {
+    "name": "constant.2338",
+    "old_depth": 6,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      7,
+      2341
+    ]
+  },
+  {
+    "name": "constant.2339",
+    "old_depth": 7,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      7,
+      2332
+    ]
+  },
+  {
+    "name": "constant.2343",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      10,
+      2333
+    ]
+  },
+  {
+    "name": "constant.2344",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      150,
+      2494
+    ]
+  },
+  {
+    "name": "constant.2345",
+    "old_depth": 6,
+    "new_depth": 2,
+    "expression": [
+      "-",
+      2355,
+      10
+    ]
+  },
+  {
+    "name": "constant.2346",
+    "old_depth": 7,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      1,
+      2347
+    ]
+  },
+  {
+    "name": "constant.2351",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      10,
+      2341
+    ]
+  },
+  {
+    "name": "constant.2352",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      19,
+      2333
+    ]
+  },
+  {
+    "name": "constant.2354",
+    "old_depth": 7,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      1,
+      2355
+    ]
+  },
+  {
+    "name": "constant.2359",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      10,
+      2349
+    ]
+  },
+  {
+    "name": "constant.2360",
+    "old_depth": 6,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      19,
+      2341
+    ]
+  },
+  {
+    "name": "constant.2361",
+    "old_depth": 7,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      10,
+      2355
+    ]
+  },
+  {
+    "name": "constant.2362",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      7,
+      2355
+    ]
+  },
+  {
+    "name": "constant.2363",
+    "old_depth": 9,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      7,
+      2356
+    ]
+  },
+  {
+    "name": "constant.2367",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      10,
+      2357
+    ]
+  },
+  {
+    "name": "constant.2368",
+    "old_depth": 6,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      19,
+      2349
+    ]
+  },
+  {
+    "name": "constant.2370",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      7,
+      2373
+    ]
+  },
+  {
+    "name": "constant.2371",
+    "old_depth": 9,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      7,
+      2364
+    ]
+  },
+  {
+    "name": "constant.2372",
+    "old_depth": 10,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      1,
+      2373
+    ]
+  },
+  {
+    "name": "constant.2375",
+    "old_depth": 6,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      10,
+      2365
+    ]
+  },
+  {
+    "name": "constant.2056",
+    "old_depth": 3,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      262,
+      2318
+    ]
+  },
+  {
+    "name": "constant.2057",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      10,
+      2047
+    ]
+  },
+  {
+    "name": "constant.2058",
+    "old_depth": 5,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      246,
+      2300
+    ]
+  },
+  {
+    "name": "constant.2060",
+    "old_depth": 7,
+    "new_depth": 2,
+    "expression": [
+      "^",
+      10,
+      2054
+    ]
+  },
+  {
+    "name": "constant.2061",
+    "old_depth": 8,
+    "new_depth": 2,
+    "expression": [
+      "+",
+      7,
+      2054
+    ]
+  },
+  {
+    "name": "constant.4294967294",
+    "old_depth": 3,
+    "new_depth": 2,
+    "expression": [
+      "-",
+      8,
+      10
+    ]
+  },
+  {
+    "name": "constant.65",
+    "old_depth": 4,
+    "new_depth": 2,
+    "expression": [
+      "-",
+      2365,
+      2300
+    ]
+  }
+]

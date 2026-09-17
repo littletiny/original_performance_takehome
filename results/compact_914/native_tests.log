@@ -1,0 +1,11 @@
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.217s
+
+OK
+forest_height=10, rounds=16, batch_size=256
+CYCLES:  914
+Speedup over baseline:  161.63457330415756
+forest_height=10, rounds=16, batch_size=256
+CYCLES:  914
+Speedup over baseline:  161.63457330415756

@@ -1,0 +1,29 @@
+{
+  "candidate": 8,
+  "trial": -1,
+  "cycles": 915,
+  "allocated": true,
+  "static_bundles": 10808,
+  "policy": "early",
+  "budget": 10000,
+  "source": "results/prefetch_pairs_915/candidate_000",
+  "replacements": 98,
+  "engines": {
+    "valu": 5459,
+    "load": 1769,
+    "alu": 10920,
+    "store": 912,
+    "flow": 846
+  },
+  "weighted_alu_valu": 54592,
+  "bound": 910,
+  "arithmetic_bound": 910,
+  "table_bundles": 10240,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 653,
+  "regions": 45,
+  "values": 8134,
+  "scratch_words": 1536,
+  "allocation_policy": "lanes-3",
+  "lane_live_peak": 1407
+}

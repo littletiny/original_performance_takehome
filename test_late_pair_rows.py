@@ -121,6 +121,17 @@ def fixture(merged):
 
 
 class LatePairTests(unittest.TestCase):
+    def test_pair_rows_are_independent_of_extended_dispatch_buffers(self):
+        cfg=json.loads((Path(__file__).parent/'results/compact_915/config.json').read_text())
+        cfg.update(late_pair_groups=[0,4],dispatch_spans=[[3,2,3]],
+                   heap_keep_levels=[4,5,7])
+        g=build(cfg)
+        regions={(r['round'],r['groups'][0]):r for r in g.regions}
+        extended=regions[3,2]['temp_buffer']
+        for k in (0,4):
+            self.assertNotEqual(extended,regions[14,k]['temp_buffer'])
+        verify_semantics(g,(0,1))
+
     def test_overlapping_pairs_preserve_both_choices_and_clear_padding(self):
         for merged in (False,True):
             g,expected,_=fixture(merged)
