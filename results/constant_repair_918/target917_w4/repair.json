@@ -1,0 +1,30 @@
+{
+  "status": "UNKNOWN",
+  "solve_seconds": 60.023867173993494,
+  "variables": 17717,
+  "intervals": 17850,
+  "branches": 280158,
+  "conflicts": 2674,
+  "source": "results/constant_loads_918/candidate_014",
+  "target": 917,
+  "window": 4,
+  "time_limit_seconds": 60.0,
+  "scope": "Fixed graph with each unit restricted to the recorded window; not a global task bound.",
+  "counts": {
+    "engines": {
+      "valu": 5468,
+      "load": 1760,
+      "alu": 10931,
+      "store": 839,
+      "flow": 873
+    },
+    "weighted_alu_valu": 54675,
+    "bound": 912,
+    "arithmetic_bound": 912,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7824
+  }
+}

@@ -424,6 +424,33 @@ component costs from potential savings and covers hash fusion, deferred XOR
 bias, path/PC fusion, conditional copies, port transfers, setup/restoration,
 and joint dispatch changes. The submitted kernel remains unchanged.
 
+## Measured work-reduction follow-up
+
+`results/work_reduction_followup_918/README.md` records 50 scalar-constant
+LOAD variants, 12 preload-priority variants, six measured-hole rebalances,
+24 cache/retained-tree exchanges, and 24 shallow-dispatch/address-folding
+variants. None improved the submitted 918-cycle result.
+
+The fully verified `results/constant_loads_918/candidate_014` retains 918
+cycles and 10,811 bundles while reducing weighted arithmetic by 48 to 54,675.
+It is an alternative search source, not a production replacement. Its fixed
+resource-window lower bound is 914. Three bounded CP-SAT repairs for 917/916
+returned UNKNOWN; a zero-window 918 control reproduced the complete saved
+schedule. No timeout is treated as an infeasibility or optimality proof.
+
+Removing all grandchild copies while keeping original tree blocks reduces
+weighted work by 512, but introduces a LOAD release/tail bound of 916 and
+executes in 967 cycles. The best partial-cache exchange was verified at 942.
+Depth-2 dispatch is now available at rounds 2 and 13, with optional two-round
+address folding. The best tested shallow-dispatch variant is 920; its folded
+comparison saves 40 weighted slots but executes in 923.
+
+Six selected probes passed ten-seed frozen execution with all 20,480 hash
+checkpoints per seed, PC mappings, final outputs, non-output memory, and
+standalone expansion checked. The 12 allocator/scheduler/memory tests pass.
+The rebuilt default graph and expanded actual KernelBuilder program remain
+identical; `perf_takehome.py` and the machine/test rules are unchanged.
+
 ## Remaining work
 
 - Reduce actual work or change dispatch structure: several superficially

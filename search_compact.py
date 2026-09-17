@@ -29,6 +29,13 @@ def warm_keys(source, graph, scheduler=None):
         for u in reversed(scheduler.order):
             if keys[u] is None:
                 keys[u] = min((keys[child]-lag for child, lag in scheduler.children[u]), default=0)
+    load_priority = graph.config.get('constant_load_priority')
+    if load_priority is not None:
+        selected = set(graph.config.get('force_load_scalars', ()))
+        for u, rows in enumerate(graph.units):
+            op = graph.ops[rows[0][0]]
+            if op[0] == 'load' and op[1][0] == 'const' and op[1][2] in selected:
+                keys[u] = min(keys[u], load_priority)
     return np.array(keys, dtype=np.float64)
 
 

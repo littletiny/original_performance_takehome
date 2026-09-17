@@ -1,0 +1,674 @@
+[
+  {
+    "candidate": 0,
+    "round": 2,
+    "groups": [
+      4,
+      5,
+      6
+    ],
+    "folded": false,
+    "move_select": false,
+    "engines": {
+      "valu": 5477,
+      "load": 1750,
+      "alu": 10951,
+      "store": 823,
+      "flow": 859
+    },
+    "weighted_alu_valu": 54767,
+    "bound": 913,
+    "arithmetic_bound": 913,
+    "table_bundles": 9536,
+    "table_case_bundles": 9536,
+    "static_padding_bundles": 0,
+    "regions": 44,
+    "values": 7879
+  },
+  {
+    "candidate": 1,
+    "round": 2,
+    "groups": [
+      4,
+      5,
+      6
+    ],
+    "folded": false,
+    "move_select": true,
+    "engines": {
+      "valu": 5466,
+      "load": 1750,
+      "alu": 10927,
+      "store": 823,
+      "flow": 872
+    },
+    "weighted_alu_valu": 54655,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 9536,
+    "table_case_bundles": 9536,
+    "static_padding_bundles": 0,
+    "regions": 44,
+    "values": 7855
+  },
+  {
+    "candidate": 2,
+    "round": 2,
+    "groups": [
+      4,
+      5,
+      6
+    ],
+    "folded": true,
+    "move_select": false,
+    "engines": {
+      "valu": 5475,
+      "load": 1750,
+      "alu": 10951,
+      "store": 823,
+      "flow": 865
+    },
+    "weighted_alu_valu": 54751,
+    "bound": 913,
+    "arithmetic_bound": 913,
+    "table_bundles": 9536,
+    "table_case_bundles": 9536,
+    "static_padding_bundles": 0,
+    "regions": 44,
+    "values": 7883
+  },
+  {
+    "candidate": 3,
+    "round": 2,
+    "groups": [
+      4,
+      5,
+      6
+    ],
+    "folded": true,
+    "move_select": true,
+    "engines": {
+      "valu": 5464,
+      "load": 1750,
+      "alu": 10927,
+      "store": 823,
+      "flow": 878
+    },
+    "weighted_alu_valu": 54639,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 9536,
+    "table_case_bundles": 9536,
+    "static_padding_bundles": 0,
+    "regions": 44,
+    "values": 7859
+  },
+  {
+    "candidate": 4,
+    "round": 2,
+    "groups": [
+      4,
+      5,
+      6,
+      8,
+      9,
+      10
+    ],
+    "folded": false,
+    "move_select": false,
+    "engines": {
+      "valu": 5472,
+      "load": 1780,
+      "alu": 10944,
+      "store": 807,
+      "flow": 841
+    },
+    "weighted_alu_valu": 54720,
+    "bound": 912,
+    "arithmetic_bound": 912,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7867
+  },
+  {
+    "candidate": 5,
+    "round": 2,
+    "groups": [
+      4,
+      5,
+      6,
+      8,
+      9,
+      10
+    ],
+    "folded": false,
+    "move_select": true,
+    "engines": {
+      "valu": 5463,
+      "load": 1780,
+      "alu": 10928,
+      "store": 807,
+      "flow": 851
+    },
+    "weighted_alu_valu": 54632,
+    "bound": 911,
+    "arithmetic_bound": 911,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7843
+  },
+  {
+    "candidate": 6,
+    "round": 2,
+    "groups": [
+      4,
+      5,
+      6,
+      8,
+      9,
+      10
+    ],
+    "folded": true,
+    "move_select": false,
+    "engines": {
+      "valu": 5468,
+      "load": 1780,
+      "alu": 10936,
+      "store": 807,
+      "flow": 853
+    },
+    "weighted_alu_valu": 54680,
+    "bound": 912,
+    "arithmetic_bound": 912,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7874
+  },
+  {
+    "candidate": 7,
+    "round": 2,
+    "groups": [
+      4,
+      5,
+      6,
+      8,
+      9,
+      10
+    ],
+    "folded": true,
+    "move_select": true,
+    "engines": {
+      "valu": 5459,
+      "load": 1780,
+      "alu": 10920,
+      "store": 807,
+      "flow": 863
+    },
+    "weighted_alu_valu": 54592,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7850
+  },
+  {
+    "candidate": 8,
+    "round": 2,
+    "groups": [
+      16,
+      17,
+      18,
+      20,
+      21,
+      22
+    ],
+    "folded": false,
+    "move_select": false,
+    "engines": {
+      "valu": 5474,
+      "load": 1788,
+      "alu": 10944,
+      "store": 807,
+      "flow": 832
+    },
+    "weighted_alu_valu": 54736,
+    "bound": 913,
+    "arithmetic_bound": 913,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7861
+  },
+  {
+    "candidate": 9,
+    "round": 2,
+    "groups": [
+      16,
+      17,
+      18,
+      20,
+      21,
+      22
+    ],
+    "folded": false,
+    "move_select": true,
+    "engines": {
+      "valu": 5460,
+      "load": 1788,
+      "alu": 10920,
+      "store": 807,
+      "flow": 848
+    },
+    "weighted_alu_valu": 54600,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7837
+  },
+  {
+    "candidate": 10,
+    "round": 2,
+    "groups": [
+      16,
+      17,
+      18,
+      20,
+      21,
+      22
+    ],
+    "folded": true,
+    "move_select": false,
+    "engines": {
+      "valu": 5470,
+      "load": 1788,
+      "alu": 10936,
+      "store": 807,
+      "flow": 844
+    },
+    "weighted_alu_valu": 54696,
+    "bound": 912,
+    "arithmetic_bound": 912,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7868
+  },
+  {
+    "candidate": 11,
+    "round": 2,
+    "groups": [
+      16,
+      17,
+      18,
+      20,
+      21,
+      22
+    ],
+    "folded": true,
+    "move_select": true,
+    "engines": {
+      "valu": 5456,
+      "load": 1788,
+      "alu": 10912,
+      "store": 807,
+      "flow": 860
+    },
+    "weighted_alu_valu": 54560,
+    "bound": 910,
+    "arithmetic_bound": 910,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7844
+  },
+  {
+    "candidate": 12,
+    "round": 13,
+    "groups": [
+      4,
+      5,
+      6
+    ],
+    "folded": false,
+    "move_select": false,
+    "engines": {
+      "valu": 5482,
+      "load": 1750,
+      "alu": 10960,
+      "store": 823,
+      "flow": 859
+    },
+    "weighted_alu_valu": 54816,
+    "bound": 914,
+    "arithmetic_bound": 914,
+    "table_bundles": 9536,
+    "table_case_bundles": 9536,
+    "static_padding_bundles": 0,
+    "regions": 44,
+    "values": 7883
+  },
+  {
+    "candidate": 13,
+    "round": 13,
+    "groups": [
+      4,
+      5,
+      6
+    ],
+    "folded": false,
+    "move_select": true,
+    "engines": {
+      "valu": 5468,
+      "load": 1750,
+      "alu": 10936,
+      "store": 823,
+      "flow": 875
+    },
+    "weighted_alu_valu": 54680,
+    "bound": 912,
+    "arithmetic_bound": 912,
+    "table_bundles": 9536,
+    "table_case_bundles": 9536,
+    "static_padding_bundles": 0,
+    "regions": 44,
+    "values": 7859
+  },
+  {
+    "candidate": 14,
+    "round": 13,
+    "groups": [
+      4,
+      5,
+      6
+    ],
+    "folded": true,
+    "move_select": false,
+    "engines": {
+      "valu": 5480,
+      "load": 1750,
+      "alu": 10960,
+      "store": 823,
+      "flow": 865
+    },
+    "weighted_alu_valu": 54800,
+    "bound": 914,
+    "arithmetic_bound": 914,
+    "table_bundles": 9536,
+    "table_case_bundles": 9536,
+    "static_padding_bundles": 0,
+    "regions": 44,
+    "values": 7887
+  },
+  {
+    "candidate": 15,
+    "round": 13,
+    "groups": [
+      4,
+      5,
+      6
+    ],
+    "folded": true,
+    "move_select": true,
+    "engines": {
+      "valu": 5466,
+      "load": 1750,
+      "alu": 10936,
+      "store": 823,
+      "flow": 881
+    },
+    "weighted_alu_valu": 54664,
+    "bound": 912,
+    "arithmetic_bound": 912,
+    "table_bundles": 9536,
+    "table_case_bundles": 9536,
+    "static_padding_bundles": 0,
+    "regions": 44,
+    "values": 7863
+  },
+  {
+    "candidate": 16,
+    "round": 13,
+    "groups": [
+      4,
+      5,
+      6,
+      8,
+      9,
+      10
+    ],
+    "folded": false,
+    "move_select": false,
+    "engines": {
+      "valu": 5485,
+      "load": 1772,
+      "alu": 10968,
+      "store": 807,
+      "flow": 844
+    },
+    "weighted_alu_valu": 54848,
+    "bound": 915,
+    "arithmetic_bound": 915,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7879
+  },
+  {
+    "candidate": 17,
+    "round": 13,
+    "groups": [
+      4,
+      5,
+      6,
+      8,
+      9,
+      10
+    ],
+    "folded": false,
+    "move_select": true,
+    "engines": {
+      "valu": 5471,
+      "load": 1772,
+      "alu": 10944,
+      "store": 807,
+      "flow": 860
+    },
+    "weighted_alu_valu": 54712,
+    "bound": 912,
+    "arithmetic_bound": 912,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7855
+  },
+  {
+    "candidate": 18,
+    "round": 13,
+    "groups": [
+      4,
+      5,
+      6,
+      8,
+      9,
+      10
+    ],
+    "folded": true,
+    "move_select": false,
+    "engines": {
+      "valu": 5481,
+      "load": 1772,
+      "alu": 10960,
+      "store": 807,
+      "flow": 856
+    },
+    "weighted_alu_valu": 54808,
+    "bound": 914,
+    "arithmetic_bound": 914,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7886
+  },
+  {
+    "candidate": 19,
+    "round": 13,
+    "groups": [
+      4,
+      5,
+      6,
+      8,
+      9,
+      10
+    ],
+    "folded": true,
+    "move_select": true,
+    "engines": {
+      "valu": 5467,
+      "load": 1772,
+      "alu": 10936,
+      "store": 807,
+      "flow": 872
+    },
+    "weighted_alu_valu": 54672,
+    "bound": 912,
+    "arithmetic_bound": 912,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7862
+  },
+  {
+    "candidate": 20,
+    "round": 13,
+    "groups": [
+      16,
+      17,
+      18,
+      20,
+      21,
+      22
+    ],
+    "folded": false,
+    "move_select": false,
+    "engines": {
+      "valu": 5485,
+      "load": 1772,
+      "alu": 10968,
+      "store": 807,
+      "flow": 844
+    },
+    "weighted_alu_valu": 54848,
+    "bound": 915,
+    "arithmetic_bound": 915,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7879
+  },
+  {
+    "candidate": 21,
+    "round": 13,
+    "groups": [
+      16,
+      17,
+      18,
+      20,
+      21,
+      22
+    ],
+    "folded": false,
+    "move_select": true,
+    "engines": {
+      "valu": 5471,
+      "load": 1772,
+      "alu": 10944,
+      "store": 807,
+      "flow": 860
+    },
+    "weighted_alu_valu": 54712,
+    "bound": 912,
+    "arithmetic_bound": 912,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7855
+  },
+  {
+    "candidate": 22,
+    "round": 13,
+    "groups": [
+      16,
+      17,
+      18,
+      20,
+      21,
+      22
+    ],
+    "folded": true,
+    "move_select": false,
+    "engines": {
+      "valu": 5481,
+      "load": 1772,
+      "alu": 10960,
+      "store": 807,
+      "flow": 856
+    },
+    "weighted_alu_valu": 54808,
+    "bound": 914,
+    "arithmetic_bound": 914,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7886
+  },
+  {
+    "candidate": 23,
+    "round": 13,
+    "groups": [
+      16,
+      17,
+      18,
+      20,
+      21,
+      22
+    ],
+    "folded": true,
+    "move_select": true,
+    "engines": {
+      "valu": 5467,
+      "load": 1772,
+      "alu": 10936,
+      "store": 807,
+      "flow": 872
+    },
+    "weighted_alu_valu": 54672,
+    "bound": 912,
+    "arithmetic_bound": 912,
+    "table_bundles": 9472,
+    "table_case_bundles": 9472,
+    "static_padding_bundles": 0,
+    "regions": 43,
+    "values": 7862
+  }
+]

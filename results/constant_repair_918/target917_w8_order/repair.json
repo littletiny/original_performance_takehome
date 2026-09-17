@@ -1,0 +1,32 @@
+{
+  "status": "UNKNOWN",
+  "solve_seconds": 120.03986684700067,
+  "variables": 17717,
+  "intervals": 17850,
+  "lane_order_constraints": 8512,
+  "branches": 109752,
+  "conflicts": 5651,
+  "source": "results/constant_loads_918/candidate_014",
+  "target": 917,
+  "window": 8,
+  "time_limit_seconds": 120.0,
+  "lane_order": true,
+  "scope": "Fixed graph and recorded time windows, plus saved scalar-lane order when enabled; not a global task bound.",
+  "counts": {
+    "engines": {
+      "valu": 5468,
+      "load": 1760,
+      "alu": 10931,
+      "store": 839,
+      "flow": 873
+    },
+    "weighted_alu_valu": 54675,
+    "bound": 912,
+    "arithmetic_bound": 912,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 7824
+  }
+}

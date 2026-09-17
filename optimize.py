@@ -94,7 +94,9 @@ def build(config=None):
                early_gather_groups=(), temp_region_order=(), pc_address_pools=False,
                dispatch5_groups=(), grand_row_groups=(), grand_row_buffers=3,
                dispatch4_groups=(), gather_dispatch4=False, precise_restore=False,
-               header_root=False, scalar_root_groups=())
+               header_root=False, scalar_root_groups=(), force_load_scalars=(),
+               dispatch2_groups=(), dispatch13_groups=(), width2=3, prefetch2=True,
+               fold_path3_groups=())
     cfg.update(config or {})
     g = Graph()
     sc, vc = {}, {}
@@ -130,6 +132,7 @@ def build(config=None):
     constant_zero = None
     header_root = None
     ahead_bits = set(tuple(x) for x in cfg["ahead_bits"])
+    fold_path3 = set(tuple(x) for x in cfg['fold_path3_groups'])
     prefetch_madd_groups = set(tuple(x) for x in cfg["prefetch_madd_groups"])
     if cfg["compact_heap"]:
         assert cfg["prexor"]
@@ -148,6 +151,7 @@ def build(config=None):
     def scalar(value, force_load=False):
         nonlocal constant_zero
         value &= MASK
+        force_load = force_load or value in cfg['force_load_scalars']
         if value not in sc:
             v = address_lanes[value] if value in address_lanes else g.new(1)
             if cfg["flow_constants"] == "all" or value in cfg["flow_constants"]:
@@ -300,7 +304,13 @@ def build(config=None):
     for k in cfg["early_gather_groups"]:
         assert 0 <= k < 32 and k not in cfg["prefetch5_groups"]
         modes[3][k] = modes[4][k] = "gather"
-    for r in (3, 4, 14):
+    for r in (2,13):
+        for k in cfg[f'dispatch{r}_groups']:
+            assert 0 <= k < 32
+            assert r==13 or k not in cfg['prefetch5_groups']
+            modes[r][k]='jump'
+            modes[r+2][k]='gather'
+    for r in (2, 3, 4, 13, 14):
         if r==3 and cfg['gather_dispatch4']:
             for k in cfg['dispatch4_groups']:
                 assert 0 <= k < 32 and k not in cfg['prefetch5_groups']
@@ -322,7 +332,7 @@ def build(config=None):
 
     dispatch_groups = {}
     width_overrides = {(r, k): width for r, k, width in cfg["dispatch_widths"]}
-    for r in (3, 4, 5, 14, 15):
+    for r in (2, 3, 4, 5, 13, 14, 15):
         k = 0
         while k < 32:
             if modes[r][k] != "jump":
@@ -350,7 +360,7 @@ def build(config=None):
     field_plans = {}
     for (r,k), width in dispatch_groups.items():
         fields = []
-        if cfg["store_children"] and r in (3,4,14) and cfg[f"prefetch{r%11}"]:
+        if cfg["store_children"] and r in (2,3,4,13,14) and cfg[f"prefetch{r%11}"]:
             fields = [("child",s,c) for s in range(width)
                       if modes[r+1][k+s]=='prefetch' for c in range(2)]
             fields += [("grand",s,c) for s in range(width) if r==3 and k+s in cfg["prefetch5_groups"] for c in range(4)]
@@ -602,12 +612,12 @@ def build(config=None):
             targets = (binary("+", packed, offsets, prefix + "targets", False) if span==1 else
                        madd(packed,vector(span),offsets,prefix+"targets"))
         mixed = [g.new() for _ in range(width)]
-        fetch_streams=tuple(s for s in range(width) if d in (3,4) and cfg[f"prefetch{d}"]
+        fetch_streams=tuple(s for s in range(width) if d in (2,3,4) and cfg[f"prefetch{d}"]
                             and modes[r+1][group+s]=='prefetch')
         fetch = bool(fetch_streams)
         if fetch:
             children = list(reversed(adjusted_nodes[d+1]))
-            store_children = cfg["store_children"] and r in (3, 4, 14)
+            store_children = cfg["store_children"] and r in (2, 3, 4, 13, 14)
             if store_children:
                 ordinal=temp_rank[r,group] if temp_rank is not None else len(g.regions)
                 buffer = ordinal % cfg["temp_buffers"] if cfg["temp_buffers"] else int(r == 14)
@@ -881,7 +891,18 @@ def build(config=None):
                 assert defer and next_state == "q"
                 ptrs[k], state[k] = bit, "q"
                 continue
-            if r == 13 and modes[14][k] == "jump" and cfg["fuse_tail_pc"]:
+            if (r,k) in fold_path3:
+                assert depth==2 and modes[r+1][k]=='prefetch'
+                pass  # The next round forms the address from q2, b2, and b3.
+            elif (r-1,k) in fold_path3:
+                assert depth==3 and mode=='prefetch' and next_state=='a' and defer
+                base=bases[4] if cfg['compact_heap'] else bases[4]+15
+                step=1 if cfg['compact_heap'] else -1
+                hi=select(bit,vector(base+3*step),vector(base+2*step),prefix+'address.high')
+                lo=select(bit,vector(base+step),vector(base),prefix+'address.low')
+                aux=select(bits[k][-2],hi,lo,prefix+'address.aux')
+                ptrs[k]=madd(ptrs[k],vector(4*step),aux,prefix+'address')
+            elif r == 13 and modes[14][k] == "jump" and cfg["fuse_tail_pc"]:
                 pass  # q2 and b13 are consumed separately by the PC builder.
             elif depth == 3 and modes[r+1][k] == "prefetch" and fold_path4(k):
                 pass  # q3, b3 and b4 will directly form the depth-5 address.
