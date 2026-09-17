@@ -85,7 +85,7 @@ def main():
         bases,audit=allocate(new,new_times)
         index=len(jobs);directory=output/f'candidate_{index:03}';directory.mkdir(exist_ok=True)
         warm=dict(candidate=index,trial=-1,cycles=cycles,allocated=bases is not None,
-                  static_bundles=static_size(new,cycles),policy=policy,budget=budget,
+                  static_bundles=static_size(new,cycles,new_times),policy=policy,budget=budget,
                   source=str(source),replacements=len(chosen),**counts(new),**audit)
         for name,data in (('config',new.config),('warm',warm),('semantics',verify_semantics(new,(0,1)))):
             (directory/f'{name}.json').write_text(json.dumps(data,indent=2)+'\n')

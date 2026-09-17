@@ -1,0 +1,24 @@
+{
+  "candidate": 4,
+  "source": "results/compact_914_pc",
+  "flow_constants": [
+    19,
+    4097
+  ],
+  "resource_bound": 911,
+  "engines": {
+    "flow": 865,
+    "valu": 5448,
+    "load": 1769,
+    "alu": 10900,
+    "store": 984
+  },
+  "weighted_alu_valu": 54484,
+  "bound": 909,
+  "arithmetic_bound": 909,
+  "table_bundles": 10240,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 653,
+  "regions": 45,
+  "values": 8150
+}

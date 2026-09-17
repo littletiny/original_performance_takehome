@@ -138,12 +138,14 @@ def run(job):
             score=int((best+scheduler.durations).max())+1
         times=scheduler.op_times(best)
         bases,audit=allocate(graph,times)
-        if bases is not None and score<best_score and static_size(graph,score)<=12000:
+        try:size=static_size(graph,score,times)
+        except ValueError:continue
+        if bases is not None and score<best_score and size<=12000:
             best_score=score
             incumbent=best
             np.savez_compressed(directory/'best.npz',unit_times=best,times=times)
             row=dict(candidate=index,cycles=score,contractions=contract,expansions=expand,
-                     changed_packs=len(selected),static_bundles=static_size(graph,score),
+                     changed_packs=len(selected),static_bundles=size,
                      **audit,**counts(graph))
             (directory/'search.json').write_text(json.dumps(row,indent=2)+'\n')
             print(json.dumps(row),flush=True)

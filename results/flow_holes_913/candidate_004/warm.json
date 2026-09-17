@@ -1,0 +1,28 @@
+{
+  "candidate": 4,
+  "budget": 1000,
+  "cycles": 913,
+  "allocated": true,
+  "converted": 13,
+  "static_bundles": 11043,
+  "removed_operations": [],
+  "source": "results/prologue_constants_914/candidate_012",
+  "engines": {
+    "flow": 880,
+    "valu": 5443,
+    "load": 1770,
+    "alu": 10870,
+    "store": 984
+  },
+  "weighted_alu_valu": 54414,
+  "bound": 908,
+  "arithmetic_bound": 907,
+  "table_bundles": 10489,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 902,
+  "regions": 45,
+  "values": 8124,
+  "scratch_words": 1536,
+  "allocation_policy": "lanes-3",
+  "lane_live_peak": 1361
+}

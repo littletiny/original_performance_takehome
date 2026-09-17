@@ -1,0 +1,70 @@
+{
+  "source": "results/flow_holes_rebalance_913/candidate_000",
+  "counts": {
+    "engines": {
+      "flow": 880,
+      "valu": 5442,
+      "load": 1770,
+      "alu": 10878,
+      "store": 984
+    },
+    "weighted_alu_valu": 54414,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10489,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 902,
+    "regions": 45,
+    "values": 8124
+  },
+  "bound": 909,
+  "critical_path_bound": 247,
+  "resource_windows": {
+    "alu": {
+      "bound": 909,
+      "release": 1,
+      "tail": 1,
+      "work": 10878,
+      "capacity": 12
+    },
+    "valu": {
+      "bound": 909,
+      "release": 1,
+      "tail": 1,
+      "work": 5441,
+      "capacity": 6
+    },
+    "load": {
+      "bound": 886,
+      "release": 0,
+      "tail": 1,
+      "work": 1770,
+      "capacity": 2
+    },
+    "store": {
+      "bound": 493,
+      "release": 1,
+      "tail": 0,
+      "work": 984,
+      "capacity": 2
+    },
+    "flow": {
+      "bound": 890,
+      "release": 0,
+      "tail": 10,
+      "work": 880,
+      "capacity": 1
+    },
+    "arithmetic": {
+      "bound": 909,
+      "release": 1,
+      "tail": 1,
+      "work": 54406,
+      "capacity": 60
+    }
+  },
+  "formula": "C >= release + tail + ceil(work / capacity)",
+  "scope": "Fixed SSA graph and compound units; scratch ignored. Bootstrap is not included; the initial pause is included. Not a global task lower bound.",
+  "graph_sha256": "3ec20bbd07a5d45947f11152ac4fa631f26461847191d2eee981efd892d7e9fd",
+  "saved_schedule_cycles": 913
+}

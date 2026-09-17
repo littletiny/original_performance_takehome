@@ -1,0 +1,26 @@
+{
+  "source": "/home/tiny/980/results/interleaved_pc_914/candidate_001",
+  "cycles": 914,
+  "pause_cycle": 1,
+  "bootstrap_cycle": 13,
+  "static_bundles": 11043,
+  "all_existing_operations_and_times_unchanged": true,
+  "engines": {
+    "flow": 866,
+    "valu": 5443,
+    "load": 1771,
+    "alu": 10883,
+    "store": 984
+  },
+  "weighted_alu_valu": 54427,
+  "bound": 908,
+  "arithmetic_bound": 908,
+  "table_bundles": 10489,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 902,
+  "regions": 45,
+  "values": 8123,
+  "scratch_words": 1536,
+  "allocation_policy": "lanes-3",
+  "lane_live_peak": 1353
+}

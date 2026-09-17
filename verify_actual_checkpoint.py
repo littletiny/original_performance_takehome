@@ -21,10 +21,14 @@ def main():
     assert bases is not None,audit
     expected,origins,_=lower(graph,times,bases)
     positions=np.flatnonzero(origins==saved['pause_cycle'])
-    assert len(positions)==1
-    initial=expected[int(positions[0])]
-    assert not initial.get('flow') and not initial.get('store')
-    initial['flow']=[('pause',)]
+    assert len(positions)>0
+    for position in positions:
+        initial=expected[int(position)]
+        assert not initial.get('store')
+        if initial.get('flow'):
+            assert initial['flow']==[('pause',)]
+        else:
+            initial['flow']=[('pause',)]
     builder=pt.KernelBuilder();builder.build_kernel(10,2047,256,16)
     actual=builder.instrs
     assert actual==expected,'Submitted builder differs from the full verified program'

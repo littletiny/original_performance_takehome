@@ -57,24 +57,30 @@ def export(source, write=False):
     assert bases is not None, allocation
     program, origins, logical = lower(graph, times, bases)
     assert len(program) <= 12_000, f"Static bundle limit exceeded: {len(program)}"
-    # Share an early free FLOW slot before any stores. Follow logical cycles
-    # across the optional bootstrap jump without shifting absolute PCs.
-    for index in sorted(range(len(program)), key=lambda i:int(origins[i])):
-        if origins[index] < 0:
-            continue
-        bundle = program[index]
-        assert not bundle.get('store'), 'No safe initial pause before memory writes'
-        if bundle.get('flow'):
-            if graph.config.get('pc_address_pools') and index == 0:
-                assert bundle['flow'][0][0] == 'jump'
-                continue
-            assert all(slot[0] in ('add_imm', 'vselect', 'select') for slot in bundle['flow'])
-            continue
-        bundle['flow'] = [('pause',)]
-        pause_cycle = int(origins[index])
-        break
+    pauses={int(origins[i]) for i,bundle in enumerate(program) if ('pause',) in bundle.get('flow',())}
+    if pauses:
+        assert len(pauses)==1
+        pause_cycle=next(iter(pauses))
+        assert all(int(origins[i])>pause_cycle for i,bundle in enumerate(program) if bundle.get('store'))
     else:
-        raise AssertionError('No initial pause slot')
+        # Share an early free FLOW slot before any stores. Follow logical
+        # cycles across the bootstrap without shifting absolute PCs.
+        for index in sorted(range(len(program)), key=lambda i:int(origins[i])):
+            if origins[index] < 0:
+                continue
+            bundle = program[index]
+            assert not bundle.get('store'), 'No safe initial pause before memory writes'
+            if bundle.get('flow'):
+                if graph.config.get('pc_address_pools') and index == 0:
+                    assert bundle['flow'][0][0] == 'jump'
+                    continue
+                assert all(slot[0] in ('add_imm', 'vselect', 'select') for slot in bundle['flow'])
+                continue
+            bundle['flow'] = [('pause',)]
+            pause_cycle = int(origins[index])
+            break
+        else:
+            raise AssertionError('No initial pause slot')
     verification = verify_frozen(graph, times, bases, program, origins, range(10))
     cycles = len(logical)
     main_size = len(program) - graph.total_table_words
@@ -83,13 +89,14 @@ def export(source, write=False):
     for region in graph.regions:
         n, width = region['n'], region['width']
         stride = region.get('span',1)
+        case_stride=region.get('case_stride',stride)
         count = n ** width
         for part, (lookups, jump) in enumerate(region['parts']):
             for phase in range(stride):
                 cycle = int(times[jump])-stride+1+phase
                 table_start = 14 if graph.config.get('pc_address_pools') else main_size
                 table_lane=region.get('table_lanes',range(8))[part]
-                base = table_start + region['table'] + table_lane*count*stride + phase
+                base = table_start + region['table'] + table_lane*region.get('lane_stride',count*stride) + phase
                 patches = []
                 for op_id, stream in lookups:
                     if int(times[op_id]) != cycle:
@@ -98,8 +105,8 @@ def export(source, write=False):
                     operation = tuple(bases[x.vid]+x.off if isinstance(x, pt.V) else x for x in graph.ops[op_id][1])
                     position = logical[cycle][engine].index(operation)
                     patches.append((engine, position, operation, n**(width-1-stream), n))
-                cases.append((base, count, stride, program[base], patches))
-                case_positions.update(base+choice*stride for choice in range(count))
+                cases.append((base, count, case_stride, program[base], patches))
+                case_positions.update(base+choice*case_stride for choice in range(count))
     main = [(i,bundle) for i,bundle in enumerate(program) if bundle and i not in case_positions]
     payload = (len(program), main, cases)
     blob = base64.b85encode(zlib.compress(pickle.dumps(payload, protocol=4), 9)).decode()

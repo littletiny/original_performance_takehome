@@ -1,0 +1,26 @@
+{
+  "candidate": 1,
+  "number": 8,
+  "position": "front",
+  "removed_madds": 4,
+  "memory_additions": [
+    "broadcast.1175"
+  ],
+  "resource_bound": 909,
+  "static_bundles_at_899": 11041,
+  "engines": {
+    "valu": 5443,
+    "load": 1771,
+    "alu": 10883,
+    "store": 984,
+    "flow": 865
+  },
+  "weighted_alu_valu": 54427,
+  "bound": 908,
+  "arithmetic_bound": 908,
+  "table_bundles": 10489,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 902,
+  "regions": 45,
+  "values": 8123
+}

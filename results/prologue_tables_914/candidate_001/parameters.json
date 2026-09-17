@@ -1,0 +1,22 @@
+{
+  "candidate": 1,
+  "family": "d1",
+  "derive_two": false,
+  "scalar_roots": true,
+  "resource_bound": 909,
+  "engines": {
+    "flow": 868,
+    "valu": 5440,
+    "load": 1770,
+    "alu": 10883,
+    "store": 992
+  },
+  "weighted_alu_valu": 54403,
+  "bound": 907,
+  "arithmetic_bound": 907,
+  "table_bundles": 10489,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 902,
+  "regions": 45,
+  "values": 8124
+}

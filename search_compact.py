@@ -7,7 +7,7 @@ import random
 
 import numpy as np
 
-from optimize import build, counts, Scheduler, allocate, overfetch_member
+from optimize import build, counts, Scheduler, allocate, overfetch_member,bootstrap_cycle
 
 
 def warm_keys(source, graph, scheduler=None):
@@ -52,12 +52,19 @@ def warm_keys(source, graph, scheduler=None):
             op = graph.ops[rows[0][0]]
             if op[0] == 'load' and op[1][0] == 'const' and op[1][2] in selected:
                 keys[u] = min(keys[u], load_priority)
+    priorities=graph.config.get('warm_priorities') or {}
+    for u,rows in enumerate(graph.units):
+        name=graph.names[rows[0][0]]
+        if name in priorities:keys[u]=priorities[name]
     return np.array(keys, dtype=np.float64)
 
 
-def static_size(graph, cycles):
+def static_size(graph, cycles,times=None):
+    """Exact with times; otherwise a lower bound if prefix length is variable."""
     holes = 8 * sum(r.get('span',1) for r in graph.regions) if graph.config['compact_main'] else 0
     bootstrap_padding = 13 if graph.config.get('pc_address_pools') else 0
+    if graph.config.get('pc_prologue'):
+        bootstrap_padding-=(bootstrap_cycle(graph,times) if times is not None else graph.config['pc_prologue'])
     return cycles + graph.total_table_words - holes + bootstrap_padding
 
 
@@ -89,9 +96,12 @@ def search(job):
             incumbent = best
         elif rng.random() < .2:
             incumbent = last
-        if score >= best_score or static_size(graph, score) > 12000:
+        if score >= best_score:
             continue
         times = scheduler.op_times(best)
+        try:size=static_size(graph,score,times)
+        except ValueError:continue
+        if size>12000:continue
         bases, audit = allocate(graph, times)
         if bases is None:
             continue
@@ -101,7 +111,7 @@ def search(job):
         (directory / 'config.json').write_text(json.dumps(graph.config, indent=2) + '\n')
         np.savez_compressed(directory / 'best.npz', unit_times=best, times=times)
         report = dict(candidate=index, trial=trial, cycles=score,
-                      static_bundles=static_size(graph, score), **audit, **counts(graph))
+                      static_bundles=size, **audit, **counts(graph))
         (directory / 'search.json').write_text(json.dumps(report, indent=2) + '\n')
         print(json.dumps(report), flush=True)
     return index, best_score

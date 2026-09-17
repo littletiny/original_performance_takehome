@@ -1,0 +1,23 @@
+{
+  "candidate": 12,
+  "source": "results/interleaved_pc_914/candidate_001",
+  "flow_constants": [
+    19
+  ],
+  "resource_bound": 909,
+  "engines": {
+    "flow": 867,
+    "valu": 5443,
+    "load": 1770,
+    "alu": 10883,
+    "store": 984
+  },
+  "weighted_alu_valu": 54427,
+  "bound": 908,
+  "arithmetic_bound": 908,
+  "table_bundles": 10489,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 902,
+  "regions": 45,
+  "values": 8124
+}

@@ -34,7 +34,9 @@ def _analyze_graph(graph,scheduler,source):
     report=dict(source=str(source),counts=counts(graph),bound=bound,
                 critical_path_bound=critical,resource_windows=evidence,
                 formula='C >= release + tail + ceil(work / capacity)',
-                scope='Fixed SSA graph and compound units; scratch ignored. Bootstrap and pause are not included. Not a global task lower bound.')
+                scope=('Fixed SSA graph and compound units; scratch ignored. Bootstrap is not included; '
+                       'the initial pause is included. Not a global task lower bound.' if graph.config.get('pc_prologue') else
+                       'Fixed SSA graph and compound units; scratch ignored. Bootstrap and pause are not included. Not a global task lower bound.'))
     signature=json.dumps([graph.ops,graph.units,graph.control,graph.sizes],separators=(',',':'))
     report['graph_sha256']=hashlib.sha256(signature.encode()).hexdigest()
     return report

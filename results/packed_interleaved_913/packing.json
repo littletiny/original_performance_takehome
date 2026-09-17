@@ -1,0 +1,29 @@
+{
+  "source": "/home/tiny/980/results/compact_913",
+  "cycles": 913,
+  "static_bundles": 10537,
+  "changed_operations": [
+    "r14.g15.dispatch.offsets",
+    "r14.g24.dispatch.offsets"
+  ],
+  "all_operation_times_unchanged": true,
+  "static_bundle_reduction": 512,
+  "engines": {
+    "flow": 880,
+    "valu": 5442,
+    "load": 1778,
+    "alu": 10870,
+    "store": 984
+  },
+  "weighted_alu_valu": 54406,
+  "bound": 907,
+  "arithmetic_bound": 907,
+  "table_bundles": 9977,
+  "table_case_bundles": 9600,
+  "static_padding_bundles": 390,
+  "regions": 45,
+  "values": 8124,
+  "scratch_words": 1536,
+  "allocation_policy": "lanes-3",
+  "lane_live_peak": 1322
+}

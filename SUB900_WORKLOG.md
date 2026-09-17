@@ -1,18 +1,18 @@
 # Sub-900 optimization checkpoint
 
-The current verified entry point is **914 cycles with 10,807 static bundles**,
+The current verified entry point is **913 cycles with 10,537 static bundles**,
 down from the initial 980 cycles.
 The requested **<900-cycle target has not been reached**.
 
 On 2026-09-17 the user relaxed the static VLIW instruction-bundle limit from
 10,000 to **12,000**
 (`len(KernelBuilder.instrs)`). Both the exporter and the standalone decoder
-enforce this limit. The current program contains **231,948 individual
+enforce this limit. The current program contains **231,523 individual
 engine-slot operations**, including the initial pause; those are a different
 quantity from bundles.
 
 The preceding 932-cycle checkpoint used 477,092 static bundles. The current
-version reduces that count by **97.73%** and uses 18 fewer dynamic cycles. Its
+version reduces that count by **97.79%** and uses 19 fewer dynamic cycles. Its
 verified artifacts remain at `results/portfolio_1/`, and its submitted source
 is preserved in commit `e2c302f`; it is no longer the default implementation.
 The first compressed checkpoint, 971 cycles and 9,819 bundles, remains in
@@ -32,10 +32,10 @@ and commit `e9da622`.
 
 ## Latest verified checkpoint and lower-bound margin
 
-The current source and schedule are recorded in `results/compact_914_pc/`.
-Its fixed-graph resource-window lower bound is 910, and its weighted arithmetic
-work is 54,484. It is verified on twelve seeds, including the actual submitted
-builder; nine submission tests, three native tests and 29 research regressions
+The current source and schedule are recorded in `results/compact_913_packed/`.
+Its fixed-graph resource-window lower bound is 909, and its weighted arithmetic
+work is 54,406. It is verified on twelve seeds, including the actual submitted
+builder; nine submission tests, three native tests and 38 research regressions
 pass. The current source changes only the generated block.
 
 `results/sub900_margin_915/` records the preceding checkpoint's margin analysis.
@@ -46,7 +46,7 @@ The new combined graph with bound 899 has a best frozen-verified schedule of
 a proven unavoidable overhead. The same gap cannot be assumed across graphs.
 
 The detailed checkpoint narrative immediately below records the archived 917
-version. Later sections document subsequent experiments and the 915 promotion.
+version. Later sections document subsequent experiments and promotions.
 
 ## Archived 917 checkpoint
 
@@ -57,10 +57,10 @@ Source configuration and schedule: `results/compact_917/config.json` and
 The release/tail lower bound for this graph is 913 cycles; it is not a global
 task bound and is not an achieved schedule.
 
-`python3 plot_utilization.py --output results/compact_917/port_utilization.png`
-regenerates the latest PNG, JSON summary, and per-cycle CSV directly from the
-submitted program on the frozen machine. The latest measured port occupancy
-is ALU 99.35%, VALU 99.33%, LOAD 95.97%, STORE 45.75%, and FLOW 95.53%.
+The archived plot in `results/compact_917/port_utilization.png` records
+ALU 99.35%, VALU 99.33%, LOAD 95.97%, STORE 45.75%, and FLOW 95.53%.
+`plot_utilization.py` profiles the submitted source currently checked out;
+the current report is retained separately in `results/compact_913_packed/`.
 FLOW includes the initial pause and bootstrap jump (876 executed slots,
 compared with 874 graph operations). Seeds 0 and 1
 take different dispatch paths but have identical per-cycle port occupancy;
@@ -746,3 +746,59 @@ The next useful change must address coupled group readiness and scratch
 lifetimes while preserving the work savings. Production remains the verified
 914-cycle / 10,807-bundle kernel, byte-for-byte unchanged, with the same saved
 SSA graph digest. The <900 goal remains active and unmet.
+
+## Interleaved PC constants and the 913 checkpoint
+
+Eight singleton tables now interleave their cases: a target is
+`64*q + 2311 + 8*bank + lane`. The offset vectors alias scalar addresses already
+used by child-buffer stores. This removes four offset-vector additions without
+coupling different groups' execution. Per-region lane and case strides are
+checked for table collisions and used by both the lowerer and standalone
+exporter. Twenty-four configurations retain a verified 914-cycle control with
+W=54,427; wider banks do not improve its cycles.
+
+The fixed-address table prefix now optionally contains initial main bundles.
+The final prefix bundle uses a free FLOW slot to jump over the tables; absolute
+table PCs still start at 14. Its pause is part of the graph and precedes every
+STORE. This enables early FLOW constant materialization. A 22-case screen
+produces verified 913-cycle schedules; the chosen interleaved-PC source uses
+FLOW for constant 19. A sixteen-case shallow-table materialization follow-up
+does not improve it; its selected 917-cycle control is frozen-verified.
+
+Measured free FLOW slots then replace thirteen scalar-constant ALU operations.
+One root-mix pack moves from VALU to eight ALU slots, and eight more scalar constants
+use measured LOAD holes. Exact surviving operation times, all dependency edges,
+port capacities, scratch and bootstrap feasibility are checked before further
+search. Six hole rebalances and four longer searches do not beat 913. An earlier
+CP-SAT repair rejects only the saved +/-1-cycle windows with fixed scalar-lane
+order; the +/-2/4/8-cycle runs return UNKNOWN. None proves global infeasibility.
+
+The first 913 source is `results/compact_913/`, from
+`results/load_holes_913/candidate_002`: **913 cycles / 11,049 static bundles**.
+Relative to production 914, W falls by 78 to 54,406. ALU/VALU/LOAD/STORE counts
+are 10,870 / 5,442 / 1,778 / 984. Runtime FLOW is 881; graph FLOW is 880 because
+the pause is now included while the bootstrap remains outside the graph.
+The scratch span is 1,536 and live peak is 1,322. Its layout is 553 main, 9,600
+case and 896 padding bundles; bootstrap is cycle 6 and pause cycle 1. The
+standalone payload is 162,335 bytes, with 231,523 static engine-slot operations.
+
+Nine submission, three native and 38 research tests pass. Ten frozen seeds and
+actual-builder seeds 901/12345 pass all 20,480 retained checkpoints, executed-PC
+mapping, outputs and non-output memory. The complete actual builder and
+standalone expansion equal the verified lowerer. Only the generated production
+block changes. The port plot is bound to the source digest and visually checked;
+two seeds take different PCs with identical per-cycle port counts.
+
+The final packed source is `results/compact_913_packed/`, from
+`results/packed_interleaved_913/`. Existing constants 4097 and 766 permit moving
+the final wide table and three singleton tables into earlier holes. Exactly two
+PC offset operations change; every operation time and engine count is retained.
+This removes 512 padding bundles without adding arithmetic, yielding
+**913 cycles / 10,537 bundles** and 384 padding bundles. The final standalone
+payload is 162,359 bytes; static engine-slot operations remain 231,523. All
+submission, native, research, twelve-seed actual/frozen and source-bound port
+checks pass again on this final program.
+
+The fixed-graph bound is 909. At least 466 additional W must disappear under
+the optimistic 899-cycle capacity test. Other resource windows and allocation
+still constrain feasibility; the <900 goal remains active and unmet.

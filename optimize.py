@@ -168,10 +168,14 @@ def build(config=None):
                early_pair_groups=(),pair_even_odd_order=False,
                all_even_odd_order=False,pc_offset_madd=False,
                quad_dispatch_groups=(),quad_row_buffers=1,quad_row_order=(),
-               quad_fold_path=True,natural_pc_order=False)
+               quad_fold_path=True,natural_pc_order=False,
+               pc_interleave_groups=(),pc_interleave_base=2311,pc_prologue=0,
+               pack_interleaved_tables=False)
     cfg.update(config or {})
     assert not cfg['all_even_odd_order'] or cfg['pair_even_odd_order']
     assert not cfg['pc_offset_madd'] or cfg['pc_address_pools']
+    assert 0<=cfg['pc_prologue']<=13
+    assert not cfg['pc_prologue'] or cfg['pc_address_pools'] and cfg['compact_main']
     late_pairs=set(cfg['late_pair_groups'])
     early_pairs=set(cfg['early_pair_groups'])
     child_pairs=bool(late_pairs or early_pairs)
@@ -193,9 +197,17 @@ def build(config=None):
     quad_order=list(cfg['quad_row_order']) or sorted(quad_groups)
     assert len(quad_order)==len(set(quad_order)) and set(quad_order)==quad_groups
     quad_rank={k:i for i,k in enumerate(quad_order)}
+    interleaved=[tuple(key) for key in cfg['pc_interleave_groups']]
+    assert len(interleaved)==len(set(interleaved))
+    interleaved_rank={key:i for i,key in enumerate(interleaved)}
+    if interleaved:
+        assert cfg['pc_address_pools'] and cfg['dense_pc_tables'] and not cfg['pc_bit_pools']
+        assert not cfg['fuse_tail_pc']
+        assert cfg['pc_interleave_base']>=14
     prefetch_pairs=set(cfg['prefetch_pair_groups'])
     early_prefixes=set(cfg['early_prefix_groups']) | prefetch_pairs
     g = Graph(ref_type=PackedV if prefetch_pairs else WideV if child_pairs or quad_groups else pt.V)
+    initial_pause=(g.emit('initial.pause','flow',('pause',),[],[]) if cfg['pc_prologue'] else None)
     g.overfetch_values=[]
     g.prefetch_pair_rows=[]
     g.pc_madd_offsets=[]
@@ -227,6 +239,14 @@ def build(config=None):
             value = g.new()
             address_vectors[base] = value
             address_lanes.update((base+8*pool_position[j],lane(value,j)) for j in range(8))
+    interleaved_offsets={}
+    for key,number in interleaved_rank.items():
+        value=g.new();interleaved_offsets[key]=value
+        for j in range(8):
+            address=cfg['pc_interleave_base']+8*number+pool_position[j]
+            assert address not in address_lanes
+            assert address not in (0,1,16,2047,256,10,7,2054,2310)
+            address_lanes[address]=lane(value,j)
     pc_bit_vectors={}
     if cfg['pc_bit_pools']:
         assert cfg['pc_address_pools']
@@ -502,6 +522,8 @@ def build(config=None):
     spans = {(r,k):span for r,k,span in cfg["dispatch_spans"]}
     assert set(spans) <= set(dispatch_groups)
     assert all(1 <= span <= 4 for span in spans.values())
+    assert all(r%11==3 and dispatch_groups.get((r,k))==1 and spans.get((r,k),1)==1
+               for r,k in interleaved)
     field_plans = {}
     for (r,k), width in dispatch_groups.items():
         fields = []
@@ -685,15 +707,20 @@ def build(config=None):
         return level[0]
 
     # Each choice occupies a contiguous sequence of one to four bundles.
-    region_counts = Counter((r % 11, width, spans.get((r,k),1)) for (r, k), width in dispatch_groups.items())
+    region_counts = Counter((r % 11, width, spans.get((r,k),1)) for (r, k), width in dispatch_groups.items()
+                            if (r,k) not in interleaved_rank)
     table_offsets, total_words = {}, 0
+    interleave_start=cfg['pc_interleave_base']-14
+    interleave_words=64*len(interleaved)
     if cfg["pc_address_pools"]:
         # Shared address pools serve only the span-one singleton tables. The
         # sorted layout puts wider spans afterward, with their own constants.
-        assert 8 <= region_counts[3,1,1] <= 40
+        assert (4 if interleaved else 8) <= region_counts[3,1,1] <= 40
     for key in sorted(region_counts):
         d, width, span = key
         table_offsets[key] = []
+        if interleaved and key>(3,1,1):
+            total_words=max(total_words,interleave_start+interleave_words)
         for number in range(region_counts[key]):
             if (cfg["pc_address_pools"] and not cfg['dense_pc_tables'] and
                     key == (3,1,1) and number == region_counts[key]-4):
@@ -701,6 +728,23 @@ def build(config=None):
                 total_words = 2318-14
             table_offsets[key].append(total_words)
             total_words += 8 * span * (1 << (width*d))
+            if interleaved and key<=(3,1,1):
+                assert total_words<=interleave_start,'Singleton tables overlap the interleaved bank'
+    if interleaved:total_words=max(total_words,interleave_start+interleave_words)
+    if cfg['pack_interleaved_tables']:
+        assert len(interleaved)==8 and cfg['pc_interleave_base']==2311
+        assert region_counts==Counter({(3,1,1):22,(3,2,1):15})
+        single=table_offsets[3,1,1];wide=table_offsets[3,2,1]
+        # Modulo the already-live hash multiplier moves the final wide bank
+        # into an earlier hole. Its affine lane spacing remains exactly 64.
+        previous=wide[-2]+14;relocated=previous%4097
+        assert all((previous+64*j)%4097==relocated+64*j for j in range(8))
+        wide[-1]=relocated-14
+        single[-3:]=[single[-4]+766+64*j for j in range(3)]
+        occupied=sorted([(x,x+64) for x in single]+[(x,x+512) for x in wide]+
+                        [(interleave_start,interleave_start+interleave_words)])
+        assert all(a[1]<=b[0] for a,b in zip(occupied,occupied[1:]))
+        total_words=max(end for _,end in occupied)
     quad_tables={}
     for groups in quad_sets:
         quad_tables[groups]=total_words
@@ -752,9 +796,9 @@ def build(config=None):
         width = dispatch_groups[r, group]
         order=dispatch_lane_order(cfg,width)
         if cfg['natural_pc_order']:
-            interleaved=(r==3 and (group in early_pairs or group in quad_groups) or
-                         r==14 and group in late_pairs)
-            order=(0,2,4,6,1,3,5,7) if interleaved else tuple(range(8))
+            interleaved_lanes=(r==3 and (group in early_pairs or group in quad_groups) or
+                               r==14 and group in late_pairs)
+            order=(0,2,4,6,1,3,5,7) if interleaved_lanes else tuple(range(8))
         position={j:p for p,j in enumerate(order)}
         pc_position={j:p for p,j in enumerate(dispatch_slot_order(cfg,width))}
         span = spans.get((r,group),1)
@@ -763,10 +807,18 @@ def build(config=None):
         key = (d, width, span)
         cases = n ** width
         prefix = f"r{r}.g{group}.dispatch."
-        region_number = next_region[key]
-        next_region[key] += 1
-        table = table_offsets[key][region_number]
-        if cfg["pc_address_pools"] and key == (3,1,1) and table+14 in address_vectors:
+        interleave=(r,group) in interleaved_rank
+        region_number=next_region[key]
+        if interleave:
+            table=interleave_start+8*interleaved_rank[r,group]
+        else:
+            next_region[key]+=1
+            table=table_offsets[key][region_number]
+        if interleave:
+            offsets=interleaved_offsets[r,group]
+            for j in range(8):
+                assert scalar(table+14+pc_position[j])==lane(offsets,j)
+        elif cfg["pc_address_pools"] and key == (3,1,1) and table+14 in address_vectors:
             offsets = address_vectors[table+14]
             for j in range(8):
                 assert scalar(table+14+8*pc_position[j]) == lane(offsets,j)
@@ -789,8 +841,11 @@ def build(config=None):
                 g.pc_constants.append(op)
         else:
             previous, previous_table = prev_offsets[key]
-            offsets = binary("+", previous, vector(table-previous_table), prefix + "offsets", cfg["offset_scalar"])
-        prev_offsets[key] = offsets, table
+            if cfg['pack_interleaved_tables'] and key==(3,2,1) and region_number==14:
+                offsets=binary('%',previous,vector(4097),prefix+'offsets',cfg['offset_scalar'])
+            else:
+                offsets = binary("+", previous, vector(table-previous_table), prefix + "offsets", cfg["offset_scalar"])
+        if not interleave:prev_offsets[key] = offsets, table
         bit_pool = r==14 and group in pc_bit_groups
         fused = r == 14 and (cfg["fuse_tail_pc"] or bit_pool)
         if bit_pool:
@@ -822,7 +877,8 @@ def build(config=None):
             packed = pointers[group]
             for stream in range(1, width):
                 packed = madd(packed, vector(n), pointers[group+stream], prefix + f"pack{stream}")
-            targets = (binary("+", packed, offsets, prefix + "targets", False) if span==1 else
+            targets = (madd(packed,vector(8*len(interleaved)),offsets,prefix+'targets') if interleave else
+                       binary("+", packed, offsets, prefix + "targets", False) if span==1 else
                        madd(packed,vector(span),offsets,prefix+"targets"))
         mixed = [g.new() for _ in range(width)]
         fetch_streams=tuple(s for s in range(width) if d in (2,3,4) and cfg[f"prefetch{d}"]
@@ -1027,6 +1083,7 @@ def build(config=None):
         g.units[start_unit:] = [[(op,relative_times[op]) for op in relative_times]]
         g.regions.append(dict(start=start, parts=parts, n=n, width=width, span=span, cases=cases, table=table, groups=list(range(group, group+width)), round=r))
         if cfg['natural_pc_order']:g.regions[-1]['table_lanes']=[pc_position[j] for j in order]
+        if interleave:g.regions[-1].update(lane_stride=1,case_stride=8*len(interleaved))
         if fetch and store_children and fields:
             loads = []
             for i,(kind,stream,child) in enumerate(fields):
@@ -1663,6 +1720,8 @@ def build(config=None):
         assert not cfg['resynthesize_constants']
         from constant_graph import apply_expressions
         apply_expressions(g,sc,cfg['constant_expressions'])
+    if initial_pause is not None:
+        g.control.extend((initial_pause,i,1) for i,op in enumerate(g.ops) if op[0]=='store')
     g.scalar_constants=dict(sc)
     g.config = cfg
     g.total_table_words = total_words
@@ -2063,6 +2122,18 @@ def allocate_lanes(g, times):
     return None, dict(allocation_policy="lanes", lane_live_peak=peak, failed_values=failures)
 
 
+def bootstrap_cycle(g,times):
+    """Choose a free FLOW slot before the fixed tables and any dispatch."""
+    limit=g.config.get('pc_prologue',0)
+    if not limit:return 0
+    first=min((int(times[r['start']]) for r in g.regions),default=int(max(times))+1)
+    limit=min(limit,first-1,int(max(times))-1)
+    occupied={int(t) for t,op in zip(times,g.ops) if op[0]=='flow'}
+    possible=[cycle for cycle in range(limit+1) if cycle not in occupied]
+    if not possible:raise ValueError('No free FLOW slot for the fixed-table bootstrap')
+    return max(possible)
+
+
 def lower(g, times, bases):
     """Expand dense cases only after all scratch and schedule checks pass."""
     total = int(max(times)) + 1
@@ -2103,7 +2174,8 @@ def lower(g, times, bases):
             for phase in range(span):
                 cycle = entry+part*span+phase+1
                 table_lane=region.get('table_lanes',range(8))[part]
-                pos = total + region["table"] + table_lane*cases*span + phase
+                pos = total + region["table"] + table_lane*region.get('lane_stride',cases*span) + phase
+                case_stride=region.get('case_stride',span)
                 replacements = {slots[i]: (i, stream) for i, stream in lookups if int(times[i])==cycle}
                 for choice in range(cases):
                     indices = [(choice//(n**(width-1-stream))) % n for stream in range(width)]
@@ -2134,23 +2206,29 @@ def lower(g, times, bases):
                                 slot = ("jump",cycle+1 if cycle+1<total else len(program))
                             out.append(slot)
                         bundle[engine] = out
-                    program[pos+choice*span] = bundle
-                    origins[pos+choice*span] = cycle
+                    destination=pos+choice*case_stride
+                    assert total<=destination<len(program),'Case outside the declared table span'
+                    assert origins[destination]<0,('Overlapping dispatch cases',destination)
+                    program[destination] = bundle
+                    origins[destination] = cycle
                 program[cycle] = {}
                 origins[cycle] = -1
     if tables_first:
-        # Cycle zero jumps over the fixed-address tables; the remaining main
-        # bundles follow them. No extra dynamic cycle is introduced.
+        # A short straight-line prefix can occupy the padding before address
+        # 14. Its final bundle jumps over the fixed tables without adding time.
         assert g.config["compact_main"] and origins[0] == 0
-        assert not logical[0].get("flow"), "Bootstrap needs the first FLOW slot"
+        bootstrap=bootstrap_cycle(g,times)
+        assert not logical[bootstrap].get("flow"), "Bootstrap needs a free FLOW slot"
         main = [p for p in range(total) if origins[p] >= 0]
+        prefix=bootstrap+1
+        assert main[:prefix]==list(range(prefix)) and len(main)>prefix
         start = 14+g.total_table_words
-        addresses = {old:start+i for i,old in enumerate(main[1:])}
-        addresses[0] = 0
+        addresses = {old:start+i for i,old in enumerate(main[prefix:])}
+        addresses.update((old,old) for old in range(prefix))
         addresses.update((p,14+p-total) for p in range(total,len(program)))
-        size = start+len(main)-1
+        size = start+len(main)-prefix
         addresses[len(program)] = size
-        order = [0] + [None]*13 + list(range(total,len(program))) + main[1:]
+        order = list(range(prefix))+[None]*(14-prefix)+list(range(total,len(program)))+main[prefix:]
         assert len(order) == size
         placed, mapping = [], []
         for old in order:
@@ -2162,7 +2240,7 @@ def lower(g, times, bases):
                               for slot in slots] for engine,slots in program[old].items()}
             placed.append(bundle)
             mapping.append(int(origins[old]))
-        placed[0]["flow"] = [("jump",addresses[main[1]])]
+        placed[bootstrap]["flow"] = [("jump",addresses[main[prefix]])]
         program, origins = placed, np.asarray(mapping,dtype=np.int64)
     elif g.config["compact_main"]:
         # Each out-of-line handler replaces a main-program position that is
@@ -2323,6 +2401,7 @@ def verify_semantics(g, seeds=(0, 1)):
             if op == "+": return (a+b)&MASK
             if op == "-": return (a-b)&MASK
             if op == "*": return a*b&MASK
+            if op == "%": return a%b
             if op == "^": return a^b
             if op == "&": return a&b
             if op == ">>": return a>>b
@@ -2406,6 +2485,8 @@ def verify_semantics(g, seeds=(0, 1)):
             elif op == "add_imm":
                 dst, src, immediate = args
                 values[int(dst)] = (values[int(src)] + immediate) & MASK
+            elif op == 'pause':
+                pass
             elif engine == "store":
                 addr, src = args
                 assert op in ('store','vstore')

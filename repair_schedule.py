@@ -97,8 +97,11 @@ def repair(source, output, cycles, window, seconds, workers, lane_order=False):
             score = int(times.max())+1
             assert score <= cycles
             bases, allocation = allocate(graph, times)
-            report.update(cycles=score, static_bundles=static_size(graph, score), allocation=allocation)
-            if bases is not None and report['static_bundles'] <= 12000:
+            try:size=static_size(graph,score,times)
+            except ValueError:size=None
+            report.update(cycles=score, static_bundles=size, allocation=allocation,
+                          bootstrap_valid=size is not None)
+            if bases is not None and size is not None and size <= 12000:
                 (output/'config.json').write_text(json.dumps(graph.config, indent=2)+'\n')
                 np.savez_compressed(output/'best.npz', unit_times=units, times=times)
                 report['allocated'] = True
