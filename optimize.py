@@ -96,7 +96,7 @@ def build(config=None):
                dispatch4_groups=(), gather_dispatch4=False, precise_restore=False,
                header_root=False, scalar_root_groups=(), force_load_scalars=(),
                dispatch2_groups=(), dispatch13_groups=(), width2=3, prefetch2=True,
-               fold_path3_groups=())
+               fold_path3_groups=(), pc_bit_pools=())
     cfg.update(config or {})
     g = Graph()
     sc, vc = {}, {}
@@ -109,6 +109,17 @@ def build(config=None):
             value = g.new()
             address_vectors[base] = value
             address_lanes.update((base+8*j, lane(value,j)) for j in range(8))
+    pc_bit_vectors={}
+    if cfg['pc_bit_pools']:
+        assert cfg['pc_address_pools']
+        for base in cfg['pc_bit_pools']:
+            assert base in address_vectors and base not in pc_bit_vectors
+            value=g.new()
+            pc_bit_vectors[base]=value
+            for j in range(8):
+                address=base+1+8*j
+                assert address not in address_lanes
+                address_lanes[address]=lane(value,j)
     row_groups=set(cfg["grand_row_groups"])
     row_pointers={}
     if row_groups:
@@ -542,6 +553,18 @@ def build(config=None):
             total_words += 8 * span * (1 << (width*d))
     next_region = Counter()
     prev_offsets = {}
+    pc_bit_groups={}
+    if pc_bit_vectors:
+        numbered=Counter()
+        used=set()
+        for (r,k),width in dispatch_groups.items():
+            key=(r%11,width,spans.get((r,k),1))
+            table=table_offsets[key][numbered[key]]
+            numbered[key]+=1
+            if r==14 and key==(3,1,1) and table+14 in pc_bit_vectors:
+                pc_bit_groups[k]=pc_bit_vectors[table+14]
+                used.add(table+14)
+        assert used==set(pc_bit_vectors), 'Each bit pool must serve a final depth-three singleton'
 
     prefetched = {}
     grandchildren = {}
@@ -586,8 +609,16 @@ def build(config=None):
             previous, previous_table = prev_offsets[key]
             offsets = binary("+", previous, vector(table-previous_table), prefix + "offsets", cfg["offset_scalar"])
         prev_offsets[key] = offsets, table
-        fused = r == 14 and cfg["fuse_tail_pc"]
-        if fused:
+        bit_pool = r==14 and group in pc_bit_groups
+        fused = r == 14 and (cfg["fuse_tail_pc"] or bit_pool)
+        if bit_pool:
+            assert width==span==1
+            plus_one=pc_bit_groups[group]
+            for j in range(8):
+                assert scalar(table+15+8*j)==lane(plus_one,j)
+            choice=select(bits[group][-1],plus_one,offsets,prefix+'bit_offset')
+            targets=madd(pointers[group],vector(2),choice,prefix+'targets')
+        elif fused:
             targets = offsets
             for stream in range(width):
                 targets = madd(pointers[group+stream], vector(2*span*n**(width-1-stream)), targets, prefix+f"prefix{stream}")
@@ -902,7 +933,7 @@ def build(config=None):
                 lo=select(bit,vector(base+step),vector(base),prefix+'address.low')
                 aux=select(bits[k][-2],hi,lo,prefix+'address.aux')
                 ptrs[k]=madd(ptrs[k],vector(4*step),aux,prefix+'address')
-            elif r == 13 and modes[14][k] == "jump" and cfg["fuse_tail_pc"]:
+            elif r == 13 and modes[14][k] == "jump" and (cfg["fuse_tail_pc"] or k in pc_bit_groups):
                 pass  # q2 and b13 are consumed separately by the PC builder.
             elif depth == 3 and modes[r+1][k] == "prefetch" and fold_path4(k):
                 pass  # q3, b3 and b4 will directly form the depth-5 address.

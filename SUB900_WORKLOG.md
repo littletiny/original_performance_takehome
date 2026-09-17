@@ -1,18 +1,18 @@
 # Sub-900 optimization checkpoint
 
-The current verified entry point is **918 cycles with 10,811 static bundles**,
+The current verified entry point is **917 cycles with 10,810 static bundles**,
 down from the initial 980 cycles.
 The requested **<900-cycle target has not been reached**.
 
 On 2026-09-17 the user relaxed the static VLIW instruction-bundle limit from
 10,000 to **12,000**
 (`len(KernelBuilder.instrs)`). Both the exporter and the standalone decoder
-enforce this limit. The current program contains **230,118 individual
+enforce this limit. The current program contains **232,189 individual
 engine-slot operations**, including the initial pause; those are a different
 quantity from bundles.
 
 The preceding 932-cycle checkpoint used 477,092 static bundles. The current
-version reduces that count by **97.73%** and uses 14 fewer dynamic cycles. Its
+version reduces that count by **97.73%** and uses 15 fewer dynamic cycles. Its
 verified artifacts remain at `results/portfolio_1/`, and its submitted source
 is preserved in commit `e2c302f`; it is no longer the default implementation.
 The first compressed checkpoint, 971 cycles and 9,819 bundles, remains in
@@ -27,19 +27,24 @@ The best checkpoint retained under the previous 10,000-bundle cap is
 `results/compact_928/`, commit `5b10cbe` (928 cycles, 9,776 bundles).
 The preceding 919-cycle / 10,159-bundle checkpoint remains in
 `results/compact_919/` and commit `9c32b1e`.
+The 918-cycle / 10,811-bundle checkpoint remains in `results/compact_918/`
+and commit `e9da622`.
 
 ## Verified checkpoint
 
-Source configuration and schedule: `results/compact_918/config.json` and
-`results/compact_918/best.npz`. Frozen verification and export metadata:
-`results/compact_918/verification.json`. Fixed-graph resource counts and
-100-cycle utilization windows are in `results/compact_918/analysis.json`.
+Source configuration and schedule: `results/compact_917/config.json` and
+`results/compact_917/best.npz`. Frozen verification and export metadata:
+`results/compact_917/verification.json`. Fixed-graph resource counts and
+100-cycle utilization windows are in `results/compact_917/analysis.json`.
+The release/tail lower bound for this graph is 913 cycles; it is not a global
+task bound and is not an achieved schedule.
 
-`python3 plot_utilization.py` regenerates `utilization_profile.png`, its JSON
-summary, and a per-cycle CSV directly from the submitted program on the frozen
-machine. The latest measured port occupancy is ALU 99.37%, VALU 99.35%, LOAD
-93.25%, STORE 45.70%, and FLOW 95.32%. FLOW includes the initial pause and
-bootstrap jump (875 executed slots, compared with 873 graph operations). Seeds 0 and 1
+`python3 plot_utilization.py --output results/compact_917/port_utilization.png`
+regenerates the latest PNG, JSON summary, and per-cycle CSV directly from the
+submitted program on the frozen machine. The latest measured port occupancy
+is ALU 99.35%, VALU 99.33%, LOAD 95.97%, STORE 45.75%, and FLOW 95.53%.
+FLOW includes the initial pause and bootstrap jump (876 executed slots,
+compared with 874 graph operations). Seeds 0 and 1
 take different dispatch paths but have identical per-cycle port occupancy;
 both final outputs and all non-output memory pass verification. The plot no
 longer treats static bundle addresses as cycles or uses the old 985-cycle
@@ -53,7 +58,7 @@ saved artifacts. Other shapes retain the previous implementation.
 Validation completed:
 
 - The unchanged `python3 tests/submission_tests.py` passes all nine tests at
-  918 cycles.
+  917 cycles.
 - The three native tests in `python3 perf_takehome.py` also pass.
 - Five machine-level allocator tests in `test_lane_allocate.py` pass, covering
   progressive in-place vector updates, later reads, simultaneous writes,
@@ -68,6 +73,8 @@ Validation completed:
   negative test that removes a required dependency during partial buffer reuse.
 - Seeds 0–9 each pass 20,480 retained hash-stage checkpoints and final output
   comparisons in `tests/frozen_problem.py`.
+- Extra seeds 901 and 12345 pass the same checks using the actual submitted
+  KernelBuilder. Its full expanded program matches the lowerer's program.
 - The verifier checks every executed PC against its logical cycle, and checks
   that the tree, header, and initial index memory are preserved.
 - The exported expansion is compared against the complete verified program.
@@ -89,14 +96,15 @@ Validation completed:
 3. Main-program positions replaced by out-of-line handlers are removed. The
    lowerer relocates absolute jumps and table-address constants; the frozen
    verifier checks the resulting PC-to-logical-cycle mapping on every step.
-   Removing these 360 unreachable positions leaves 558 main-program bundles.
+   Removing these 360 unreachable positions leaves 557 main-program bundles.
    The fixed-address layout also includes 653 unreachable padding bundles.
 4. The last four groups use late gathers. The compressed variant uses MADD
    path updates and FLOW shallow selections. Mirrored memory addresses remove
    several later address selections. There is no separate depth-5 dispatch.
 5. Small setup constants and addresses are synthesized selectively. One header
    load supplies several existing constants and pointers. Initial zero scratch
-   also supplies the zero vector directly.
+   also supplies the zero vector directly. Forty-eight scalar constants now
+   use LOAD slots, and the root broadcast reuses the header's runtime root.
 6. Eleven groups cache four depth-5 grandchildren in the existing depth-3
    handlers. Three vector selections later resolve the depth-5 node, replacing
    eight scalar loads per group (88 total), without adding table entries.
@@ -107,8 +115,8 @@ Validation completed:
    the pointers live already, so those 30 ALU additions are unnecessary.
 8. Depths 0–2 share one tree load and one vector XOR. A comparison of initial
    zero scratch creates the constant-one vector without a scalar constant load.
-9. The current mirrored heap retains original depth-5 nodes in scratch,
-   reconstructs depth 4 from its biased cache, and backs up depths 6–7 in the
+9. The current mirrored heap retains original depth-4 and depth-5 nodes in
+   scratch and backs up depths 6–7 in the
    already-read input area after the four 16-word lookup buffers. Input loads
    precede backup writes, and backup reads precede final output stores. This
    removes separate backup pointers and 24 index-clearing stores. Backups still
@@ -118,10 +126,14 @@ Validation completed:
     resource holes with all dependencies checked, then rescheduled. Two rounds
     of these changes reduced 931 cycles to 928 without increasing weighted
     arithmetic work. Two more contractions helped reach 919 cycles. The current
-    payload is 151,558 bytes before source quoting.
+   payload is 151,870 bytes before source quoting.
 11. The first two dispatches in execution order, rounds/groups (3,0) and (3,4),
     share their exit/entry jump. The extra paired lookup at (14,24) and this
     chain remove ten FLOW instructions from the 928-cycle graph.
+12. One final depth-3 singleton uses existing temporary-buffer pointers to
+    form PC offsets and offsets plus one. A FLOW choice and one MADD replace
+    its separate path update and PC addition. This saves seven weighted
+    arithmetic slots after the one new scalar constant is counted.
 
 All tree values and input values remain runtime data. Dispatch tables encode
 scratch operand choices, not precomputed answers.
@@ -135,7 +147,7 @@ resource-constrained scheduling. `lane_allocate.cpp` packs per-lane live ranges
 into scratch. NumPy and a C++17 compiler are development dependencies only.
 
 ```sh
-python3 export_candidate.py results/compact_918 --write
+python3 export_candidate.py results/compact_917 --write
 python3 test_lane_allocate.py
 python3 test_schedule.py
 python3 perf_takehome.py
@@ -451,8 +463,40 @@ standalone expansion checked. The 12 allocator/scheduler/memory tests pass.
 The rebuilt default graph and expanded actual KernelBuilder program remain
 identical; `perf_takehome.py` and the machine/test rules are unchanged.
 
+## PC offset folding and the 917 checkpoint
+
+`pc_bit_pools` uses adjacent scalar addresses to provide both choices for the
+last path bit. Its first pool removes one VALU operation, adds one ALU constant
+and one FLOW selection, and keeps the table layout unchanged. The default
+918 source yielded 919; combining the pool with the 48-constant LOAD variant
+retained 918. Header-root reuse and keeping raw depth-4 nodes then produced
+the fully verified 917-cycle checkpoint in `results/compact_917/`.
+
+Compared with the former submitted 918 program, weighted arithmetic falls
+from 54,723 to 54,652 (71 fewer). The dynamic changes are -15 ALU, -7 VALU,
++48 LOAD, +1 FLOW, and unchanged STORE. This is a measured one-cycle gain;
+the static slot count increases despite the one-bundle decrease.
+
+`search_pc_bits.py` records the two 15-configuration screens, and
+`results/pc_bits_combine_918/run.py` records 12 combinations. The selected
+source is candidate 007; candidate 000 is also verified at 917 with slightly
+higher weighted arithmetic. The one-pool and four-pool versions both passed
+full ten-seed frozen execution and standalone expansion checks.
+
+`synthesize_product_fusion.py` tests eleven additional nonlinear families for
+replacing fused H3/H4 followed by H5 with at most three operations. They
+include products with XOR/AND/OR operands and a quadratic superset of products
+of two affine terms. Each is UNSAT in a necessary 9-bit or 12-bit projection.
+Independent exhaustive Python evaluation checks the projection target against
+the original three hash stages and all eight 9-bit models. These are rejection
+proofs for the listed families; the fixed hash is unchanged and no global
+optimality claim is made. See `results/product_fusion_918/README.md`.
+
 ## Remaining work
 
+- Evaluate the explicitly unimplemented late child-pair layout in
+  `results/compact_917/NEXT_EXPERIMENT.md`, including its register-padding and
+  memory-order proof obligations before accepting any performance result.
 - Reduce actual work or change dispatch structure: several superficially
   balanced graphs have stronger load-release/tail bounds above 900.
 - Improve scheduling and allocation together. Aggregate live-word demand can

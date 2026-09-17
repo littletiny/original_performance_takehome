@@ -1,0 +1,56 @@
+{
+  "original_stages_checked": [
+    2,
+    3,
+    4
+  ],
+  "target_projection_exhaustive_widths": [
+    9,
+    12
+  ],
+  "verified_projection_models": [
+    {
+      "family": "input_xor",
+      "bits": 9,
+      "exhaustive_inputs": 512
+    },
+    {
+      "family": "input_or",
+      "bits": 9,
+      "exhaustive_inputs": 512
+    },
+    {
+      "family": "input_and",
+      "bits": 9,
+      "exhaustive_inputs": 512
+    },
+    {
+      "family": "factor_xor",
+      "bits": 9,
+      "exhaustive_inputs": 512
+    },
+    {
+      "family": "factor_or",
+      "bits": 9,
+      "exhaustive_inputs": 512
+    },
+    {
+      "family": "factor_and",
+      "bits": 9,
+      "exhaustive_inputs": 512
+    },
+    {
+      "family": "affine_xor_const_plus_x",
+      "bits": 9,
+      "exhaustive_inputs": 512
+    },
+    {
+      "family": "quadratic",
+      "bits": 9,
+      "exhaustive_inputs": 512
+    }
+  ],
+  "rejected_templates": 11,
+  "complete_32_bit_rewrite_found": false,
+  "scope": "UNSAT rejects only the listed templates. Low-width models are not complete hash rewrites."
+}

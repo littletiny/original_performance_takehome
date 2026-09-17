@@ -1,0 +1,12 @@
+{
+  "cycles": 917,
+  "seeds": [
+    901,
+    12345
+  ],
+  "checkpoints_per_seed": 20480,
+  "static_bundles": 10810,
+  "static_slots": 232189,
+  "source": "perf_takehome.KernelBuilder",
+  "source_sha256": "8f9919eff4f5a039a1cb6bee7718191111a505a4433ba76759e87875000d196a"
+}

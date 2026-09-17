@@ -1,0 +1,30 @@
+{
+  "source_sha256": "8f9919eff4f5a039a1cb6bee7718191111a505a4433ba76759e87875000d196a",
+  "production_changes_confined_to_generated_block": true,
+  "cycles": 917,
+  "static_bundles": 10810,
+  "static_slot_operations": 232189,
+  "weighted_arithmetic": 54652,
+  "original_918_weighted_arithmetic": 54723,
+  "submission_tests_passed": 9,
+  "native_tests_passed": 3,
+  "regression_tests_passed": 12,
+  "full_checkpoint_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    901,
+    12345
+  ],
+  "checkpoints_per_seed": 20480,
+  "strict_sub900_achieved": false,
+  "static_bundle_cap": 12000,
+  "fixed_graph_lower_bound": 913
+}
