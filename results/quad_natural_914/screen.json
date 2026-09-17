@@ -1,0 +1,498 @@
+[
+  {
+    "candidate": 0,
+    "groups": [
+      [
+        3,
+        7
+      ]
+    ],
+    "order": [
+      3,
+      7
+    ],
+    "natural": false,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5446,
+      "load": 1780,
+      "alu": 10887,
+      "store": 992,
+      "flow": 869
+    },
+    "weighted_alu_valu": 54455,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10368,
+    "table_case_bundles": 9728,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8168
+  },
+  {
+    "candidate": 1,
+    "groups": [
+      [
+        3,
+        7
+      ]
+    ],
+    "order": [
+      3,
+      7
+    ],
+    "natural": true,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5446,
+      "load": 1780,
+      "alu": 10887,
+      "store": 992,
+      "flow": 869
+    },
+    "weighted_alu_valu": 54455,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10368,
+    "table_case_bundles": 9728,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8168
+  },
+  {
+    "candidate": 2,
+    "groups": [
+      [
+        3,
+        7
+      ]
+    ],
+    "order": [
+      7,
+      3
+    ],
+    "natural": false,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5446,
+      "load": 1780,
+      "alu": 10887,
+      "store": 992,
+      "flow": 869
+    },
+    "weighted_alu_valu": 54455,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10368,
+    "table_case_bundles": 9728,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8168
+  },
+  {
+    "candidate": 3,
+    "groups": [
+      [
+        3,
+        7
+      ]
+    ],
+    "order": [
+      7,
+      3
+    ],
+    "natural": true,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5446,
+      "load": 1780,
+      "alu": 10887,
+      "store": 992,
+      "flow": 869
+    },
+    "weighted_alu_valu": 54455,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10368,
+    "table_case_bundles": 9728,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8168
+  },
+  {
+    "candidate": 4,
+    "groups": [
+      [
+        10,
+        11
+      ]
+    ],
+    "order": [
+      10,
+      11
+    ],
+    "natural": false,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5446,
+      "load": 1780,
+      "alu": 10887,
+      "store": 992,
+      "flow": 869
+    },
+    "weighted_alu_valu": 54455,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10368,
+    "table_case_bundles": 9728,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8168
+  },
+  {
+    "candidate": 5,
+    "groups": [
+      [
+        10,
+        11
+      ]
+    ],
+    "order": [
+      10,
+      11
+    ],
+    "natural": true,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5446,
+      "load": 1780,
+      "alu": 10887,
+      "store": 992,
+      "flow": 869
+    },
+    "weighted_alu_valu": 54455,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10368,
+    "table_case_bundles": 9728,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8168
+  },
+  {
+    "candidate": 6,
+    "groups": [
+      [
+        10,
+        11
+      ]
+    ],
+    "order": [
+      10,
+      11
+    ],
+    "natural": false,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5446,
+      "load": 1780,
+      "alu": 10887,
+      "store": 992,
+      "flow": 869
+    },
+    "weighted_alu_valu": 54455,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10368,
+    "table_case_bundles": 9728,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8168
+  },
+  {
+    "candidate": 7,
+    "groups": [
+      [
+        10,
+        11
+      ]
+    ],
+    "order": [
+      10,
+      11
+    ],
+    "natural": true,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5446,
+      "load": 1780,
+      "alu": 10887,
+      "store": 992,
+      "flow": 869
+    },
+    "weighted_alu_valu": 54455,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10368,
+    "table_case_bundles": 9728,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8168
+  },
+  {
+    "candidate": 8,
+    "groups": [
+      [
+        3,
+        7,
+        10
+      ]
+    ],
+    "order": [
+      3,
+      7,
+      10
+    ],
+    "natural": false,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5442,
+      "load": 1784,
+      "alu": 10887,
+      "store": 992,
+      "flow": 868
+    },
+    "weighted_alu_valu": 54423,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10752,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8167
+  },
+  {
+    "candidate": 9,
+    "groups": [
+      [
+        3,
+        7,
+        10
+      ]
+    ],
+    "order": [
+      3,
+      7,
+      10
+    ],
+    "natural": true,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5442,
+      "load": 1784,
+      "alu": 10887,
+      "store": 992,
+      "flow": 868
+    },
+    "weighted_alu_valu": 54423,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10752,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8167
+  },
+  {
+    "candidate": 10,
+    "groups": [
+      [
+        3,
+        7,
+        10
+      ]
+    ],
+    "order": [
+      7,
+      3,
+      10
+    ],
+    "natural": false,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5442,
+      "load": 1784,
+      "alu": 10887,
+      "store": 992,
+      "flow": 868
+    },
+    "weighted_alu_valu": 54423,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10752,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8167
+  },
+  {
+    "candidate": 11,
+    "groups": [
+      [
+        3,
+        7,
+        10
+      ]
+    ],
+    "order": [
+      7,
+      3,
+      10
+    ],
+    "natural": true,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5442,
+      "load": 1784,
+      "alu": 10887,
+      "store": 992,
+      "flow": 868
+    },
+    "weighted_alu_valu": 54423,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10752,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8167
+  },
+  {
+    "candidate": 12,
+    "groups": [
+      [
+        10,
+        11,
+        14
+      ]
+    ],
+    "order": [
+      10,
+      11,
+      14
+    ],
+    "natural": false,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5443,
+      "load": 1784,
+      "alu": 10887,
+      "store": 992,
+      "flow": 867
+    },
+    "weighted_alu_valu": 54431,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10752,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8167
+  },
+  {
+    "candidate": 13,
+    "groups": [
+      [
+        10,
+        11,
+        14
+      ]
+    ],
+    "order": [
+      10,
+      11,
+      14
+    ],
+    "natural": true,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5443,
+      "load": 1784,
+      "alu": 10887,
+      "store": 992,
+      "flow": 867
+    },
+    "weighted_alu_valu": 54431,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10752,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8167
+  },
+  {
+    "candidate": 14,
+    "groups": [
+      [
+        10,
+        11,
+        14
+      ]
+    ],
+    "order": [
+      10,
+      11,
+      14
+    ],
+    "natural": false,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5443,
+      "load": 1784,
+      "alu": 10887,
+      "store": 992,
+      "flow": 867
+    },
+    "weighted_alu_valu": 54431,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10752,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8167
+  },
+  {
+    "candidate": 15,
+    "groups": [
+      [
+        10,
+        11,
+        14
+      ]
+    ],
+    "order": [
+      10,
+      11,
+      14
+    ],
+    "natural": true,
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5443,
+      "load": 1784,
+      "alu": 10887,
+      "store": 992,
+      "flow": 867
+    },
+    "weighted_alu_valu": 54431,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10752,
+    "table_case_bundles": 10112,
+    "static_padding_bundles": 653,
+    "regions": 46,
+    "values": 8167
+  }
+]

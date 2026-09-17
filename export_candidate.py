@@ -37,7 +37,7 @@ def _build_tuned_standard():
                     slot = ("store", operation[1], operation[3+index])
                 elif code == "lookup_vstore":
                     slot = ("vstore", operation[2+(index&1)], operation[4+index])
-                elif code == "lookup_pair_store":
+                elif code in ("lookup_pair_store", "lookup_quad_store"):
                     slot = ("vstore", operation[1], operation[3+index])
                 else:
                     assert code == "lookup_load"
@@ -88,7 +88,8 @@ def export(source, write=False):
             for phase in range(stride):
                 cycle = int(times[jump])-stride+1+phase
                 table_start = 14 if graph.config.get('pc_address_pools') else main_size
-                base = table_start + region['table'] + part*count*stride + phase
+                table_lane=region.get('table_lanes',range(8))[part]
+                base = table_start + region['table'] + table_lane*count*stride + phase
                 patches = []
                 for op_id, stream in lookups:
                     if int(times[op_id]) != cycle:

@@ -1,0 +1,1 @@
+{"cycles": 916, "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], "checkpoints_per_seed": 20480, "static_bundles": 10929, "static_slots": 234372, "scratch_words": 1536, "allocation_policy": "lanes-3", "lane_live_peak": 1380, "compressed_payload_bytes": 162883, "source": "results/quad_dispatch_914/candidate_000", "pause_cycle": 1}

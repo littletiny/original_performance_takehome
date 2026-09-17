@@ -1,0 +1,28 @@
+{
+  "candidate": 0,
+  "groups": [
+    [
+      3,
+      7
+    ]
+  ],
+  "keep": [],
+  "overfetch": false,
+  "resource_bound": 910,
+  "static_bundles_at_899": 10912,
+  "engines": {
+    "valu": 5446,
+    "load": 1780,
+    "alu": 10887,
+    "store": 992,
+    "flow": 869
+  },
+  "weighted_alu_valu": 54455,
+  "bound": 908,
+  "arithmetic_bound": 908,
+  "table_bundles": 10368,
+  "table_case_bundles": 9728,
+  "static_padding_bundles": 653,
+  "regions": 46,
+  "values": 8168
+}

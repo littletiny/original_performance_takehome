@@ -95,9 +95,17 @@ def early_pair_member(config,k):
     return any(k in (group,group+1) for group in config.get('early_pair_groups',()))
 
 
+def quad_member(config,k):
+    return any(k in groups for groups in config.get('quad_dispatch_groups',()))
+
+
 def dispatch_lane_order(config,width):
     return ((0,2,4,6,1,3,5,7) if config.get('all_even_odd_order') or
             config.get('pair_even_odd_order') and width==2 else tuple(range(8)))
+
+
+def dispatch_slot_order(config,width):
+    return tuple(range(8)) if config.get('natural_pc_order') else dispatch_lane_order(config,width)
 
 
 def overfetch_member(config,r,k):
@@ -115,7 +123,7 @@ def forced_scalar_pack(config, r, k, label):
             label=='mix' and overfetch_member(config,r,k) or
             ((r==4 and label=='bit') or (r==5 and label=='mix')) and
             k in config.get('prefetch_pair_groups',()) or
-            r==4 and label=='mix' and early_pair_member(config,k) or
+            r==4 and label=='mix' and (early_pair_member(config,k) or quad_member(config,k)) or
             ((r==14 and label=='bit' and not config.get('pair_even_odd_order')) or
              (r==15 and label=='mix')) and late_pair_member(config,k))
 
@@ -158,19 +166,40 @@ def build(config=None):
                early_prefix_groups=(), prefetch_pair_groups=(),resynthesize_constants=False,
                constant_expressions=None,overfetch_by_level=None,dense_pc_tables=False,
                early_pair_groups=(),pair_even_odd_order=False,
-               all_even_odd_order=False,pc_offset_madd=False)
+               all_even_odd_order=False,pc_offset_madd=False,
+               quad_dispatch_groups=(),quad_row_buffers=1,quad_row_order=(),
+               quad_fold_path=True,natural_pc_order=False)
     cfg.update(config or {})
     assert not cfg['all_even_odd_order'] or cfg['pair_even_odd_order']
     assert not cfg['pc_offset_madd'] or cfg['pc_address_pools']
     late_pairs=set(cfg['late_pair_groups'])
     early_pairs=set(cfg['early_pair_groups'])
     child_pairs=bool(late_pairs or early_pairs)
+    quad_sets=[tuple(groups) for groups in cfg['quad_dispatch_groups']]
+    quad_groups={k for groups in quad_sets for k in groups}
+    assert all(groups for groups in quad_sets)
+    if quad_groups:
+        assert cfg['compact_heap'] and cfg['store_children'] and cfg['prefetch3']
+        assert cfg['heap_io_backup'] and (cfg['all_even_odd_order'] or cfg['natural_pc_order'])
+        assert cfg['pair_even_odd_order']
+        assert not cfg['grand_row_groups']
+        assert all(1<=len(groups)<=3 and list(groups)==sorted(groups) for groups in quad_sets)
+        assert sum(map(len,quad_sets))==len(quad_groups)
+        assert quad_groups<=set(cfg['prefetch5_groups'])
+        assert not quad_groups.intersection(cfg['fold_path4_groups'])
+        assert not cfg['fold_path4'] and 1<=cfg['quad_row_buffers']<=3
+    quad_reserved=64*cfg['quad_row_buffers'] if quad_groups else 0
+    assert quad_reserved+(48*cfg['late_pair_buffers'] if child_pairs else 0)<=240
+    quad_order=list(cfg['quad_row_order']) or sorted(quad_groups)
+    assert len(quad_order)==len(set(quad_order)) and set(quad_order)==quad_groups
+    quad_rank={k:i for i,k in enumerate(quad_order)}
     prefetch_pairs=set(cfg['prefetch_pair_groups'])
     early_prefixes=set(cfg['early_prefix_groups']) | prefetch_pairs
-    g = Graph(ref_type=PackedV if prefetch_pairs else WideV if child_pairs else pt.V)
+    g = Graph(ref_type=PackedV if prefetch_pairs else WideV if child_pairs or quad_groups else pt.V)
     g.overfetch_values=[]
     g.prefetch_pair_rows=[]
     g.pc_madd_offsets=[]
+    g.quad_rows=[]
     if cfg['overfetch_groups']:
         assert cfg['compact_heap']
         assert set(cfg['overfetch_levels'])<={8,9,10}
@@ -190,7 +219,7 @@ def build(config=None):
     # tree loads and I/O. Allocate those words together before emitting them.
     address_vectors = {}
     address_lanes = {}
-    pool_position={j:p for p,j in enumerate(dispatch_lane_order(cfg,1))}
+    pool_position={j:p for p,j in enumerate(dispatch_slot_order(cfg,1))}
     if cfg["pc_address_pools"]:
         pool_bases=(14,78,142,206) if cfg['dense_pc_tables'] else (14,78,142,206,2318,2382,2446,2510)
         assert not cfg['dense_pc_tables'] or not cfg['pc_bit_pools']
@@ -467,6 +496,8 @@ def build(config=None):
         assert dispatch_groups.get((3,k))==2
         assert all(modes[4][j]=='prefetch' and not prefetch_madd(4,j) and
                    j not in cfg['prefetch5_groups'] for j in (k,k+1))
+    for k in quad_groups:
+        assert dispatch_groups.get((3,k))==1 and not prefetch_madd(4,k)
 
     spans = {(r,k):span for r,k,span in cfg["dispatch_spans"]}
     assert set(spans) <= set(dispatch_groups)
@@ -485,6 +516,9 @@ def build(config=None):
                 fields=fields[:2-rows]
         if r==14 and k in late_pairs or r==3 and k in early_pairs:
             assert spans.get((r,k),1)==1, 'Late pair stores need consecutive lane writes'
+            fields=[]
+        if r==3 and k in quad_groups:
+            assert spans.get((r,k),1)==1
             fields=[]
         field_plans[r,k] = fields
     regular_buffers = cfg["temp_buffers"] or 2
@@ -572,7 +606,8 @@ def build(config=None):
                     shallow_biased = binary("^", shallow_raw, vector(c[5]), "tree.shallow.bias", False)
                 bias = lane(shallow_biased, (1 << d)-1)
             elif mirrored:
-                bias = g.new(14 if d==4 and child_pairs else 8)
+                bias = g.new(14 if d==4 and (child_pairs or quad_groups) else
+                             12 if d==5 and quad_groups else 8)
                 src = scalar(c[5])
                 for j in range(8):
                     dst, source = lane(bias, 7-j), lane(raw, j)
@@ -666,6 +701,10 @@ def build(config=None):
                 total_words = 2318-14
             table_offsets[key].append(total_words)
             total_words += 8 * span * (1 << (width*d))
+    quad_tables={}
+    for groups in quad_sets:
+        quad_tables[groups]=total_words
+        total_words+=8*4**len(groups)
     next_region = Counter()
     prev_offsets = {}
     pc_bit_groups={}
@@ -689,6 +728,10 @@ def build(config=None):
     pair_bits={}
     pair_loads=[]
     early_pair_last_loads={}
+    quad_records=[]
+    quad_nodes={}
+    quad_parents={}
+    quad_offsets={}
     g.pair_rows=[]
     previous_temp_loads = {}
     temp_reads = []
@@ -708,7 +751,12 @@ def build(config=None):
         n = 1 << d
         width = dispatch_groups[r, group]
         order=dispatch_lane_order(cfg,width)
+        if cfg['natural_pc_order']:
+            interleaved=(r==3 and (group in early_pairs or group in quad_groups) or
+                         r==14 and group in late_pairs)
+            order=(0,2,4,6,1,3,5,7) if interleaved else tuple(range(8))
         position={j:p for p,j in enumerate(order)}
+        pc_position={j:p for p,j in enumerate(dispatch_slot_order(cfg,width))}
         span = spans.get((r,group),1)
         fields = field_plans[r,group]
         field_index = {field:i for i,field in enumerate(fields)}
@@ -721,9 +769,9 @@ def build(config=None):
         if cfg["pc_address_pools"] and key == (3,1,1) and table+14 in address_vectors:
             offsets = address_vectors[table+14]
             for j in range(8):
-                assert scalar(table+14+8*position[j]) == lane(offsets,j)
+                assert scalar(table+14+8*pc_position[j]) == lane(offsets,j)
         elif (region_number==0 and cfg['pc_offset_madd'] and cases*span%8==0
-              and order==dispatch_lane_order(cfg,1)):
+              and dispatch_slot_order(cfg,width)==dispatch_slot_order(cfg,1)):
             scale=cases*span//8
             def anchor_cost(anchor):
                 delta=(table+14-scale*anchor)&MASK
@@ -737,7 +785,7 @@ def build(config=None):
         elif region_number == 0:
             offsets = g.new()
             for j in range(8):
-                op = g.emit(prefix + f"offset{j}", "load", ("const", lane(offsets, j), table + position[j]*cases*span), [], [(lane(offsets, j), 1)])
+                op = g.emit(prefix + f"offset{j}", "load", ("const", lane(offsets, j), table + pc_position[j]*cases*span), [], [(lane(offsets, j), 1)])
                 g.pc_constants.append(op)
         else:
             previous, previous_table = prev_offsets[key]
@@ -749,7 +797,7 @@ def build(config=None):
             assert width==span==1
             plus_one=pc_bit_groups[group]
             for j in range(8):
-                assert scalar(table+15+8*position[j])==lane(plus_one,j)
+                assert scalar(table+15+8*pc_position[j])==lane(plus_one,j)
             choice=select(bits[group][-1],plus_one,offsets,prefix+'bit_offset')
             targets=madd(pointers[group],vector(2),choice,prefix+'targets')
         elif fused:
@@ -781,10 +829,11 @@ def build(config=None):
                             and modes[r+1][group+s]=='prefetch')
         fetch = bool(fetch_streams)
         pair_row = r==14 and group in late_pairs or r==3 and group in early_pairs
+        quad_row = r==3 and group in quad_groups
         pair_pointers=None
         if fetch:
             children = list(reversed(adjusted_nodes[d+1]))
-            store_children = cfg["store_children"] and r in (2, 3, 4, 13, 14) and not pair_row
+            store_children = cfg["store_children"] and r in (2, 3, 4, 13, 14) and not (pair_row or quad_row)
             if store_children:
                 ordinal=temp_rank[r,group] if temp_rank is not None else len(g.regions)
                 buffer = ordinal % cfg["temp_buffers"] if cfg["temp_buffers"] else int(r == 14)
@@ -801,26 +850,36 @@ def build(config=None):
                     indices = reversed(indices)
                 memory_children = [scalar(bases[d+1]+j) for j in indices]
             for stream in fetch_streams:
-                if pair_row:
+                if pair_row or quad_row:
                     pair_nodes[r+1,group+stream]=[g.new(9),g.new(9)]
                 else:
                     prefetched[r+1, group+stream] = [g.new(), g.new()]
         if pair_row:
             assert fetch_streams==(0,1) and span==1
             pair_buffer=(early_pair_rank if r==3 else pair_rank)[group]%cfg['late_pair_buffers']
-            pair_base=2054+48*pair_buffer
+            pair_base=2054+quad_reserved+48*pair_buffer
             # Extended dispatches use the next input-backed buffer key. Pair
             # rows live in the index area and need a distinct ordering key.
             pair_buffer_key=regular_buffers+int(extended_words>0)+pair_buffer
             pair_pointers=[[scalar(pair_base+24*s+2*position[j]) for j in range(8)] for s in range(2)]
             pair_stores=[[],[]]
+        if quad_row:
+            assert width==span==1 and fetch_streams==(0,)
+            quad_buffer=quad_rank[group]%cfg['quad_row_buffers']
+            quad_base=2054+64*quad_buffer
+            quad_pointers=[[scalar(quad_base+offset+stride*position[j]) for j in range(8)]
+                           for offset,stride in ((0,2),(24,4))]
+            quad_stores=[[],[]]
+            quad_nodes[group]=[g.new() for _ in range(4)]
         grand_streams = [s for s in range(width) if r == 3 and group+s in cfg["prefetch5_groups"]]
         if grand_streams:
             assert width <= 2
             grand_nodes = list(reversed(adjusted_nodes[5]))
             for stream in grand_streams:
                 which=group+stream
-                if which in row_groups:
+                if quad_row:
+                    assert which==group
+                elif which in row_groups:
                     row_buffer=len(row_records)%cfg["grand_row_buffers"]
                     positive,negative=row_pointers[row_buffer]
                     if row_buffer not in row_columns:
@@ -867,6 +926,14 @@ def build(config=None):
                 xors.append((op, stream))
                 relative_times[op] = 1+p*span
                 if stream in fetch_streams:
+                    if quad_row:
+                        cache=children[::2]
+                        assert all(children[2*q+1]==lane(src,1) and src.off+8<=g.sizes[src.vid]
+                                   for q,src in enumerate(cache))
+                        dst=quad_pointers[0][j]
+                        op=g.emit(prefix+f'quad_child{j}','store',('lookup_pair_store',dst,q,*cache),
+                                  [(dst,1),(q,1),*[(src,2) for src in cache]],[])
+                        quad_stores[0].append(op);xors.append((op,stream));relative_times[op]=1+p
                     if pair_row:
                         cache=children[::2]
                         assert all(children[2*q+1]==lane(src,1) and src.off+8<=g.sizes[src.vid]
@@ -881,7 +948,7 @@ def build(config=None):
                         pair_stores[stream].append(op)
                         xors.append((op,stream))
                         relative_times[op]=1+p
-                    for child in (() if pair_row else range(2)):
+                    for child in (() if pair_row or quad_row else range(2)):
                         cache = children[child::2] if child == 0 or not prefetch_madd(r+1, group+stream) else child_diffs[d+1]
                         dst = lane(prefetched[r+1, group+stream][child], j)
                         field = ("child",stream,child)
@@ -913,6 +980,15 @@ def build(config=None):
                         xors.append((op, stream))
                         relative_times[op] = 1+p*span+(field_index[field]//2 if store_child else 0)
                 if stream in grand_streams:
+                    if quad_row:
+                        cache=grand_nodes[::4]
+                        assert all(grand_nodes[4*q+j]==lane(src,j) and src.off+8<=g.sizes[src.vid]
+                                   for q,src in enumerate(cache) for j in range(4))
+                        dst=quad_pointers[1][j]
+                        op=g.emit(prefix+f'quad_grand{j}','store',('lookup_quad_store',dst,q,*cache),
+                                  [(dst,1),(q,1),*[(src,4) for src in cache]],[])
+                        quad_stores[1].append(op);xors.append((op,stream));relative_times[op]=1+p
+                        continue
                     if group+stream in row_groups:
                         record=row_records[group+stream]
                         positive,negative=row_pointers[record['buffer']]
@@ -950,6 +1026,7 @@ def build(config=None):
             parts.append((xors, jump))
         g.units[start_unit:] = [[(op,relative_times[op]) for op in relative_times]]
         g.regions.append(dict(start=start, parts=parts, n=n, width=width, span=span, cases=cases, table=table, groups=list(range(group, group+width)), round=r))
+        if cfg['natural_pc_order']:g.regions[-1]['table_lanes']=[pc_position[j] for j in order]
         if fetch and store_children and fields:
             loads = []
             for i,(kind,stream,child) in enumerate(fields):
@@ -984,6 +1061,75 @@ def build(config=None):
             g.pair_rows.append(dict(round=r,group=group,base=pair_base,
                                     stores=[[g.names[i] for i in row] for row in pair_stores],
                                     loads=[g.names[i] for i in loads]))
+        if quad_row:
+            loads=[]
+            for row,(offset,stride,outputs) in enumerate(((0,2,pair_nodes[r+1,group]),
+                                                         (24,4,quad_nodes[group]))):
+                for block,dst in enumerate(outputs):
+                    begin=offset+8*block
+                    address=scalar(quad_base+begin)
+                    op=g.emit(prefix+f'quad_load{row}.{block}','load',('vload',dst,address),
+                              [(address,1)],[(dst,8)])
+                    g.control.extend((before,op,1) for p,before in enumerate(quad_stores[row])
+                                     if offset+stride*p<begin+8 and begin<offset+stride*p+8)
+                    loads.append((op,begin))
+            stores=[(op,offset+stride*p) for row,(offset,stride) in enumerate(((0,2),(24,4)))
+                    for p,op in enumerate(quad_stores[row])]
+            quad_records.append(dict(group=group,buffer=quad_buffer,loads=loads,stores=stores))
+            # If this producer is chained to another dispatch, the old child
+            # and grand block zero must both be read in its first store cycle.
+            g.regions[-1]['quad_loads']=[loads[i][0] for i in (0,2,1,3,4,5)]
+            g.quad_rows.append(dict(group=group,base=quad_base,
+                                   stores=[(g.names[i],off) for i,off in stores],
+                                   loads=[(g.names[i],off) for i,off in loads]))
+        return mixed
+
+    def quad_dispatch(groups,old_values,pointers):
+        """Select runtime cached quartets with up to three base-four digits."""
+        width=len(groups);cases=4**width;table=quad_tables[groups]
+        prefix=f'r5.g{groups[0]}.quad_dispatch.'
+        order=tuple(range(8)) if cfg['natural_pc_order'] else dispatch_lane_order(cfg,width)
+        position={j:p for p,j in enumerate((0,2,4,6,1,3,5,7))}
+        pc_position={j:p for p,j in enumerate(dispatch_slot_order(cfg,width))}
+        if width in quad_offsets:
+            previous,previous_table=quad_offsets[width]
+            offsets=binary('+',previous,vector(table-previous_table),prefix+'offsets',False)
+        elif cfg['pc_offset_madd'] and cases%8==0:
+            scale=cases//8;anchor=14
+            offsets=madd(address_vectors[anchor],vector(scale),vector(table+14-scale*anchor),prefix+'offsets')
+        else:
+            offsets=g.new()
+            for j in range(8):
+                op=g.emit(prefix+f'offset{j}','load',('const',lane(offsets,j),table+pc_position[j]*cases),
+                          [],[(lane(offsets,j),1)])
+                g.pc_constants.append(op)
+        quad_offsets[width]=offsets,table
+        selectors=[pointers[k] if cfg['quad_fold_path'] else
+                   madd(bits[k][-2],vector(2),bits[k][-1],prefix+f'selector{k}') for k in groups]
+        packed=selectors[0]
+        for stream,selector in enumerate(selectors[1:],1):
+            packed=madd(packed,vector(4),selector,prefix+f'pack{stream}')
+        targets=binary('+',packed,offsets,prefix+'targets',False)
+        mixed=[g.new() for _ in groups]
+        start_unit=len(g.units)
+        start=g.emit(prefix+'jump0','flow',('jump_indirect',targets),[(targets,1)],[])
+        relative={start:0};parts=[]
+        for p,j in enumerate(order):
+            lookups=[]
+            for stream,k in enumerate(groups):
+                src,q,dst=lane(old_values[k],j),lane(selectors[stream],j),lane(mixed[stream],j)
+                source=quad_nodes[k][position[j]//2]
+                cache=[lane(source,4*(position[j]%2)+choice) for choice in range(4)]
+                op=g.emit(prefix+f'xor{j}.{stream}','alu',('lookup_xor',dst,src,q,*cache),
+                          [(src,1),(q,1),*[(v,1) for v in cache]],[(dst,1)])
+                lookups.append((op,stream));relative[op]=p+1
+            slot=('jump_indirect',lane(targets,order[p+1])) if p<7 else ('jump',0)
+            jump=g.emit(prefix+f'jump{p+1}','flow',slot,[(slot[1],1)] if p<7 else [],[])
+            relative[jump]=p+1;parts.append((lookups,jump))
+        g.units[start_unit:]=[list(relative.items())]
+        g.regions.append(dict(start=start,parts=parts,n=4,width=width,span=1,cases=cases,
+                              table=table,groups=list(groups),round=5))
+        if cfg['natural_pc_order']:g.regions[-1]['table_lanes']=[pc_position[j] for j in order]
         return mixed
 
     if values is None:
@@ -1051,20 +1197,30 @@ def build(config=None):
                         node = select(bits[k][-1], yes, no, prefix + "prefetched_node")
                     value = binary("^", values[k], node, prefix + "mix")
             elif mode == "grand":
-                nodes = grandchildren[k]
-                left = select(bits[k][-2], nodes[2], nodes[0], prefix + "grand_left")
-                right = select(bits[k][-2], nodes[3], nodes[1], prefix + "grand_right")
-                node = select(bits[k][-1], right, left, prefix + "grand_node")
-                if k in row_groups:
-                    address=node
-                    node=g.new()
-                    for j in range(8):
-                        op=g.emit(prefix+f"grand_load{j}","load",
-                                  ("load",lane(node,j),lane(address,j)),
-                                  [(lane(address,j),1)],[(lane(node,j),1)])
-                        g.control.append((row_records[k]['stores'][j],op,1))
-                        row_records[k]['loads'].append(op)
-                value = binary("^", values[k], node, prefix + "mix")
+                if k in quad_groups:
+                    if k not in mixed_pairs:
+                        groups=next(groups for groups in quad_sets if k in groups)
+                        mixed_pairs.update(zip(groups,quad_dispatch(groups,old_values,ptrs)))
+                    value=mixed_pairs[k]
+                    if cfg['quad_fold_path']:
+                        ptrs[k]=madd(quad_parents[k],vector(4),ptrs[k],prefix+'quad_path')
+                    # The ordinary hash and later address update consume the
+                    # same full q5 coordinate as the unbuffered grand mode.
+                else:
+                    nodes = grandchildren[k]
+                    left = select(bits[k][-2], nodes[2], nodes[0], prefix + "grand_left")
+                    right = select(bits[k][-2], nodes[3], nodes[1], prefix + "grand_right")
+                    node = select(bits[k][-1], right, left, prefix + "grand_node")
+                    if k in row_groups:
+                        address=node
+                        node=g.new()
+                        for j in range(8):
+                            op=g.emit(prefix+f"grand_load{j}","load",
+                                      ("load",lane(node,j),lane(address,j)),
+                                      [(lane(address,j),1)],[(lane(node,j),1)])
+                            g.control.append((row_records[k]['stores'][j],op,1))
+                            row_records[k]['loads'].append(op)
+                    value = binary("^", values[k], node, prefix + "mix")
             elif r==5 and k in prefetch_pairs:
                 selected=[]
                 for block in range(2):
@@ -1197,6 +1353,13 @@ def build(config=None):
                 assert defer and next_state == "q"
                 ptrs[k], state[k] = bit, "q"
                 continue
+            if k in quad_groups and cfg['quad_fold_path']:
+                if r==3:
+                    quad_parents[k]=ptrs[k]
+                    continue
+                if r==4:
+                    ptrs[k]=madd(bits[k][-2],vector(2),bit,prefix+'path')
+                    continue
             if (r,k) in fold_path3:
                 assert depth==2 and modes[r+1][k]=='prefetch'
                 pass  # The next round forms the address from q2, b2, and b3.
@@ -1382,7 +1545,7 @@ def build(config=None):
             g.control.extend((before,op,0) for before in reads)
     if child_pairs:
         for offset in range(0,48*cfg['late_pair_buffers'],8):
-            address=scalar(2054+offset)
+            address=scalar(2054+quad_reserved+offset)
             zero=vector(0)
             op=g.emit(f'late_pair.clear{offset}','store',('vstore',address,zero),
                       [(address,1),(zero,8)],[])
@@ -1396,9 +1559,23 @@ def build(config=None):
                 g.control.extend((op,region['start'],-1-i//2)
                                  for i,op in enumerate(previous.get(buffer,())))
                 previous[buffer]=region['temp_loads']
+    if quad_groups:
+        previous={}
+        for record in sorted(quad_records,key=lambda row:quad_rank[row['group']]):
+            buffer=record['buffer']
+            for before,read in previous.get(buffer,()):
+                g.control.extend((before,after,0) for after,write in record['stores']
+                                 if read<write+8 and write<read+8)
+            previous[buffer]=record['loads']
+        for offset in range(0,64*cfg['quad_row_buffers'],8):
+            address=scalar(2054+offset);zero=vector(0)
+            clear=g.emit(f'quad_row.clear{offset}','store',('vstore',address,zero),
+                         [(address,1),(zero,8)],[])
+            g.control.extend((before,clear,0) for record in quad_records for before,_ in record['loads'])
     if temp_rank is not None:
         previous={}
-        for region in sorted(g.regions,key=lambda r:temp_rank[r['round'],r['groups'][0]]):
+        ranked=(r for r in g.regions if (r['round'],r['groups'][0]) in temp_rank)
+        for region in sorted(ranked,key=lambda r:temp_rank[r['round'],r['groups'][0]]):
             if not region.get('temp_loads'):
                 continue
             buffer=region['temp_buffer']
@@ -1437,8 +1614,8 @@ def build(config=None):
         # follows all eight stores; the next fill may share its read cycle.
         assert cfg['compact_heap'] and cfg['heap_io_backup'] and cfg['initial_zero_vector']
         assert 1 <= cfg['memory_vector_buffers'] <= 8
-        reserved=(72*cfg['grand_row_buffers'] if row_groups else
-                  48*cfg['late_pair_buffers'] if child_pairs else 0)
+        reserved=quad_reserved+(72*cfg['grand_row_buffers'] if row_groups else
+                               48*cfg['late_pair_buffers'] if child_pairs else 0)
         memory_base=2054+reserved
         assert memory_base+8*cfg['memory_vector_buffers'] <= 2294, 'Temporary rows overlap the shallow-node cache'
         eligible={name:i for i,(name,op) in enumerate(zip(g.names,g.ops))
@@ -1511,7 +1688,7 @@ def audit_pair_padding(g):
             assert inputs==[(lane(v,j),1) for v in (cond,yes,no) for j in (0,2,4,6)]
             assert all(v.off+8<=g.sizes[v.vid] for v in (dest,cond,yes,no))
             assert not {int(dest)+j for j in (1,3,5,7)}.intersection(observed)
-        elif slot[0]=='lookup_pair_store':
+        elif slot[0] in ('lookup_pair_store','lookup_quad_store'):
             assert engine=='store' and not outputs
             assert all(v.off+8<=g.sizes[v.vid] for v in slot[3:])
 
@@ -1556,6 +1733,7 @@ def eliminate_dead(g):
         r["start"] = ids[r["start"]]
         r["parts"] = [([(ids[i], stream) for i, stream in slots], ids[jump]) for slots, jump in r["parts"]]
         r["temp_loads"] = [ids[i] for i in r.get("temp_loads", ())]
+        r['quad_loads'] = [ids[i] for i in r.get('quad_loads',())]
 
 
 def merge_dispatch_regions(g, number):
@@ -1598,7 +1776,7 @@ def merge_dispatch_regions(g, number):
                 previous_exit = region["parts"][-1][1]
                 aliases[next_start] = previous_exit
                 g.ops[previous_exit] = [*g.ops[next_start][:4], g.ops[previous_exit][4]]
-                for load_index,i in enumerate(region.get("temp_loads", ())):
+                for load_index,i in enumerate(region.get('quad_loads') or region.get("temp_loads", ())):
                     removed_units.add(unit_of[i])
                     combined.append((i, relative_start+8*region.get("span",1)+1+load_index//2))
             relative_start += 8*region.get("span",1)
@@ -1622,6 +1800,7 @@ def merge_dispatch_regions(g, number):
         r["start"] = mapped(r["start"])
         r["parts"] = [([(mapped(i), stream) for i, stream in rows], mapped(jump)) for rows, jump in r["parts"]]
         r["temp_loads"] = [mapped(i) for i in r.get("temp_loads", ())]
+        r['quad_loads'] = [mapped(i) for i in r.get('quad_loads',())]
 
 
 def counts(g):
@@ -1923,7 +2102,8 @@ def lower(g, times, bases):
             assert int(times[jump]) == entry+(part+1)*span
             for phase in range(span):
                 cycle = entry+part*span+phase+1
-                pos = total + region["table"] + part*cases*span + phase
+                table_lane=region.get('table_lanes',range(8))[part]
+                pos = total + region["table"] + table_lane*cases*span + phase
                 replacements = {slots[i]: (i, stream) for i, stream in lookups if int(times[i])==cycle}
                 for choice in range(cases):
                     indices = [(choice//(n**(width-1-stream))) % n for stream in range(width)]
@@ -1942,7 +2122,7 @@ def lower(g, times, bases):
                                     slot = ("store", slot[1], slot[3+q])
                                 elif slot[0] == "lookup_vstore":
                                     slot = ("vstore",slot[2+(q&1)],slot[4+q])
-                                elif slot[0] == 'lookup_pair_store':
+                                elif slot[0] in ('lookup_pair_store','lookup_quad_store'):
                                     slot = ('vstore',slot[1],slot[3+q])
                                 else:
                                     assert slot[0] == "lookup_copy"
@@ -2116,7 +2296,7 @@ def verify_semantics(g, seeds=(0, 1)):
     times=np.arange(len(g.ops),dtype=np.int64)
     if (g.config.get('grand_row_groups') or g.config.get('late_pair_groups') or
             g.config.get('early_pair_groups') or g.config.get('memory_vectors') or
-            g.config.get('prefetch_pair_groups')):
+            g.config.get('prefetch_pair_groups') or g.config.get('quad_dispatch_groups')):
         # Row reuse introduces edges from a later round to an earlier-built
         # group. Interpret a dependency-valid logical timeline, with all reads
         # preceding same-cycle writes, instead of construction order.
@@ -2163,17 +2343,17 @@ def verify_semantics(g, seeds=(0, 1)):
                 address=values[int(negative if index&1 else positive)]
                 for j in range(8):
                     mem[address+j]=values[int(cache[index])+j]
-            elif op == 'lookup_pair_store':
+            elif op in ('lookup_pair_store','lookup_quad_store'):
                 dst,q,*cache=args
                 index=values[int(q)]
                 if op_id in g.lookup_bits:
                     index=2*index+values[int(g.lookup_bits[op_id])]
                 address=values[int(dst)]
                 for j in range(8):
-                    # Only the adjacent child pair is semantically retained.
+                    # Only the leading child pair or quartet is retained.
                     # Poison the other writes; later ordered stores/clears
                     # must eliminate them before any observed memory read.
-                    mem[address+j]=(values[int(cache[index])+j] if j<2 else
+                    mem[address+j]=(values[int(cache[index])+j] if j<(4 if op=='lookup_quad_store' else 2) else
                                     (0xa5a50000 ^ (index<<8) ^ j))
             elif op == "lookup_store":
                 dst, q, *cache = args

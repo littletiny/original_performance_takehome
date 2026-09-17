@@ -1,0 +1,31 @@
+{
+  "candidate": 129,
+  "parameters": [
+    11,
+    [
+      7
+    ],
+    4,
+    1,
+    1,
+    "all",
+    874
+  ],
+  "resource_bound": 923,
+  "static_bundles_at_899": 11784,
+  "engines": {
+    "valu": 5385,
+    "load": 1787,
+    "alu": 10770,
+    "store": 1022,
+    "flow": 873
+  },
+  "weighted_alu_valu": 53850,
+  "bound": 898,
+  "arithmetic_bound": 898,
+  "table_bundles": 11264,
+  "table_case_bundles": 11264,
+  "static_padding_bundles": 13,
+  "regions": 49,
+  "values": 8515
+}

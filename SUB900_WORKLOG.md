@@ -705,3 +705,44 @@ and merged chains have repeatedly traded arithmetic for poor LOAD readiness.
 A future mixed-radix selector fusion is not implemented; it would need an
 explicit producer-lifetime and table-placement design. Shared tables cannot
 simply discard their distinct background instructions. The <900 goal is unmet.
+
+## Packed grandchild quartets and independent PC placement
+
+The builder now has optional 64-word rows holding interleaved child pairs and
+eight runtime grandchild quartets. Two VSTOREs per producer lane replace the
+former child stores and four scalar grandchild copies. Ordered VLOADs recover
+the useful words; padding is fully allocated, poisoned in semantic checks and
+cleared in memory. Round 5 uses shared two/three-group base-four dispatch tables.
+The folded path preserves q3, forms `2*b3+b4`, and reconstructs q5 without adding
+a path MADD. This is a uniform base-four selector, not the previously proposed
+mixed-radix fusion.
+
+Quartet rows coexist with disjoint early/late child rows and memory broadcasts.
+Custom row order and chained producers preserve every old overlapping read.
+The lowerer/exporter can also keep ordinary PC vector order while handlers
+execute in the order required by interleaved stores. A real-machine test checks
+that mapping with non-unit case stride and a wrapped PC bias. Negative controls
+catch a delayed quartet read clobbered by buffer reuse, a source span missing
+padding, and row reservations overlapping the shallow cache.
+
+The 40-case quartet inventory and 16 PC/order follow-ups do not beat production.
+The best quartet kernel is fully frozen-verified at 916 / 10,929, W=54,455.
+A three-group natural-PC control is verified at 917 / 11,314, W=54,431. A combined
+quartet/child/chained-producer control is verified at 936 / 11,333, W=54,403.
+Twelve additional natural-PC child-row controls retain a verified 916 / 10,809,
+W=54,470. Each retained frozen control passes seeds 0–9, 20,480 hash checkpoints
+per seed, executed-PC mapping, outputs, all non-output memory and standalone
+expansion equality. All 35 research regressions pass.
+
+The 192-case joint inventory reaches W=53,850 (arithmetic bound 898), but that
+graph has resource-window bound 923. A different graph has bound 902 and
+W=53,924. None of twelve selected graphs retains an allocated schedule. Three
+diagnostic schedules have live-word peaks 1,623, 1,666 and 1,793, above the
+1,536-word limit. Those failed schedules are not cycle scores. A producer-first
+chain control passes semantic verification but worsens the window bound to 903.
+
+See `results/quad_dispatch_914/README.md` and `results/quad_joint_914/README.md`.
+The next useful change must address coupled group readiness and scratch
+lifetimes while preserving the work savings. Production remains the verified
+914-cycle / 10,807-bundle kernel, byte-for-byte unchanged, with the same saved
+SSA graph digest. The <900 goal remains active and unmet.

@@ -33,7 +33,8 @@ def negative_lag_graph():
 
 class ScheduleTests(unittest.TestCase):
     def test_permuted_absolute_pc_offsets_from_madd(self):
-        for order in (tuple(range(8)),(0,2,4,6,1,3,5,7)):
+        for order,natural in ((tuple(range(8)),False),((0,2,4,6,1,3,5,7),False),
+                              ((0,2,4,6,1,3,5,7),True)):
             graph=Graph();graph.config=dict(lane_allocation=True,compact_main=True,pc_address_pools=True)
             graph.total_table_words=192
             zero=graph.new();graph.initial_zero.append(zero)
@@ -46,8 +47,9 @@ class ScheduleTests(unittest.TestCase):
             graph.emit('choices','load',('vload',choices,zero),[(zero,1)],[(choices,8)])
             graph.emit('cache','load',('vload',cache,addr),[(addr,1)],[(cache,8)])
             position={j:p for p,j in enumerate(order)}
+            pc_position={j:j if natural else position[j] for j in range(8)}
             for j in range(8):
-                graph.emit(f'anchor{j}','load',('const',lane(anchor,j),14+8*position[j]),[],[(lane(anchor,j),1)])
+                graph.emit(f'anchor{j}','load',('const',lane(anchor,j),14+8*pc_position[j]),[],[(lane(anchor,j),1)])
             for name,dest,value in (('scale',scale,3),('bias',bias,((1<<32)-28))):
                 src=scalar(name+'_scalar',value)
                 graph.emit(name,'valu',('vbroadcast',dest,src),[(src,1)],[(dest,8)])
@@ -68,7 +70,8 @@ class ScheduleTests(unittest.TestCase):
                 jump=graph.emit(f'jump{p}','flow',slot,[(slot[1],1)] if p<7 else [],[])
                 relative.append((jump,3*(p+1)));parts.append(([(op,0)],jump))
             graph.units[first_unit:]=[relative]
-            graph.regions=[dict(start=start,parts=parts,n=8,width=1,cases=8,span=3,table=0)]
+            graph.regions=[dict(start=start,parts=parts,n=8,width=1,cases=8,span=3,table=0,
+                                table_lanes=[pc_position[j] for j in order])]
             graph.emit('output','store',('vstore',out,result),[(out,1),(result,8)],[])
             scheduler=Scheduler(graph)
             _,units,_=scheduler.search(iterations=5,seed=914,noise=.1)

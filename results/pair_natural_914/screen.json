@@ -1,0 +1,349 @@
+[
+  {
+    "candidate": 0,
+    "early": [],
+    "late": [
+      20,
+      24
+    ],
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5447,
+      "load": 1775,
+      "alu": 10894,
+      "store": 990,
+      "flow": 866
+    },
+    "weighted_alu_valu": 54470,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8171
+  },
+  {
+    "candidate": 1,
+    "early": [],
+    "late": [
+      16,
+      20,
+      24
+    ],
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5445,
+      "load": 1777,
+      "alu": 10894,
+      "store": 990,
+      "flow": 868
+    },
+    "weighted_alu_valu": 54454,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8173
+  },
+  {
+    "candidate": 2,
+    "early": [],
+    "late": [
+      8,
+      12,
+      16,
+      20,
+      24
+    ],
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5442,
+      "load": 1781,
+      "alu": 10886,
+      "store": 990,
+      "flow": 872
+    },
+    "weighted_alu_valu": 54422,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8177
+  },
+  {
+    "candidate": 3,
+    "early": [],
+    "late": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      20,
+      24
+    ],
+    "resource_bound": 909,
+    "engines": {
+      "valu": 5439,
+      "load": 1785,
+      "alu": 10878,
+      "store": 990,
+      "flow": 876
+    },
+    "weighted_alu_valu": 54390,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8181
+  },
+  {
+    "candidate": 4,
+    "early": [
+      24,
+      28
+    ],
+    "late": [
+      20,
+      24
+    ],
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5444,
+      "load": 1779,
+      "alu": 10886,
+      "store": 990,
+      "flow": 870
+    },
+    "weighted_alu_valu": 54438,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8175
+  },
+  {
+    "candidate": 5,
+    "early": [
+      24,
+      28
+    ],
+    "late": [
+      16,
+      20,
+      24
+    ],
+    "resource_bound": 910,
+    "engines": {
+      "valu": 5442,
+      "load": 1781,
+      "alu": 10886,
+      "store": 990,
+      "flow": 872
+    },
+    "weighted_alu_valu": 54422,
+    "bound": 908,
+    "arithmetic_bound": 908,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8177
+  },
+  {
+    "candidate": 6,
+    "early": [
+      24,
+      28
+    ],
+    "late": [
+      8,
+      12,
+      16,
+      20,
+      24
+    ],
+    "resource_bound": 909,
+    "engines": {
+      "valu": 5439,
+      "load": 1785,
+      "alu": 10878,
+      "store": 990,
+      "flow": 876
+    },
+    "weighted_alu_valu": 54390,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8181
+  },
+  {
+    "candidate": 7,
+    "early": [
+      24,
+      28
+    ],
+    "late": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      20,
+      24
+    ],
+    "resource_bound": 908,
+    "engines": {
+      "valu": 5436,
+      "load": 1789,
+      "alu": 10870,
+      "store": 990,
+      "flow": 880
+    },
+    "weighted_alu_valu": 54358,
+    "bound": 906,
+    "arithmetic_bound": 906,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8185
+  },
+  {
+    "candidate": 8,
+    "early": [
+      16,
+      20,
+      24,
+      28
+    ],
+    "late": [
+      20,
+      24
+    ],
+    "resource_bound": 909,
+    "engines": {
+      "valu": 5441,
+      "load": 1783,
+      "alu": 10878,
+      "store": 990,
+      "flow": 874
+    },
+    "weighted_alu_valu": 54406,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8179
+  },
+  {
+    "candidate": 9,
+    "early": [
+      16,
+      20,
+      24,
+      28
+    ],
+    "late": [
+      16,
+      20,
+      24
+    ],
+    "resource_bound": 909,
+    "engines": {
+      "valu": 5439,
+      "load": 1785,
+      "alu": 10878,
+      "store": 990,
+      "flow": 876
+    },
+    "weighted_alu_valu": 54390,
+    "bound": 907,
+    "arithmetic_bound": 907,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8181
+  },
+  {
+    "candidate": 10,
+    "early": [
+      16,
+      20,
+      24,
+      28
+    ],
+    "late": [
+      8,
+      12,
+      16,
+      20,
+      24
+    ],
+    "resource_bound": 908,
+    "engines": {
+      "valu": 5436,
+      "load": 1789,
+      "alu": 10870,
+      "store": 990,
+      "flow": 880
+    },
+    "weighted_alu_valu": 54358,
+    "bound": 906,
+    "arithmetic_bound": 906,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8185
+  },
+  {
+    "candidate": 11,
+    "early": [
+      16,
+      20,
+      24,
+      28
+    ],
+    "late": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      20,
+      24
+    ],
+    "resource_bound": 908,
+    "engines": {
+      "valu": 5433,
+      "load": 1793,
+      "alu": 10862,
+      "store": 990,
+      "flow": 884
+    },
+    "weighted_alu_valu": 54326,
+    "bound": 906,
+    "arithmetic_bound": 906,
+    "table_bundles": 10240,
+    "table_case_bundles": 9600,
+    "static_padding_bundles": 653,
+    "regions": 45,
+    "values": 8189
+  }
+]
